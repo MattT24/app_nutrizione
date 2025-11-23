@@ -2,11 +2,15 @@ package it.nutrizionista.restnutrizionista.mapper;
 
 import java.util.stream.Collectors;
 
+import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
+import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
 import it.nutrizionista.restnutrizionista.dto.GruppoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
 import it.nutrizionista.restnutrizionista.dto.RuoloDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
+import it.nutrizionista.restnutrizionista.entity.Appuntamento;
+import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Gruppo;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
@@ -214,7 +218,88 @@ public class DtoMapper {
         return r;
     }
 	
+	
+	
+	//mapper per l'entità appuntamento
+	
+
+	public static AppuntamentoDto toAppuntamentoDto(Appuntamento appuntamento) {
+	    if (appuntamento == null) {
+	        return null;
+	    }
+
+	    AppuntamentoDto dto = new AppuntamentoDto();
+	    dto.setId(appuntamento.getId());
+	    dto.setNutrizionistaId(appuntamento.getNutrizionista().getId());
+	    dto.setNutrizionistaNome(appuntamento.getNutrizionista().getNome());
+	    dto.setNutrizionistaCognome(appuntamento.getNutrizionista().getCognome());
+	    dto.setClienteId(appuntamento.getCliente().getId());
+	    dto.setClienteNome(appuntamento.getCliente().getNome());
+	    dto.setClienteCognome(appuntamento.getCliente().getCognome());
+	    dto.setDescrizioneAppuntamento(appuntamento.getDescrizioneAppuntamento());
+	    dto.setData(appuntamento.getData());
+	    dto.setOra(appuntamento.getOra());
+	    dto.setModalita(appuntamento.getModalita());
+	    dto.setStato(appuntamento.getStato());
+	    dto.setLuogo(appuntamento.getLuogo());
+	    dto.setEmailCliente(appuntamento.getEmailCliente());
+	    dto.setCreatedAt(appuntamento.getCreatedAt());
+	    dto.setUpdatedAt(appuntamento.getUpdatedAt());
+
+	    return dto;
+	}
 
 	
+	public static Appuntamento toAppuntamento(AppuntamentoFormDto formDTO, Utente nutrizionista, Cliente cliente) {
+	    if (formDTO == null) {
+	        return null;
+	    }
+
+	    Appuntamento appuntamento = new Appuntamento();
+	    appuntamento.setNutrizionista(nutrizionista);
+	    appuntamento.setCliente(cliente);
+	    appuntamento.setDescrizioneAppuntamento(formDTO.getDescrizioneAppuntamento());
+	    appuntamento.setData(formDTO.getData());
+	    appuntamento.setOra(formDTO.getOra());
+	    appuntamento.setModalita(formDTO.getModalita());
+	    appuntamento.setStato(formDTO.getStato() != null ? formDTO.getStato() : Appuntamento.StatoAppuntamento.PROGRAMMATO);
+	    appuntamento.setLuogo(formDTO.getLuogo());
+	    
+	    
+	    String emailCliente = formDTO.getEmailCliente() != null ? 
+	            formDTO.getEmailCliente() : cliente.getEmail();
+	    appuntamento.setEmailCliente(emailCliente);
+
+	    return appuntamento;
+	}
+
+	
+	public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDTO) {
+	    if (appuntamento == null || formDTO == null) {
+	        return;
+	    }
+
+	    if (formDTO.getDescrizioneAppuntamento() != null) {
+	        appuntamento.setDescrizioneAppuntamento(formDTO.getDescrizioneAppuntamento());
+	    }
+	    if (formDTO.getData() != null) {
+	        appuntamento.setData(formDTO.getData());
+	    }
+	    if (formDTO.getOra() != null) {
+	        appuntamento.setOra(formDTO.getOra());
+	    }
+	    if (formDTO.getModalita() != null) {
+	        appuntamento.setModalita(formDTO.getModalita());
+	    }
+	    if (formDTO.getStato() != null) {
+	        appuntamento.setStato(formDTO.getStato());
+	    }
+	    if (formDTO.getLuogo() != null) {
+	        appuntamento.setLuogo(formDTO.getLuogo());
+	    }
+	    if (formDTO.getEmailCliente() != null) {
+	        appuntamento.setEmailCliente(formDTO.getEmailCliente());
+	    }
+	}
 	
 }
