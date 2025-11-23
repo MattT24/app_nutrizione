@@ -42,6 +42,16 @@ public class AppuntamentoFormDto {
 
     public void setClienteCognome(String clienteCognome) {
         this.clienteCognome = clienteCognome;
+    }
+
+    public String getDescrizioneAppuntamento() {
+        return descrizioneAppuntamento;
+    }
+
+    public void setDescrizioneAppuntamento(String descrizioneAppuntamento) {
+        this.descrizioneAppuntamento = descrizioneAppuntamento;
+    }
+
     public LocalDate getData() {
         return data;
     }
