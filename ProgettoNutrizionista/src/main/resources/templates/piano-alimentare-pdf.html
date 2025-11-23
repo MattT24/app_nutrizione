@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="it">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Piano Alimentare</title>
+    <style>
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            font-size: 11pt;
+            color: #2c3e50;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 10px;
+        }
+
+        /* Header */
+        .header {
+            background-color: #667eea;
+            color: white;
+            padding: 20px;
+            border-radius: 6px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 22pt;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            font-size: 10pt;
+        }
+
+        /* Patient info */
+        .patient-info, .goals-section, .notes-section {
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+        }
+
+        .patient-info {
+            background-color: #f8f9fa;
+            border-left: 4px solid #667eea;
+        }
+
+        .patient-info h2, .goals-section h2, .notes-section h2 {
+            font-size: 14pt;
+            margin-bottom: 8px;
+        }
+
+        .info-grid {
+            width: 100%;
+        }
+
+        .info-row {
+            margin-bottom: 4px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            display: inline-block;
+            width: 30%;
+        }
+
+        .info-value {
+            display: inline-block;
+            width: 65%;
+        }
+
+        /* Goals */
+        .goals-section {
+            background-color: #e8f5e9;
+            border-left: 4px solid #4caf50;
+        }
+
+        .calories-box {
+            margin-top: 5px;
+            padding: 5px 10px;
+            border: 2px solid #4caf50;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .calories-box strong {
+            font-size: 14pt;
+            color: #2e7d32;
+        }
+
+        /* Notes */
+        .notes-section {
+            background-color: #fff3e0;
+            border-left: 4px solid #ff9800;
+        }
+
+        /* Days and meals */
+        .day-section {
+            margin-bottom: 15px;
+            page-break-inside: avoid;
+        }
+
+        .day-header {
+            background-color: #667eea;
+            color: white;
+            padding: 8px;
+            border-radius: 4px 4px 0 0;
+            font-size: 12pt;
+            font-weight: bold;
+        }
+
+        .meals-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+
+        .meals-table th, .meals-table td {
+            border: 1px solid #ddd;
+            padding: 6px;
+            font-size: 9pt;
+        }
+
+        .meals-table th {
+            background-color: #f5f7fa;
+            font-weight: bold;
+        }
+
+        .macro-item {
+            display: inline-block;
+            padding: 2px 5px;
+            margin: 2px 1px 2px 0;
+            border-radius: 6px;
+            font-size: 8pt;
+        }
+
+        .macro-calories { background: #e3f2fd; color: #1565c0; }
+        .macro-protein { background: #fce4ec; color: #c2185b; }
+        .macro-carbs { background: #fff3e0; color: #ef6c00; }
+        .macro-fat { background: #f3e5f5; color: #7b1fa2; }
+
+        /* Day summary */
+        .day-summary {
+            background-color: #f5f7fa;
+            padding: 8px;
+            border-radius: 0 0 4px 4px;
+            font-size: 9pt;
+        }
+
+        .summary-item {
+            display: inline-block;
+            width: 23%;
+            text-align: center;
+        }
+
+        .summary-label { font-weight: bold; }
+        .summary-value { font-weight: bold; }
+
+        /* Footer */
+        .footer {
+            margin-top: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #ddd;
+            font-size: 8pt;
+            color: #999;
+            text-align: center;
+        }
+
+        .page-break {
+            page-break-after: always;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <h1>Piano Alimentare Personalizzato</h1>
+        <p>Studio di Nutrizione - Dott. [Nome Nutrizionista]</p>
+    </div>
+
+    <!-- PATIENT INFO -->
+    <div class="patient-info">
+        <h2>Informazioni Paziente</h2>
+        <div class="info-grid">
+            <div class="info-row">
+                <span class="info-label">Nome Completo:</span>
+                <span class="info-value" th:text="${paziente.nome + ' ' + paziente.cognome}"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Data di Nascita:</span>
+                <span class="info-value" th:text="${#temporals.format(paziente.dataNascita, 'dd/MM/yyyy')}"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Codice Fiscale:</span>
+                <span class="info-value" th:text="${paziente.codiceFiscale}"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value" th:text="${paziente.email}"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Telefono:</span>
+                <span class="info-value" th:text="${paziente.telefono}"></span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Data Piano:</span>
+                <span class="info-value" th:text="${dataCreazione}"></span>
+            </div>
+            <div class="info-row" th:if="${dataInizio != null and dataFine != null}">
+                <span class="info-label">Periodo Validità:</span>
+                <span class="info-value" th:text="${dataInizio + ' - ' + dataFine}"></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- GOALS -->
+    <div class="goals-section">
+        <h2>Obiettivi Nutrizionali</h2>
+        <p th:text="${piano.obiettivo}"></p>
+        <div class="calories-box">
+            <strong th:text="${piano.calorieGiornaliere}"></strong> kcal
+        </div>
+    </div>
+
+    <!-- NOTES -->
+    <div class="notes-section" th:if="${piano.note != null and !piano.note.isEmpty()}">
+        <h2>Note e Raccomandazioni</h2>
+        <p th:text="${piano.note}"></p>
+    </div>
+
+    <!-- DAYS -->
+    <div th:each="giorno, iterStat : ${giorni}" class="day-section">
+        <div class="day-header">
+            <span th:text="${giorno.nomeGiorno} + ' - Giorno ' + ${giorno.numeroGiorno}"></span>
+        </div>
+
+        <table class="meals-table">
+            <thead>
+                <tr>
+                    <th>Pasto</th>
+                    <th>Ora</th>
+                    <th>Alimenti</th>
+                    <th>Macronutrienti</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="pasto : ${giorno.pasti}">
+                    <td th:text="${pasto.tipoPasto}"></td>
+                    <td th:text="${pasto.orario}"></td>
+                    <td th:text="${pasto.descrizione}"></td>
+                    <td>
+                        <span class="macro-item macro-calories" th:text="${pasto.calorie + ' kcal'}"></span>
+                        <span class="macro-item macro-protein" th:text="'P: ' + ${#numbers.formatDecimal(pasto.proteine,1,1)} + 'g'"></span>
+                        <span class="macro-item macro-carbs" th:text="'C: ' + ${#numbers.formatDecimal(pasto.carboidrati,1,1)} + 'g'"></span>
+                        <span class="macro-item macro-fat" th:text="'G: ' + ${#numbers.formatDecimal(pasto.grassi,1,1)} + 'g'"></span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="day-summary">
+            <div class="summary-item">
+                <span class="summary-label">Calorie</span>
+                <div class="summary-value" th:text="${giorno.getTotaleCalorie()}"></div>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Proteine</span>
+                <div class="summary-value" th:text="${#numbers.formatDecimal(giorno.getTotaleProteine(),1,1)}"></div>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Carboidrati</span>
+                <div class="summary-value" th:text="${#numbers.formatDecimal(giorno.getTotaleCarboidrati(),1,1)}"></div>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Grassi</span>
+                <div class="summary-value" th:text="${#numbers.formatDecimal(giorno.getTotaleGrassi(),1,1)}"></div>
+            </div>
+        </div>
+
+        <div th:if="${iterStat.index % 2 == 1 and !iterStat.last}" class="page-break"></div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+        <p>Studio di Nutrizione - Via Example 123, 00100 Roma</p>
+        <p>Tel: +39 06 1234567 | email@studio.it | P.IVA: 12345678901</p>
+        <p style="font-style: italic;">Questo piano è personale e non può essere utilizzato da altri.</p>
+    </div>
+
+</div>
+</body>
+</html>
