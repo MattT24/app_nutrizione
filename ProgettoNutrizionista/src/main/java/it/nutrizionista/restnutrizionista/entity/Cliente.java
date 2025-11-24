@@ -36,6 +36,9 @@ public class Cliente {
     @Column(name = "codice_fiscale", nullable = false, unique = true)
     private String codiceFiscale;
     
+    @Column(nullable = false, unique = true)
+    private String email;
+    
     @Column(nullable = false, name = "data_nascita") private LocalDate dataNascita;
     @Column(nullable = false) private double peso;
     @Column(nullable = false) private int altezza;
@@ -92,6 +95,13 @@ public class Cliente {
 	}
 	public void setCodiceFiscale(String codiceFiscale) {
 		this.codiceFiscale = codiceFiscale;
+	}
+	
+	public String getEmail() {
+	    return email;
+	}
+	public void setEmail(String email) {
+	    this.email = email;
 	}
 	
 	public LocalDate getDataNascita() {
