@@ -16,8 +16,6 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import it.nutrizionista.restnutrizionista.security.JwtAuthFilter;
 import it.nutrizionista.restnutrizionista.security.UserDetailsServiceImpl;
 
-
-import org.springframework.security.core.userdetails.UserDetailsService;
 /**
  * Configurazione Spring Security con JWT stateless e @PreAuthorize.
  */
