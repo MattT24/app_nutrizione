@@ -4,7 +4,9 @@ import java.util.stream.Collectors;
 
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.GruppoDto;
+import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
 import it.nutrizionista.restnutrizionista.dto.RuoloDto;
@@ -12,6 +14,7 @@ import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Gruppo;
+import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.RuoloPermesso;
@@ -218,10 +221,45 @@ public class DtoMapper {
         return r;
     }
 	
+	//mapper per l'entità Cliente
+	
+	private static ClienteDto toClienteDto(Cliente c) {
+	    if (c == null) {
+	        return null;
+	    }
+	    ClienteDto dto = new ClienteDto();
+	    dto.setId(c.getId());
+	    dto.setAltezza(c.getAltezza());
+	    dto.setAssunzioneFarmaci(c.getAssunzioneFarmaci());
+	    dto.setBeveAlcol(c.getBeveAlcol());
+	    dto.setCodiceFiscale(c.getCodiceFiscale());
+	    dto.setCognome(c.getCognome());
+	    dto.setEmail(c.getEmail());
+	    dto.setDataNascita(c.getDataNascita());
+	    dto.setProblematicheSalutari(c.getProblematicheSalutari());
+	    dto.setCreatedAt(c.getCreatedAt());
+	    dto.setFunzioniIntestinali(c.getFunzioniIntestinali());
+	    dto.setIntolleranze(c.getIntolleranze());
+	    dto.setMisurazioni(toMisurazioneDto(c.getMisurazioni()));
+	    dto.setNome(c.getNome());
+	    dto.setNumAllenamentiSett(c.getNumAllenamentiSett());
+	    dto.setNutrizionista(toUtenteDto(c.getNutrizionista()));
+	    dto.setPeso(c.getPeso());
+	    dto.setProblematicheSalutari(c.getProblematicheSalutari());
+	    dto.setUpdatedAt(c.getUpdatedAt());
+	    
+		return dto;
+	    
+	}
 	
 	
 	//mapper per l'entità appuntamento
 	
+
+	private static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica misurazioni) {
+
+		return null;
+	}
 
 	public static AppuntamentoDto toAppuntamentoDto(Appuntamento appuntamento) {
 	    if (appuntamento == null) {

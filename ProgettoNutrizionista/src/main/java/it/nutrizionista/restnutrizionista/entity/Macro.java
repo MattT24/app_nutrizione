@@ -36,7 +36,6 @@ public class Macro {
     private Double proteine;
     @Column(nullable = false)
     private Double carboidrati;
-        
     @CreatedDate
     @Column(nullable = false) 
     private Instant createdAt;
