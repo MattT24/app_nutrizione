@@ -12,6 +12,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -29,7 +31,8 @@ public class Cliente {
 	
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
- 
+    @Enumerated(EnumType.STRING)
+	private Sesso sesso;
     @Column(nullable = false) private String nome;
     @Column(nullable = false) private String cognome;
  
@@ -209,6 +212,12 @@ public class Cliente {
 	}
 	public void setTelefono(String telefono) {
 		this.telefono = telefono;
+	}
+	public Sesso getSesso() {
+		return sesso;
+	}
+	public void setSesso(Sesso sesso) {
+		this.sesso = sesso;
 	}
 	
 	

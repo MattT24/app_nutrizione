@@ -16,8 +16,9 @@ import org.springframework.web.bind.annotation.RestController;
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
+import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.service.ClienteService;
-import it.social.restsocial.dto.PageResponse;
+
 import jakarta.validation.Valid;
 
 @CrossOrigin(origins = "http://localhost:4200")
@@ -34,13 +35,6 @@ public class ClienteController {
         return ResponseEntity.status(201).body(create);
     }
 	
-	@GetMapping("/dettaglio")
-	@PreAuthorize("hasAuthority('CLIENTE_DETTAGLIO')")
-	public ResponseEntity<ClienteDto> dettaglio(@RequestBody IdRequest id){
-		var dto = service.dettaglio(id.getId());
-		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
-    }
-	
 	@PutMapping
     @PreAuthorize("hasAuthority('CLIENTE_UPDATE')")
 	public ResponseEntity<ClienteDto> update(@Valid @RequestBody ClienteFormDto form){
@@ -48,24 +42,40 @@ public class ClienteController {
         return ResponseEntity.status(201).body(updated);
     }
 
-	 @DeleteMapping
-	 @PreAuthorize("hasAuthority('CLIENTE_DELETE')")
+	@DeleteMapping
+	@PreAuthorize("hasAuthority('CLIENTE_DELETE')")
 	public ResponseEntity<Void> delete(@Valid @RequestBody IdRequest req) {
 		service.delete(req.getId());
 		return ResponseEntity.noContent().build();
-	
 	}
-	 @GetMapping
-	 @PreAuthorize("hasAuthority('POST_READ')")
-	 public PageResponse<ClienteDto> listAll(Pageable pageable){ 
-		 return service.listAll(pageable);
-	 }
-	 
+	
+	@GetMapping
+	@PreAuthorize("hasAuthority('CLIENTE_READ')")
+	public PageResponse<ClienteDto> allMyClienti(Pageable pageable){ 
+		return service.listAll(pageable);
+	} 
 	
 	@GetMapping("/byId")
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
 	public ResponseEntity<ClienteDto> getById(@Valid @RequestBody IdRequest req){
 		var dto = service.getById(req.getId());
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+	}
+	
+	@GetMapping("/byNome")
+	@PreAuthorize("hasAuthority('CLIENTE_READ')")
+	public ResponseEntity<ClienteDto> getByNome(@Valid @RequestBody String nome){
+		var dto = service.getByNome(nome);
+		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	 }
+	
+	@GetMapping("/dettaglio")
+	@PreAuthorize("hasAuthority('CLIENTE_DETTAGLIO')")
+	public ResponseEntity<ClienteDto> dettaglio(@RequestBody IdRequest id){
+		var dto = service.dettaglio(id.getId());
+		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+	}
+	
+	//manca cliente Fabbisogno, da studiare un attimo
+	
 }

@@ -1,12 +1,16 @@
 package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.LocalDate;
+
+import it.nutrizionista.restnutrizionista.entity.Sesso;
 import jakarta.validation.constraints.NotBlank;
 
 public class ClienteFormDto {
 
 	private Long id;
 
+    @NotBlank(message = "Il sesso è obbligatorio")
+	private Sesso sesso;
     @NotBlank(message = "Il nome è obbligatorio")
     private String nome;
 

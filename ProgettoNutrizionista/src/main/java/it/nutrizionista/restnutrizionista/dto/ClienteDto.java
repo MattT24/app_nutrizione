@@ -4,11 +4,14 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+import it.nutrizionista.restnutrizionista.entity.Sesso;
+
 
 
 public class ClienteDto {
 	
 	private Long id;
+	private Sesso sesso;
     private String nome;
     private String cognome;
     private String codiceFiscale;
@@ -165,6 +168,12 @@ public class ClienteDto {
 	}
 	public void setTelefono(String telefono) {
 		this.telefono = telefono;
+	}
+	public Sesso getSesso() {
+		return sesso;
+	}
+	public void setSesso(Sesso sesso) {
+		this.sesso = sesso;
 	}
 	
 	

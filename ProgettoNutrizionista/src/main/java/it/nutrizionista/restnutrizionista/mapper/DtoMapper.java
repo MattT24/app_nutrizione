@@ -228,13 +228,14 @@ public class DtoMapper {
     }
 	
 	//mapper per l'entità Cliente
-	
+	//mapper cliente completo
 	public static ClienteDto toClienteDto(Cliente c) {
 	    if (c == null) {
 	        return null;
 	    }
 	    ClienteDto dto = new ClienteDto();
 	    dto.setId(c.getId());
+	    dto.setSesso(c.getSesso());
 	    dto.setAltezza(c.getAltezza());
 	    dto.setAssunzioneFarmaci(c.getAssunzioneFarmaci());
 	    dto.setTelefono(c.getTelefono());
@@ -258,7 +259,18 @@ public class DtoMapper {
 		return dto;
 	    
 	}
-	
+	//mapper cliente con solo le cose essenziali, vedete se aggiungere info
+	public static ClienteDto toClienteDtoLight(Cliente c) {
+	    if (c == null) {
+	        return null;
+	    }
+	    ClienteDto dto = new ClienteDto();
+	    dto.setId(c.getId());
+	    dto.setNome(c.getNome());
+	    dto.setCognome(c.getCognome());	    
+		return dto;
+	    
+	}
 	
 	public static SchedaDto toSchedaDto(Scheda s) {
 		if (s == null) {
