@@ -2,8 +2,6 @@ package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.util.List;
-
 /** DTO di lettura per Utente (include il Ruolo come DTO). */
 public class UtenteDto {
     private Long id;
@@ -15,6 +13,7 @@ public class UtenteDto {
     private String telefono;
     private String indirizzo;
     private RuoloDto ruolo;
+    private String filePathLogo;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -40,6 +39,12 @@ public class UtenteDto {
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
     public Instant getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+	public String getFilePathLogo() {
+		return filePathLogo;
+	}
+	public void setFilePathLogo(String filePathLogo) {
+		this.filePathLogo = filePathLogo;
+	}
 
     
 }
