@@ -1,8 +1,6 @@
 package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
-import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
-import it.nutrizionista.restnutrizionista.entity.Cliente;
 
 
 public class AlimentoDaEvitareDto {

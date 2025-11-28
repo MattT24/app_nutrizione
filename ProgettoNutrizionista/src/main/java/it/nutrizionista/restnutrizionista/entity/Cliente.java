@@ -39,6 +39,9 @@ public class Cliente {
     @Column(nullable = false, unique = true)
     private String email;
     
+    
+    private String telefono;
+    
     @Column(nullable = false, name = "data_nascita") private LocalDate dataNascita;
     @Column(nullable = false) private double peso;
     @Column(nullable = false) private int altezza;
@@ -48,7 +51,7 @@ public class Cliente {
     @Column(nullable = false, name = "problematiche_salutari") private String problematicheSalutari;
     @Column(nullable = false, name = "quantita_qualita_sonno") private String quantitaEQualitaDelSonno;
     @Column(nullable = false, name = "assunzione_farmaci") private String assunzioneFarmaci;
-    @Column(nullable = false, name = "beve_alcon") private Boolean beveAlcol;
+    @Column(nullable = false, name = "beve_alcol") private Boolean beveAlcol;
     
     @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<AlimentoDaEvitare> alimentiDaEvitare;
@@ -200,6 +203,12 @@ public class Cliente {
 	}
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+	public String getTelefono() {
+		return telefono;
+	}
+	public void setTelefono(String telefono) {
+		this.telefono = telefono;
 	}
 	
 	

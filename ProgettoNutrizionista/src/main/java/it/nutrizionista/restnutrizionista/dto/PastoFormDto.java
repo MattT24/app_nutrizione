@@ -1,11 +1,10 @@
 package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.LocalTime;
-import java.util.List;
 
 import it.nutrizionista.restnutrizionista.entity.NomePasto;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Past;
+
 
 public class PastoFormDto {
 

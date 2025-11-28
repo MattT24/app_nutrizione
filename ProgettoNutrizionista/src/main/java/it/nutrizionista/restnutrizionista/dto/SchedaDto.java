@@ -3,22 +3,11 @@ package it.nutrizionista.restnutrizionista.dto;
 import java.time.Instant;
 import java.util.List;
 
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-
-import it.nutrizionista.restnutrizionista.entity.Cliente;
-import it.nutrizionista.restnutrizionista.entity.Pasto;
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
 
 public class SchedaDto {
 
 	private Long id;
-	private Cliente cliente;
+	private ClienteDto cliente;
     private Boolean attiva;
     private List<PastoDto> pasti;
     private Instant createdAt; 
@@ -29,12 +18,7 @@ public class SchedaDto {
 	public void setId(Long id) {
 		this.id = id;
 	}
-	public Cliente getCliente() {
-		return cliente;
-	}
-	public void setCliente(Cliente cliente) {
-		this.cliente = cliente;
-	}
+
 	public Boolean getAttiva() {
 		return attiva;
 	}
@@ -58,6 +42,12 @@ public class SchedaDto {
 	}
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+	public ClienteDto getCliente() {
+		return cliente;
+	}
+	public void setCliente(ClienteDto cliente) {
+		this.cliente = cliente;
 	}
     
 }

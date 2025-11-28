@@ -1,8 +1,6 @@
 package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.LocalDate;
-import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
-import it.nutrizionista.restnutrizionista.entity.Utente;
 import jakarta.validation.constraints.NotBlank;
 
 public class ClienteFormDto {
@@ -14,6 +12,7 @@ public class ClienteFormDto {
 
     @NotBlank(message = "Il cognome è obbligatorio")
     private String cognome;
+    private String telefono;
     private String codiceFiscale;
     private String email;
     private LocalDate dataNascita;
@@ -130,6 +129,12 @@ public class ClienteFormDto {
 	}
 	public void setNutrizionista(UtenteDto nutrizionista) {
 		this.nutrizionista = nutrizionista;
+	}
+	public String getTelefono() {
+		return telefono;
+	}
+	public void setTelefono(String telefono) {
+		this.telefono = telefono;
 	}
 
     

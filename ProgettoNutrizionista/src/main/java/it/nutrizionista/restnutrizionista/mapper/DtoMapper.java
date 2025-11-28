@@ -10,6 +10,7 @@ import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
 import it.nutrizionista.restnutrizionista.dto.RuoloDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
@@ -18,6 +19,7 @@ import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.RuoloPermesso;
+import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 
 /**
@@ -159,6 +161,7 @@ public class DtoMapper {
         dto.setTelefono(u.getTelefono());
         dto.setIndirizzo(u.getIndirizzo());
         dto.setRuolo(toRuoloDtoLight(u.getRuolo())); // ruolo light
+        dto.setFilePathLogo(u.getFilePathLogo());
         dto.setCreatedAt(u.getCreatedAt());
         dto.setUpdatedAt(u.getUpdatedAt());
         return dto;
@@ -174,6 +177,7 @@ public class DtoMapper {
         dto.setDataNascita(u.getDataNascita());
         dto.setTelefono(u.getTelefono());
         dto.setIndirizzo(u.getIndirizzo());
+        dto.setFilePathLogo(u.getFilePathLogo());
         dto.setCreatedAt(u.getCreatedAt());
         dto.setUpdatedAt(u.getUpdatedAt());
         return dto;
@@ -190,6 +194,7 @@ public class DtoMapper {
         u.setTelefono(dto.getTelefono());
         u.setIndirizzo(dto.getIndirizzo());
         u.setRuolo(toRuoloLight(dto.getRuolo())); // ruolo light
+        u.setFilePathLogo(dto.getFilePathLogo());
         u.setCreatedAt(dto.getCreatedAt());
         u.setUpdatedAt(dto.getUpdatedAt());
         return u;
@@ -205,6 +210,7 @@ public class DtoMapper {
         u.setDataNascita(dto.getDataNascita());
         u.setTelefono(dto.getTelefono());
         u.setIndirizzo(dto.getIndirizzo());
+        u.setFilePathLogo(dto.getFilePathLogo());
         u.setCreatedAt(dto.getCreatedAt());
         u.setUpdatedAt(dto.getUpdatedAt());
         return u;
@@ -223,7 +229,7 @@ public class DtoMapper {
 	
 	//mapper per l'entità Cliente
 	
-	private static ClienteDto toClienteDto(Cliente c) {
+	public static ClienteDto toClienteDto(Cliente c) {
 	    if (c == null) {
 	        return null;
 	    }
@@ -231,6 +237,7 @@ public class DtoMapper {
 	    dto.setId(c.getId());
 	    dto.setAltezza(c.getAltezza());
 	    dto.setAssunzioneFarmaci(c.getAssunzioneFarmaci());
+	    dto.setTelefono(c.getTelefono());
 	    dto.setBeveAlcol(c.getBeveAlcol());
 	    dto.setCodiceFiscale(c.getCodiceFiscale());
 	    dto.setCognome(c.getCognome());
@@ -253,13 +260,25 @@ public class DtoMapper {
 	}
 	
 	
-	//mapper per l'entità appuntamento
+	public static SchedaDto toSchedaDto(Scheda s) {
+		if (s == null) {
+	        return null;
+	    }
+		SchedaDto dto = new SchedaDto();
+		dto.setId(s.getId());
+		dto.setAttiva(s.getAttiva());
+		dto.setCliente(toClienteDto(s.getCliente()));
+		dto.setCreatedAt(s.getCreatedAt());
+		dto.setUpdatedAt(s.getUpdatedAt());
+		return dto;
+	}
 	
 
-	private static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica misurazioni) {
+	public static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica misurazioni) {
 
 		return null;
 	}
+	//mapper per l'entità appuntamento
 
 	public static AppuntamentoDto toAppuntamentoDto(Appuntamento appuntamento) {
 	    if (appuntamento == null) {
@@ -339,5 +358,6 @@ public class DtoMapper {
 	        appuntamento.setEmailCliente(formDTO.getEmailCliente());
 	    }
 	}
+
 	
 }

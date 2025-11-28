@@ -3,10 +3,7 @@ package it.nutrizionista.restnutrizionista.dto;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
-import it.nutrizionista.restnutrizionista.entity.AlimentoDaEvitare;
-import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
-import it.nutrizionista.restnutrizionista.entity.Scheda;
-import it.nutrizionista.restnutrizionista.entity.Utente;
+
 
 
 public class ClienteDto {
@@ -16,6 +13,7 @@ public class ClienteDto {
     private String cognome;
     private String codiceFiscale;
     private String email;
+    private String telefono;
     private LocalDate dataNascita;
     private double peso;
     private int altezza;
@@ -161,6 +159,12 @@ public class ClienteDto {
 	}
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+	public String getTelefono() {
+		return telefono;
+	}
+	public void setTelefono(String telefono) {
+		this.telefono = telefono;
 	}
 	
 	
