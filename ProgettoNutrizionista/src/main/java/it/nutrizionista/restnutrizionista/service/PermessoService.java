@@ -16,7 +16,7 @@ import it.nutrizionista.restnutrizionista.repository.PermessoRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
-
+     
 /** Logica di business per Permessi. */
 @Service
 public class PermessoService {

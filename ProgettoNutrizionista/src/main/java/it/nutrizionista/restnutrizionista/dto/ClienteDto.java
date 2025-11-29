@@ -1,80 +1,37 @@
-package it.nutrizionista.restnutrizionista.entity;
+package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+import it.nutrizionista.restnutrizionista.entity.Sesso;
 
-import jakarta.persistence.CascadeType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
 
-@Entity
-@Table(name = "clienti")
-@EntityListeners(AuditingEntityListener.class)
-public class Cliente {
+
+public class ClienteDto {
 	
-	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-    @Enumerated(EnumType.STRING)
+	private Long id;
 	private Sesso sesso;
-    @Column(nullable = false) private String nome;
-    @Column(nullable = false) private String cognome;
- 
-    @Column(name = "codice_fiscale", nullable = false, unique = true)
+    private String nome;
+    private String cognome;
     private String codiceFiscale;
-    
-    @Column(nullable = false, unique = true)
     private String email;
-    
-    
     private String telefono;
-    
-    @Column(nullable = false, name = "data_nascita") private LocalDate dataNascita;
-    @Column(nullable = false) private double peso;
-    @Column(nullable = false) private int altezza;
-    @Column(nullable = false, name = "num_allenamenti_settimanali") private String numAllenamentiSett;
-    @Column(nullable = false) private String intolleranze;
-    @Column(nullable = false, name = "funzioni_intestinali") private String funzioniIntestinali;
-    @Column(nullable = false, name = "problematiche_salutari") private String problematicheSalutari;
-    @Column(nullable = false, name = "quantita_qualita_sonno") private String quantitaEQualitaDelSonno;
-    @Column(nullable = false, name = "assunzione_farmaci") private String assunzioneFarmaci;
-    @Column(nullable = false, name = "beve_alcol") private Boolean beveAlcol;
-    
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<AlimentoDaEvitare> alimentiDaEvitare;
-    
-    @OneToOne
-    @JoinColumn(name = "misurazione_antropometrica_id")
-    private MisurazioneAntropometrica misurazioni;
-    
-    @ManyToOne
-    @JoinColumn(name = "utente_id")
-    private Utente nutrizionista;
-    
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<Scheda> schede;
-    
-    @CreatedDate
-    @Column(nullable = false) 
+    private LocalDate dataNascita;
+    private double peso;
+    private int altezza;
+    private String numAllenamentiSett;
+    private String intolleranze;
+    private String funzioniIntestinali;
+    private String problematicheSalutari;
+    private String quantitaEQualitaDelSonno;
+    private String assunzioneFarmaci;
+    private Boolean beveAlcol;
+    private List<AlimentoDaEvitareDto> alimentiDaEvitare;
+    private MisurazioneAntropometricaDto misurazioni;
+    private UtenteDto nutrizionista;
+    private List<SchedaDto> schede;
     private Instant createdAt;
-    @LastModifiedDate
-    @Column(nullable = false) 
     private Instant updatedAt;
     
     
@@ -170,29 +127,28 @@ public class Cliente {
 	public void setBeveAlcol(Boolean beveAlcol) {
 		this.beveAlcol = beveAlcol;
 	}
-	public List<AlimentoDaEvitare> getAlimentiDaEvitare() {
+	public List<AlimentoDaEvitareDto> getAlimentiDaEvitare() {
 		return alimentiDaEvitare;
 	}
-	public void setAlimentiDaEvitare(List<AlimentoDaEvitare> alimentiDaEvitare) {
+	public void setAlimentiDaEvitare(List<AlimentoDaEvitareDto> alimentiDaEvitare) {
 		this.alimentiDaEvitare = alimentiDaEvitare;
 	}
-	
-	public MisurazioneAntropometrica getMisurazioni() {
+	public MisurazioneAntropometricaDto getMisurazioni() {
 		return misurazioni;
 	}
-	public void setMisurazioni(MisurazioneAntropometrica misurazioni) {
+	public void setMisurazioni(MisurazioneAntropometricaDto misurazioni) {
 		this.misurazioni = misurazioni;
 	}
-	public Utente getNutrizionista() {
+	public UtenteDto getNutrizionista() {
 		return nutrizionista;
 	}
-	public void setNutrizionista(Utente nutrizionista) {
+	public void setNutrizionista(UtenteDto nutrizionista) {
 		this.nutrizionista = nutrizionista;
 	}
-	public List<Scheda> getSchede() {
+	public List<SchedaDto> getSchede() {
 		return schede;
 	}
-	public void setSchede(List<Scheda> schede) {
+	public void setSchede(List<SchedaDto> schede) {
 		this.schede = schede;
 	}
 	public Instant getCreatedAt() {
