@@ -13,9 +13,13 @@ public class AppuntamentoDto {
     private Long nutrizionistaId;
     private String nutrizionistaNome;
     private String nutrizionistaCognome;
-    private Long clienteId;
+    
+    // Informazioni cliente (può essere registrato o non registrato)
+    private Long clienteId; // Null se non registrato
     private String clienteNome;
     private String clienteCognome;
+    private boolean clienteRegistrato; // Flag per sapere se è registrato
+    
     private String descrizioneAppuntamento;
     private LocalDate data;
     private LocalTime ora;
@@ -81,6 +85,15 @@ public class AppuntamentoDto {
 
     public void setClienteCognome(String clienteCognome) {
         this.clienteCognome = clienteCognome;
+    }
+
+
+    public boolean isClienteRegistrato() {
+        return clienteRegistrato;
+    }
+
+    public void setClienteRegistrato(boolean clienteRegistrato) {
+        this.clienteRegistrato = clienteRegistrato;
     }
 
     public String getDescrizioneAppuntamento() {

@@ -8,9 +8,14 @@ import it.nutrizionista.restnutrizionista.entity.Appuntamento.StatoAppuntamento;
 
 public class AppuntamentoFormDto {
 
+    // Se clienteId è null, allora i campi clienteNome, clienteCognome e emailCliente sono obbligatori
     private Long clienteId;
+    
+    // Campi per cliente non registrato (obbligatori se clienteId è null)
     private String clienteNome;
     private String clienteCognome;
+    
+    
     private String descrizioneAppuntamento;
     private LocalDate data;
     private LocalTime ora;
@@ -19,7 +24,7 @@ public class AppuntamentoFormDto {
     private String luogo;
     private String emailCliente;
 
-    // Getter e Setter
+    
     public Long getClienteId() {
         return clienteId;
     }
@@ -43,6 +48,8 @@ public class AppuntamentoFormDto {
     public void setClienteCognome(String clienteCognome) {
         this.clienteCognome = clienteCognome;
     }
+
+ 
 
     public String getDescrizioneAppuntamento() {
         return descrizioneAppuntamento;

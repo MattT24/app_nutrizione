@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.repository;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,5 +24,11 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
 
     List<Appuntamento> findByClienteAndData(Cliente cliente, LocalDate data);
 
-    List<Appuntamento> findByNutricionistaAndDataBetween(Utente nutrizionista, LocalDate dataInizio, LocalDate dataFine);
+    List<Appuntamento> findByNutrizionistaAndDataBetween(Utente nutrizionista, LocalDate dataInizio, LocalDate dataFine);
+    
+    boolean existsByNutrizionistaAndDataAndOra(
+    	    Utente nutrizionista,						//capiamo se esiste un appuntamento già in quella data e ora
+    	    LocalDate data,
+    	    LocalTime ora
+    	);
 }
