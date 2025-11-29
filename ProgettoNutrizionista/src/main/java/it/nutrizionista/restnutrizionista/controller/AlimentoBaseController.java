@@ -13,4 +13,5 @@ import it.nutrizionista.restnutrizionista.service.AlimentoBaseService;
 public class AlimentoBaseController {
 
 	@Autowired private AlimentoBaseService service;
+	
 }
