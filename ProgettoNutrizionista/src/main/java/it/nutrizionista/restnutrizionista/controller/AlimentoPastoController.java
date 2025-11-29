@@ -13,4 +13,6 @@ import it.nutrizionista.restnutrizionista.service.AlimentoPastoService;
 public class AlimentoPastoController {
 
 	@Autowired private AlimentoPastoService service;
+	
+	
 }

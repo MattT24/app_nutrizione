@@ -10,6 +10,7 @@ import it.nutrizionista.restnutrizionista.dto.GruppoDto;
 import it.nutrizionista.restnutrizionista.dto.MacroDto;
 import it.nutrizionista.restnutrizionista.dto.MicroDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
+import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
 import it.nutrizionista.restnutrizionista.dto.RuoloDto;
@@ -22,6 +23,7 @@ import it.nutrizionista.restnutrizionista.entity.Gruppo;
 import it.nutrizionista.restnutrizionista.entity.Macro;
 import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
+import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.RuoloPermesso;
@@ -344,6 +346,38 @@ public class DtoMapper {
 
 		return dto;
 	}
+	
+	//Mapper per l'entita Pasto
+
+	
+	public static PastoDto toPastoDto(Pasto p) {
+		if (p == null) {
+	        return null;
+	    }
+		PastoDto dto = new PastoDto();
+		dto.setId(p.getId());
+		dto.setNome(p.getNome());
+		dto.setScheda(toSchedaDto(p.getScheda()));
+		dto.setOrarioFine(p.getOrarioFine());
+		dto.setOrarioInizio(p.getOrarioInizio());
+		dto.setCreatedAt(p.getCreatedAt());
+		dto.setUpdatedAt(p.getUpdatedAt());
+		return dto;
+	}
+	public static PastoDto toPastoDtoLight(Pasto p) { //senza la Scheda
+		if (p == null) {
+	        return null;
+	    }
+		PastoDto dto = new PastoDto();
+		dto.setId(p.getId());
+		dto.setNome(p.getNome());
+		dto.setOrarioFine(p.getOrarioFine());
+		dto.setOrarioInizio(p.getOrarioInizio());
+		dto.setCreatedAt(p.getCreatedAt());
+		dto.setUpdatedAt(p.getUpdatedAt());
+		return dto;
+	}
+	
 	
 	//Mapper per l'entità scheda
 	
