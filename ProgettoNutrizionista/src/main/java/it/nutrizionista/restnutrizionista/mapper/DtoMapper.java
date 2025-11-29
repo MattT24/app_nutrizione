@@ -2,19 +2,25 @@ package it.nutrizionista.restnutrizionista.mapper;
 
 import java.util.stream.Collectors;
 
+import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.GruppoDto;
+import it.nutrizionista.restnutrizionista.dto.MacroDto;
+import it.nutrizionista.restnutrizionista.dto.MicroDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
 import it.nutrizionista.restnutrizionista.dto.RuoloDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
+import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Gruppo;
+import it.nutrizionista.restnutrizionista.entity.Macro;
+import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
@@ -271,6 +277,75 @@ public class DtoMapper {
 		return dto;
 	    
 	}
+ 
+	//Mapper per l'entita alimentoBase
+	
+	public static AlimentoBaseDto toAlimentoBaseDto(AlimentoBase a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoBaseDto dto = new AlimentoBaseDto();
+		dto.setId(a.getId());
+		dto.setNome(a.getNome());
+		dto.setMacroNutrienti(toMacroDto(a.getMacronutrienti()));
+		dto.setMicroNutrienti(toMicroDto(a.getMicronutrienti()));
+		dto.setMisuraInGrammi(a.getMisuraInGrammi());
+		dto.setCreatedAt(a.getCreatedAt());
+		dto.setUpdatedAt(a.getUpdatedAt());
+		return dto;
+	}
+	
+	public static AlimentoBaseDto toAlimentoBaseDtoMacro(AlimentoBase a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoBaseDto dto = new AlimentoBaseDto();
+		dto.setId(a.getId());
+		dto.setNome(a.getNome());
+		dto.setMacroNutrienti(toMacroDto(a.getMacronutrienti()));
+		dto.setMisuraInGrammi(a.getMisuraInGrammi());
+		return dto;
+	}
+	
+	public static AlimentoBaseDto toAlimentoBaseDtoLight(AlimentoBase a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoBaseDto dto = new AlimentoBaseDto();
+		dto.setId(a.getId());
+		dto.setNome(a.getNome());
+		dto.setMisuraInGrammi(a.getMisuraInGrammi()); //asseconda del front decideremo cosa lasciare tipo questo <--
+		return dto;
+	}
+	
+	//Mapper per l'entità Macro
+	
+	public static MacroDto toMacroDto(Macro m) {
+		if (m == null) {
+	        return null;
+	    }
+		MacroDto dto = new MacroDto();
+		dto.setId(m.getId());
+		dto.setAlimento(toAlimentoBaseDto(m.getAlimento()));
+		dto.setCalorie(m.getCalorie());
+		dto.setGrassi(m.getGrassi());
+		dto.setProteine(m.getProteine());
+		dto.setCarboidrati(m.getCarboidrati());
+		return dto;
+	}
+	//Mapper per l'entità Micro DA FINIRE
+	
+	public static MicroDto toMicroDto(Micro m) {
+		if (m == null) {
+	        return null;
+	    }
+		MicroDto dto = new MicroDto();
+//		dto.setId(m.getId());
+
+		return dto;
+	}
+	
+	//Mapper per l'entità scheda
 	
 	public static SchedaDto toSchedaDto(Scheda s) {
 		if (s == null) {
@@ -284,7 +359,7 @@ public class DtoMapper {
 		dto.setUpdatedAt(s.getUpdatedAt());
 		return dto;
 	}
-	
+	//mapper per l' entità misurazioneAntrometrica
 
 	public static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica misurazioni) {
 
@@ -370,6 +445,8 @@ public class DtoMapper {
 	        appuntamento.setEmailCliente(formDTO.getEmailCliente());
 	    }
 	}
+
+
 
 	
 }

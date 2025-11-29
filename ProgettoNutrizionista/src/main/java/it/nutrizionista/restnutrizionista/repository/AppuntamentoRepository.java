@@ -23,5 +23,5 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
 
     List<Appuntamento> findByClienteAndData(Cliente cliente, LocalDate data);
 
-    List<Appuntamento> findByNutricionistaAndDataBetween(Utente nutrizionista, LocalDate dataInizio, LocalDate dataFine);
+    List<Appuntamento> findByNutrizionistaAndDataBetween(Utente nutrizionista, LocalDate dataInizio, LocalDate dataFine);
 }

@@ -15,7 +15,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
+import it.nutrizionista.restnutrizionista.dto.CognomeRequest;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
+import it.nutrizionista.restnutrizionista.dto.NomeRequest;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.service.ClienteService;
 
@@ -64,10 +66,19 @@ public class ClienteController {
 	
 	@GetMapping("/byNome")
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
-	public ResponseEntity<ClienteDto> getByNome(@Valid @RequestBody String nome){
-		var dto = service.getByNome(nome);
+	public ResponseEntity<ClienteDto> getByNome(@Valid @RequestBody NomeRequest nome){
+		var dto = service.getByNome(nome.getNome());
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	 }
+	
+	
+	@GetMapping("/byCognome")
+	@PreAuthorize("hasAuthority('CLIENTE_READ')")
+	public ResponseEntity<ClienteDto> getByNome(@Valid @RequestBody CognomeRequest cognome){
+		var dto = service.getByCognome(cognome.getCognome());
+		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+	 }
+	
 	
 	@GetMapping("/dettaglio")
 	@PreAuthorize("hasAuthority('CLIENTE_DETTAGLIO')")

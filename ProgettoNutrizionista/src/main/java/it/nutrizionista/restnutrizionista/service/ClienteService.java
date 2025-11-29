@@ -54,6 +54,12 @@ public class ClienteService {
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
+	@Transactional(readOnly = true)
+	public ClienteDto getByCognome(@Valid String cognome) {
+		Cliente c = repo.findByCognome(cognome)
+                .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
+		return DtoMapper.toClienteDto(repo.save(c));
+	}
 	
 	@Transactional(readOnly = true)
 	public ClienteDto dettaglio(Long id) {
