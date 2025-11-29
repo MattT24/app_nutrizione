@@ -8,11 +8,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
+import it.nutrizionista.restnutrizionista.dto.LogoRequestDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteFormDto;
 import it.nutrizionista.restnutrizionista.service.UtenteService;
 
+import java.io.IOException;
 import java.util.List;
 
 /** API REST per Utenti. */
@@ -92,5 +94,12 @@ public class UtenteController {
     	
     	var updated = service.updateMyProfile(form);
     	return ResponseEntity.status(201).body(updated);
-    } 
+    }
+    
+  //Inserimento Logo nutrizionista
+    @PutMapping("/logo")
+    public ResponseEntity<UtenteDto> create (@Valid @ModelAttribute LogoRequestDto form) throws IOException {
+		 var dto = service.updateLogo(form);
+		 return ResponseEntity.status(201).body(dto);
+	 }
 }

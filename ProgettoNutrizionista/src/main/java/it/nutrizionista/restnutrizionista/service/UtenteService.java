@@ -6,7 +6,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import it.nutrizionista.restnutrizionista.dto.LogoRequestDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.ResetPasswordDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
@@ -18,6 +20,11 @@ import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import jakarta.validation.Valid;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -137,7 +144,7 @@ public class UtenteService {
         return DtoMapper.toUtenteDto(repo.save(u));
     }
     
-    public UtenteDto updateMyPassword(@Valid ResetPasswordDto dto) {    	
+    public UtenteDto updateMyPassword(ResetPasswordDto dto) {    	
 		String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Utente utente = repo.findByEmail(dto.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utente non trovato con email: " + dto.getEmail()));
@@ -149,5 +156,46 @@ public class UtenteService {
         utente.setPassword(encoder.encode(dto.getPassword()));     
         Utente updated = repo.save(utente);
         return DtoMapper.toUtenteDto(updated);
+    }
+    
+    public UtenteDto updateLogo (LogoRequestDto logo) throws IOException {
+    	String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        Utente utente = repo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utente non trovato con email: " + email));
+        
+        if (utente.getId() != logo.getUtente().getId()) throw new RuntimeException("L'utente non corrisponde");
+        
+        MultipartFile file = logo.getImage();
+	    if (file != null && !file.isEmpty()) {
+
+	        String contentType = file.getContentType();
+	        if (contentType == null || !contentType.startsWith("image/")) {
+	            throw new IllegalArgumentException("Il file caricato non è un'immagine valida (MIME non corretto)");
+	        }
+	        List<String> allowedExtensions = List.of("jpg", "jpeg", "png");
+
+	        String originalFilename = file.getOriginalFilename();
+	        String extension = originalFilename.substring(originalFilename.lastIndexOf(".") + 1).toLowerCase();
+
+	        if (!allowedExtensions.contains(extension)) {
+	            throw new IllegalArgumentException("Estensione non valida: " + extension);
+	        }
+
+	        // 🔹 Salvataggio fisico
+	        Path uploadDir = Paths.get("uploads/loghi");
+	        if (!Files.exists(uploadDir)) {
+	            Files.createDirectories(uploadDir);
+	        }
+	        
+	        String cleanName = originalFilename.replaceAll("\\s+", "_").replaceAll("[^a-zA-Z0-9._-]", "");
+	        String fileName = System.currentTimeMillis() + "_" + cleanName;
+	        Path filePath = uploadDir.resolve(fileName);
+
+	        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+
+	        // 🔹 Salva percorso relativo
+	        utente.setFilePathLogo("uploads/loghi/" + fileName);
+	    }
+		return DtoMapper.toUtenteDto(repo.save(utente));
     }
 }
