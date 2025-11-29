@@ -290,86 +290,133 @@ public class DtoMapper {
 
 		return null;
 	}
+	
+	
 	//mapper per l'entità appuntamento
 
-	public static AppuntamentoDto toAppuntamentoDto(Appuntamento appuntamento) {
-	    if (appuntamento == null) {
-	        return null;
+	 public static AppuntamentoDto toAppuntamentoDto(Appuntamento appuntamento) {
+	        if (appuntamento == null) {
+	            return null;
+	        }
+
+	        AppuntamentoDto dto = new AppuntamentoDto();
+	        dto.setId(appuntamento.getId());
+	        
+	        // Dati nutrizionista
+	        dto.setNutrizionistaId(appuntamento.getNutrizionista().getId());
+	        dto.setNutrizionistaNome(appuntamento.getNutrizionista().getNome());
+	        dto.setNutrizionistaCognome(appuntamento.getNutrizionista().getCognome());
+	        
+	        // Dati cliente - verifica se è registrato o meno
+	        if (appuntamento.getCliente() != null) {
+	            // Cliente registrato
+	            dto.setClienteId(appuntamento.getCliente().getId());
+	            dto.setClienteNome(appuntamento.getCliente().getNome());
+	            dto.setClienteCognome(appuntamento.getCliente().getCognome());
+	            dto.setClienteRegistrato(true);
+	        } else {
+	            // Cliente non registrato - usa i campi temporanei
+	            dto.setClienteId(null);
+	            dto.setClienteNome(appuntamento.getClienteNomeTemp());
+	            dto.setClienteCognome(appuntamento.getClienteCognomeTemp());
+	            dto.setClienteRegistrato(false);
+	        }
+	        
+	        dto.setDescrizioneAppuntamento(appuntamento.getDescrizioneAppuntamento());
+	        dto.setData(appuntamento.getData());
+	        dto.setOra(appuntamento.getOra());
+	        dto.setModalita(appuntamento.getModalita());
+	        dto.setStato(appuntamento.getStato());
+	        dto.setLuogo(appuntamento.getLuogo());
+	        dto.setEmailCliente(appuntamento.getEmailCliente());
+	        dto.setCreatedAt(appuntamento.getCreatedAt());
+	        dto.setUpdatedAt(appuntamento.getUpdatedAt());
+
+	        return dto;
 	    }
 
-	    AppuntamentoDto dto = new AppuntamentoDto();
-	    dto.setId(appuntamento.getId());
-	    dto.setNutrizionistaId(appuntamento.getNutrizionista().getId());
-	    dto.setNutrizionistaNome(appuntamento.getNutrizionista().getNome());
-	    dto.setNutrizionistaCognome(appuntamento.getNutrizionista().getCognome());
-	    dto.setClienteId(appuntamento.getCliente().getId());
-	    dto.setClienteNome(appuntamento.getCliente().getNome());
-	    dto.setClienteCognome(appuntamento.getCliente().getCognome());
-	    dto.setDescrizioneAppuntamento(appuntamento.getDescrizioneAppuntamento());
-	    dto.setData(appuntamento.getData());
-	    dto.setOra(appuntamento.getOra());
-	    dto.setModalita(appuntamento.getModalita());
-	    dto.setStato(appuntamento.getStato());
-	    dto.setLuogo(appuntamento.getLuogo());
-	    dto.setEmailCliente(appuntamento.getEmailCliente());
-	    dto.setCreatedAt(appuntamento.getCreatedAt());
-	    dto.setUpdatedAt(appuntamento.getUpdatedAt());
+	    /**
+	     * Converte da AppuntamentoFormDto a Appuntamento entity
+	     * Gestisce sia clienti registrati (cliente != null) che non registrati (cliente == null)
+	     */
+	    public static Appuntamento toAppuntamento(AppuntamentoFormDto formDTO, Utente nutrizionista, Cliente cliente) {
+	        if (formDTO == null) {
+	            return null;
+	        }
 
-	    return dto;
-	}
-
-	
-	public static Appuntamento toAppuntamento(AppuntamentoFormDto formDTO, Utente nutrizionista, Cliente cliente) {
-	    if (formDTO == null) {
-	        return null;
-	    }
-
-	    Appuntamento appuntamento = new Appuntamento();
-	    appuntamento.setNutrizionista(nutrizionista);
-	    appuntamento.setCliente(cliente);
-	    appuntamento.setDescrizioneAppuntamento(formDTO.getDescrizioneAppuntamento());
-	    appuntamento.setData(formDTO.getData());
-	    appuntamento.setOra(formDTO.getOra());
-	    appuntamento.setModalita(formDTO.getModalita());
-	    appuntamento.setStato(formDTO.getStato() != null ? formDTO.getStato() : Appuntamento.StatoAppuntamento.PROGRAMMATO);
-	    appuntamento.setLuogo(formDTO.getLuogo());
-	    
-	    
-	    String emailCliente = formDTO.getEmailCliente() != null ? 
-	            formDTO.getEmailCliente() : cliente.getEmail();
-	    appuntamento.setEmailCliente(emailCliente);
-
-	    return appuntamento;
-	}
-
-	
-	public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDTO) {
-	    if (appuntamento == null || formDTO == null) {
-	        return;
-	    }
-
-	    if (formDTO.getDescrizioneAppuntamento() != null) {
+	        Appuntamento appuntamento = new Appuntamento();
+	        appuntamento.setNutrizionista(nutrizionista);
+	        appuntamento.setCliente(cliente); // Può essere null per clienti non registrati
+	        
+	        // Se il cliente non è registrato, popola i campi temporanei
+	        if (cliente == null) {
+	            appuntamento.setClienteNomeTemp(formDTO.getClienteNome());
+	            appuntamento.setClienteCognomeTemp(formDTO.getClienteCognome());
+	            
+	        }
+	        
 	        appuntamento.setDescrizioneAppuntamento(formDTO.getDescrizioneAppuntamento());
-	    }
-	    if (formDTO.getData() != null) {
 	        appuntamento.setData(formDTO.getData());
-	    }
-	    if (formDTO.getOra() != null) {
 	        appuntamento.setOra(formDTO.getOra());
-	    }
-	    if (formDTO.getModalita() != null) {
 	        appuntamento.setModalita(formDTO.getModalita());
-	    }
-	    if (formDTO.getStato() != null) {
-	        appuntamento.setStato(formDTO.getStato());
-	    }
-	    if (formDTO.getLuogo() != null) {
+	        appuntamento.setStato(formDTO.getStato() != null ? formDTO.getStato() : Appuntamento.StatoAppuntamento.PROGRAMMATO);
 	        appuntamento.setLuogo(formDTO.getLuogo());
-	    }
-	    if (formDTO.getEmailCliente() != null) {
-	        appuntamento.setEmailCliente(formDTO.getEmailCliente());
-	    }
-	}
 
-	
+	        // Gestione email cliente
+	        String emailCliente;
+	        if (formDTO.getEmailCliente() != null) {
+	            emailCliente = formDTO.getEmailCliente();
+	        } else if (cliente != null) {
+	            emailCliente = cliente.getEmail();
+	        } else {
+	            emailCliente = null; // Verrà validato nel service
+	        }
+	        appuntamento.setEmailCliente(emailCliente);
+
+	        return appuntamento;
+	    }
+
+	    /**
+	     * Aggiorna un Appuntamento esistente da AppuntamentoFormDto
+	     * Gestisce l'aggiornamento sia per clienti registrati che non registrati
+	     */
+	    public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDTO) {
+	        if (appuntamento == null || formDTO == null) {
+	            return;
+	        }
+
+	        if (formDTO.getDescrizioneAppuntamento() != null) {
+	            appuntamento.setDescrizioneAppuntamento(formDTO.getDescrizioneAppuntamento());
+	        }
+	        if (formDTO.getData() != null) {
+	            appuntamento.setData(formDTO.getData());
+	        }
+	        if (formDTO.getOra() != null) {
+	            appuntamento.setOra(formDTO.getOra());
+	        }
+	        if (formDTO.getModalita() != null) {
+	            appuntamento.setModalita(formDTO.getModalita());
+	        }
+	        if (formDTO.getStato() != null) {
+	            appuntamento.setStato(formDTO.getStato());
+	        }
+	        if (formDTO.getLuogo() != null) {
+	            appuntamento.setLuogo(formDTO.getLuogo());
+	        }
+	        if (formDTO.getEmailCliente() != null) {
+	            appuntamento.setEmailCliente(formDTO.getEmailCliente());
+	        }
+	        
+	        // Aggiorna i campi del cliente non registrato se applicabile
+	        if (appuntamento.getCliente() == null) {
+	            if (formDTO.getClienteNome() != null) {
+	                appuntamento.setClienteNomeTemp(formDTO.getClienteNome());
+	            }
+	            if (formDTO.getClienteCognome() != null) {
+	                appuntamento.setClienteCognomeTemp(formDTO.getClienteCognome());
+	            }
+	           
+	        }
+	    }
 }
+	    
