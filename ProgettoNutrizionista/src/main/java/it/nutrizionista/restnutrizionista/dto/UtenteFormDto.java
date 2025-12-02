@@ -34,6 +34,8 @@ public class UtenteFormDto {
     
     @NotNull(message = "Il ruolo è obbligatorio")
     private RuoloDto ruolo;
+    
+    
 
 
     public Long getId() { return id; }
