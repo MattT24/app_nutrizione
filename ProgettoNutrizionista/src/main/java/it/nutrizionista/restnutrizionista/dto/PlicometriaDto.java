@@ -1,73 +1,24 @@
-package it.nutrizionista.restnutrizionista.entity;
+package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import it.nutrizionista.restnutrizionista.entity.Metodo;
 
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.LastModifiedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
+public class PlicometriaDto {
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
-@Entity
-@Table(name = "plicometrie")
-@EntityListeners(AuditingEntityListener.class)
-public class Plicometria {
-
-	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-	
-	@Column(name = "data_misurazione")
+	private Long id;
 	private LocalDate dataMisurazione;
+	private Double plicaTricipite;
+	private Double plicaSottoscapolare;
+	private Double plicaPettorale;
+	private Double plicaAscellareMedia;
+	private Double plicaSovrailiaca;
+	private Double plicaAddominale;
+	private Double plicaCoscia;
+	private Metodo metodo;
+	private Instant createdAt;
+	private Instant updatedAt;
 	
-    // Plicometria Jackson & Pollock
-	@Column(name = "plica_tricipite")
-    private Double plicaTricipite;
-	
-	@Column(name = "plica_sottoscapolare")
-    private Double plicaSottoscapolare;
-	
-	@Column(name = "plica_pettorale")
-    private Double plicaPettorale;
-	
-	@Column(name = "plica_ascellare_media")
-    private Double plicaAscellareMedia;
-	
-	@Column(name = "plica_sovrailiaca")
-    private Double plicaSovrailiaca;
-	
-	@Column(name = "plica_addominale")
-    private Double plicaAddominale;
-	
-	@Column(name = "plica_coscia")
-    private Double plicaCoscia;
-
-    // Metodo usato , farei un enum perchè sono solo 3: 3, 4 o 7 pliche
-    @Enumerated(EnumType.STRING)
-    private Metodo metodo;
-
-    /*
-    // Risultati calcolati, servira calcolarli nel service, lascio come segno, poi eliminiamo
-    private Double sommaPliche;
-    private Double densitaCorporea;
-    private Double percentualeGrasso;
-    private Double massaGrassaKg;
-    private Double massaMagraKg;
-	*/
-    @CreatedDate
-    @Column(nullable = false) 
-    private Instant createdAt;
-    @LastModifiedDate
-    @Column(nullable = false) 
-    private Instant updatedAt;
 	public Long getId() {
 		return id;
 	}
@@ -122,7 +73,6 @@ public class Plicometria {
 	public void setPlicaCoscia(Double plicaCoscia) {
 		this.plicaCoscia = plicaCoscia;
 	}
-
 	public Metodo getMetodo() {
 		return metodo;
 	}
@@ -141,6 +91,6 @@ public class Plicometria {
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
 	}
-
-    
+	
+	
 }

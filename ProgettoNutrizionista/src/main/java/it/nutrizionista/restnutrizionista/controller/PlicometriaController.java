@@ -14,4 +14,6 @@ public class PlicometriaController {
 
 	@Autowired private PlicometriaService service;
 	
+	
+	
 }
