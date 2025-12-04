@@ -22,7 +22,14 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "appuntamenti")
+@Table(
+	    name = "appuntamenti",
+	    uniqueConstraints = {
+	        @jakarta.persistence.UniqueConstraint(
+	            columnNames = {"utente_id", "data", "ora"}			//questo serve per gestire bene le prenotazioni con data e ora
+	        )														//stesso giorno, ore diverse
+	    }															//stessa ora, giorni diversi
+	)
 @EntityListeners(AuditingEntityListener.class)
 public class Appuntamento {
 
@@ -34,9 +41,18 @@ public class Appuntamento {
     @JoinColumn(name = "utente_id", nullable = false)
     private Utente nutrizionista;
 
+    // Cliente - può essere null se il cliente non è registrato
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cliente_id", nullable = false)
+    @JoinColumn(name = "cliente_id", nullable = true)
     private Cliente cliente;
+
+    // Campi per gestire clienti non registrati
+    @Column(name = "cliente_nome_temp")
+    private String clienteNomeTemp;
+
+    @Column(name = "cliente_cognome_temp")
+    private String clienteCognomeTemp;
+
 
     @Column(nullable = false, name = "descrizione_appuntamento")
     private String descrizioneAppuntamento;
@@ -81,7 +97,20 @@ public class Appuntamento {
         ANNULLATO
     }
 
-    // Getter e Setter
+    // Metodo helper per verificare se è un cliente registrato
+    public boolean isClienteRegistrato() {
+        return cliente != null;
+    }
+
+    // Metodo helper per ottenere il nome del cliente
+    public String getClienteNomeCompleto() {
+        if (cliente != null) {
+            return cliente.getNome() + " " + cliente.getCognome();
+        }
+        return clienteNomeTemp + " " + clienteCognomeTemp;
+    }
+
+    
     public Long getId() {
         return id;
     }
@@ -105,6 +134,23 @@ public class Appuntamento {
     public void setCliente(Cliente cliente) {
         this.cliente = cliente;
     }
+
+    public String getClienteNomeTemp() {
+        return clienteNomeTemp;
+    }
+
+    public void setClienteNomeTemp(String clienteNomeTemp) {
+        this.clienteNomeTemp = clienteNomeTemp;
+    }
+
+    public String getClienteCognomeTemp() {
+        return clienteCognomeTemp;
+    }
+
+    public void setClienteCognomeTemp(String clienteCognomeTemp) {
+        this.clienteCognomeTemp = clienteCognomeTemp;
+    }
+
 
     public String getDescrizioneAppuntamento() {
         return descrizioneAppuntamento;
