@@ -50,7 +50,7 @@ public class AlimentoBaseController {
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('ALIMENTO_BASE_READ')")
-	public PageResponse<AlimentoBaseDto> allMyClienti(Pageable pageable){ 
+	public PageResponse<AlimentoBaseDto> allAlimentiBase(Pageable pageable){ 
 		return service.listAll(pageable);
 	} 
 	

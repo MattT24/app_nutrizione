@@ -2,33 +2,8 @@ package it.nutrizionista.restnutrizionista.mapper;
 
 import java.util.stream.Collectors;
 
-import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
-import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
-import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
-import it.nutrizionista.restnutrizionista.dto.ClienteDto;
-import it.nutrizionista.restnutrizionista.dto.GruppoDto;
-import it.nutrizionista.restnutrizionista.dto.MacroDto;
-import it.nutrizionista.restnutrizionista.dto.MicroDto;
-import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
-import it.nutrizionista.restnutrizionista.dto.PastoDto;
-import it.nutrizionista.restnutrizionista.dto.PermessoDto;
-import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
-import it.nutrizionista.restnutrizionista.dto.RuoloDto;
-import it.nutrizionista.restnutrizionista.dto.SchedaDto;
-import it.nutrizionista.restnutrizionista.dto.UtenteDto;
-import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
-import it.nutrizionista.restnutrizionista.entity.Appuntamento;
-import it.nutrizionista.restnutrizionista.entity.Cliente;
-import it.nutrizionista.restnutrizionista.entity.Gruppo;
-import it.nutrizionista.restnutrizionista.entity.Macro;
-import it.nutrizionista.restnutrizionista.entity.Micro;
-import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
-import it.nutrizionista.restnutrizionista.entity.Pasto;
-import it.nutrizionista.restnutrizionista.entity.Permesso;
-import it.nutrizionista.restnutrizionista.entity.Ruolo;
-import it.nutrizionista.restnutrizionista.entity.RuoloPermesso;
-import it.nutrizionista.restnutrizionista.entity.Scheda;
-import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.dto.*;
+import it.nutrizionista.restnutrizionista.entity.*;
 
 /**
  * Mapper Entity -> DTO con metodi ESPLICITI (niente overload con booleani),
@@ -320,6 +295,28 @@ public class DtoMapper {
 		return dto;
 	}
 	
+	//Mapper per l'entità AlimentoDaEvitare
+	
+	public static AlimentoDaEvitareDto toAlimentoDaEvitareDtoLight(AlimentoDaEvitare a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoDaEvitareDto dto = new AlimentoDaEvitareDto();
+		dto.setId(a.getId());
+		dto.setAlimento(toAlimentoBaseDto(a.getAlimento()));
+		return dto;
+	}
+	
+	public static AlimentoDaEvitareDto toAlimentoDaEvitareDto(AlimentoDaEvitare a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoDaEvitareDto dto = new AlimentoDaEvitareDto();
+		dto.setId(a.getId());
+		dto.setAlimento(toAlimentoBaseDto(a.getAlimento()));
+		dto.setCliente(toClienteDtoLight(a.getCliente()));
+		return dto;
+	}
 	//Mapper per l'entità Macro
 	
 	public static MacroDto toMacroDto(Macro m) {
