@@ -4,12 +4,14 @@ import java.time.LocalDate;
 
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 public class ClienteFormDto {
 
 	private Long id;
 
     @NotBlank(message = "Il sesso è obbligatorio")
+    @Pattern(regexp = "Maschio|Femmina", message = "Il sesso deve essere Maschio o Femmina")
 	private Sesso sesso;
     @NotBlank(message = "Il nome è obbligatorio")
     private String nome;

@@ -2,25 +2,8 @@ package it.nutrizionista.restnutrizionista.mapper;
 
 import java.util.stream.Collectors;
 
-import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
-import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
-import it.nutrizionista.restnutrizionista.dto.ClienteDto;
-import it.nutrizionista.restnutrizionista.dto.GruppoDto;
-import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
-import it.nutrizionista.restnutrizionista.dto.PermessoDto;
-import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
-import it.nutrizionista.restnutrizionista.dto.RuoloDto;
-import it.nutrizionista.restnutrizionista.dto.SchedaDto;
-import it.nutrizionista.restnutrizionista.dto.UtenteDto;
-import it.nutrizionista.restnutrizionista.entity.Appuntamento;
-import it.nutrizionista.restnutrizionista.entity.Cliente;
-import it.nutrizionista.restnutrizionista.entity.Gruppo;
-import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
-import it.nutrizionista.restnutrizionista.entity.Permesso;
-import it.nutrizionista.restnutrizionista.entity.Ruolo;
-import it.nutrizionista.restnutrizionista.entity.RuoloPermesso;
-import it.nutrizionista.restnutrizionista.entity.Scheda;
-import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.dto.*;
+import it.nutrizionista.restnutrizionista.entity.*;
 
 /**
  * Mapper Entity -> DTO con metodi ESPLICITI (niente overload con booleani),
@@ -271,6 +254,129 @@ public class DtoMapper {
 		return dto;
 	    
 	}
+ 
+	//Mapper per l'entita alimentoBase
+	
+	public static AlimentoBaseDto toAlimentoBaseDto(AlimentoBase a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoBaseDto dto = new AlimentoBaseDto();
+		dto.setId(a.getId());
+		dto.setNome(a.getNome());
+		dto.setMacroNutrienti(toMacroDto(a.getMacronutrienti()));
+		dto.setMicroNutrienti(toMicroDto(a.getMicronutrienti()));
+		dto.setMisuraInGrammi(a.getMisuraInGrammi());
+		dto.setCreatedAt(a.getCreatedAt());
+		dto.setUpdatedAt(a.getUpdatedAt());
+		return dto;
+	}
+	
+	public static AlimentoBaseDto toAlimentoBaseDtoMacro(AlimentoBase a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoBaseDto dto = new AlimentoBaseDto();
+		dto.setId(a.getId());
+		dto.setNome(a.getNome());
+		dto.setMacroNutrienti(toMacroDto(a.getMacronutrienti()));
+		dto.setMisuraInGrammi(a.getMisuraInGrammi());
+		return dto;
+	}
+	
+	public static AlimentoBaseDto toAlimentoBaseDtoLight(AlimentoBase a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoBaseDto dto = new AlimentoBaseDto();
+		dto.setId(a.getId());
+		dto.setNome(a.getNome());
+		dto.setMisuraInGrammi(a.getMisuraInGrammi()); //asseconda del front decideremo cosa lasciare tipo questo <--
+		return dto;
+	}
+	
+	//Mapper per l'entità AlimentoDaEvitare
+	
+	public static AlimentoDaEvitareDto toAlimentoDaEvitareDtoLight(AlimentoDaEvitare a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoDaEvitareDto dto = new AlimentoDaEvitareDto();
+		dto.setId(a.getId());
+		dto.setAlimento(toAlimentoBaseDto(a.getAlimento()));
+		return dto;
+	}
+	
+	public static AlimentoDaEvitareDto toAlimentoDaEvitareDto(AlimentoDaEvitare a) {
+		if (a == null) {
+	        return null;
+	    }
+		AlimentoDaEvitareDto dto = new AlimentoDaEvitareDto();
+		dto.setId(a.getId());
+		dto.setAlimento(toAlimentoBaseDto(a.getAlimento()));
+		dto.setCliente(toClienteDtoLight(a.getCliente()));
+		return dto;
+	}
+	//Mapper per l'entità Macro
+	
+	public static MacroDto toMacroDto(Macro m) {
+		if (m == null) {
+	        return null;
+	    }
+		MacroDto dto = new MacroDto();
+		dto.setId(m.getId());
+		dto.setAlimento(toAlimentoBaseDto(m.getAlimento()));
+		dto.setCalorie(m.getCalorie());
+		dto.setGrassi(m.getGrassi());
+		dto.setProteine(m.getProteine());
+		dto.setCarboidrati(m.getCarboidrati());
+		return dto;
+	}
+	//Mapper per l'entità Micro DA FINIRE
+	
+	public static MicroDto toMicroDto(Micro m) {
+		if (m == null) {
+	        return null;
+	    }
+		MicroDto dto = new MicroDto();
+//		dto.setId(m.getId());
+
+		return dto;
+	}
+	
+	//Mapper per l'entita Pasto
+
+	
+	public static PastoDto toPastoDto(Pasto p) {
+		if (p == null) {
+	        return null;
+	    }
+		PastoDto dto = new PastoDto();
+		dto.setId(p.getId());
+		dto.setNome(p.getNome());
+		dto.setScheda(toSchedaDto(p.getScheda()));
+		dto.setOrarioFine(p.getOrarioFine());
+		dto.setOrarioInizio(p.getOrarioInizio());
+		dto.setCreatedAt(p.getCreatedAt());
+		dto.setUpdatedAt(p.getUpdatedAt());
+		return dto;
+	}
+	public static PastoDto toPastoDtoLight(Pasto p) { //senza la Scheda
+		if (p == null) {
+	        return null;
+	    }
+		PastoDto dto = new PastoDto();
+		dto.setId(p.getId());
+		dto.setNome(p.getNome());
+		dto.setOrarioFine(p.getOrarioFine());
+		dto.setOrarioInizio(p.getOrarioInizio());
+		dto.setCreatedAt(p.getCreatedAt());
+		dto.setUpdatedAt(p.getUpdatedAt());
+		return dto;
+	}
+	
+	
+	//Mapper per l'entità scheda
 	
 	public static SchedaDto toSchedaDto(Scheda s) {
 		if (s == null) {
@@ -284,7 +390,7 @@ public class DtoMapper {
 		dto.setUpdatedAt(s.getUpdatedAt());
 		return dto;
 	}
-	
+	//mapper per l' entità misurazioneAntrometrica
 
 	public static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica misurazioni) {
 
@@ -376,47 +482,8 @@ public class DtoMapper {
 	        return appuntamento;
 	    }
 
-	    /**
-	     * Aggiorna un Appuntamento esistente da AppuntamentoFormDto
-	     * Gestisce l'aggiornamento sia per clienti registrati che non registrati
-	     */
-	    public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDTO) {
-	        if (appuntamento == null || formDTO == null) {
-	            return;
-	        }
 
-	        if (formDTO.getDescrizioneAppuntamento() != null) {
-	            appuntamento.setDescrizioneAppuntamento(formDTO.getDescrizioneAppuntamento());
-	        }
-	        if (formDTO.getData() != null) {
-	            appuntamento.setData(formDTO.getData());
-	        }
-	        if (formDTO.getOra() != null) {
-	            appuntamento.setOra(formDTO.getOra());
-	        }
-	        if (formDTO.getModalita() != null) {
-	            appuntamento.setModalita(formDTO.getModalita());
-	        }
-	        if (formDTO.getStato() != null) {
-	            appuntamento.setStato(formDTO.getStato());
-	        }
-	        if (formDTO.getLuogo() != null) {
-	            appuntamento.setLuogo(formDTO.getLuogo());
-	        }
-	        if (formDTO.getEmailCliente() != null) {
-	            appuntamento.setEmailCliente(formDTO.getEmailCliente());
-	        }
-	        
-	        // Aggiorna i campi del cliente non registrato se applicabile
-	        if (appuntamento.getCliente() == null) {
-	            if (formDTO.getClienteNome() != null) {
-	                appuntamento.setClienteNomeTemp(formDTO.getClienteNome());
-	            }
-	            if (formDTO.getClienteCognome() != null) {
-	                appuntamento.setClienteCognomeTemp(formDTO.getClienteCognome());
-	            }
-	           
-	        }
-	    }
+
+	
 }
 	    

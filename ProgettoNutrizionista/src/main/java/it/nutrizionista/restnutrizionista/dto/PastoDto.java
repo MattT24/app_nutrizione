@@ -17,6 +17,7 @@ public class PastoDto {
 	    private LocalTime orarioFine;
 	    private Instant createdAt;
 	    private Instant updatedAt;
+	    
 		public Long getId() {
 			return id;
 		}
