@@ -25,7 +25,7 @@ public class AlimentoPasto {
     private Long id;
  
     @ManyToOne
-    @JoinColumn(name = "alimento_base_id")
+    @JoinColumn(name = "alimento_id")
     private AlimentoBase alimento;
 	
     @ManyToOne
@@ -33,7 +33,7 @@ public class AlimentoPasto {
     private Pasto pasto;
     
     @Column(nullable = false)
-    private int quantità;
+    private int quantita;
     
     @CreatedDate
     @Column(nullable = false) 
@@ -42,6 +42,17 @@ public class AlimentoPasto {
     @Column(nullable = false) 
     private Instant updatedAt;
     
+    public AlimentoPasto(){}
+    
+    
+	public AlimentoPasto(AlimentoBase alimento, Pasto pasto, int quantita) {
+		super();
+		this.alimento = alimento;
+		this.pasto = pasto;
+		this.quantita = quantita;
+	}
+
+
 	public Long getId() {
 		return id;
 	}
@@ -60,11 +71,11 @@ public class AlimentoPasto {
 	public void setPasto(Pasto pasto) {
 		this.pasto = pasto;
 	}
-	public int getQuantità() {
-		return quantità;
+	public int getQuantita() {
+		return quantita;
 	}
-	public void setQuantità(int quantità) {
-		this.quantità = quantità;
+	public void setQuantita(int quantita) {
+		this.quantita = quantita;
 	}
 	public Instant getCreatedAt() {
 		return createdAt;

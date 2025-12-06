@@ -7,7 +7,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
-
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
@@ -28,9 +27,9 @@ public class AlimentoBaseService {
 
 	@Transactional
 	public AlimentoBaseDto update(@Valid AlimentoBaseFormDto form) {
-		if (form.getId() == null) throw new RuntimeException("Id AlimentoBase obbligatorio per update");
+		if (form.getId() == null) throw new RuntimeException("Id Alimento obbligatorio per update");
 		AlimentoBase a = repo.findById(form.getId())
-                .orElseThrow(() -> new RuntimeException("AlimentoBase non trovato"));
+                .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
 		return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
 	}
 
@@ -44,16 +43,23 @@ public class AlimentoBaseService {
 
 	@Transactional(readOnly = true)
 	public AlimentoBaseDto getById(Long id) {
-		return  repo.findById(id).map(DtoMapper::toAlimentoBaseDtoLight).orElseThrow(()-> new RuntimeException("AlimentoBase non trovato"));
+		return  repo.findById(id).map(DtoMapper::toAlimentoBaseDtoLight).orElseThrow(()-> new RuntimeException("Alimento non trovato"));
 	}
 	
 	@Transactional(readOnly = true)
 	public AlimentoBaseDto dettaglio(Long id) {
-		return repo.findById(id).map(DtoMapper::toAlimentoBaseDto).orElseThrow(()-> new RuntimeException("AlimentoBase non trovato"));
+		return repo.findById(id).map(DtoMapper::toAlimentoBaseDto).orElseThrow(()-> new RuntimeException("Alimento non trovato"));
 	}
 	@Transactional(readOnly = true)
 	public AlimentoBaseDto dettaglioMacro(Long id) {
-		return repo.findById(id).map(DtoMapper::toAlimentoBaseDtoMacro).orElseThrow(()-> new RuntimeException("AlimentoBase non trovato"));
+		return repo.findById(id).map(DtoMapper::toAlimentoBaseDtoMacro).orElseThrow(()-> new RuntimeException("Alimento non trovato"));
+	}
+	
+	@Transactional(readOnly = true)
+	public AlimentoBaseDto getByNome(@Valid String nome) {
+		AlimentoBase a = repo.findByNome(nome)
+                .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+		return DtoMapper.toAlimentoBaseDto(a);
 	}
 
 }

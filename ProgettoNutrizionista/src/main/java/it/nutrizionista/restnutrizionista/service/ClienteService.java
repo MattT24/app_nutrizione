@@ -52,7 +52,7 @@ public class ClienteService {
 	public ClienteDto getByNome(@Valid String nome) {
 		Cliente c = repo.findByNome(nome)
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
-		return DtoMapper.toClienteDto(repo.save(c));
+		return DtoMapper.toClienteDto(c);
 	}
 	@Transactional(readOnly = true)
 	public ClienteDto getByCognome(@Valid String cognome) {
