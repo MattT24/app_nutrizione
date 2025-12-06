@@ -375,6 +375,42 @@ public class DtoMapper {
 		return dto;
 	}
 	
+    public static PastoDto toPastoDtoWithAssoc(Pasto p) {
+        if (p == null) return null;
+        PastoDto dto = toPastoDtoLight(p);
+        if (p.getAlimentiPasto() != null) {
+            dto.setAlimentiPasto(
+                p.getAlimentiPasto().stream()
+                  .map(DtoMapper::toAlimentoPastoDtoSafe) // safe: nested light
+                  .collect(Collectors.toList())
+            );
+        }
+        return dto;
+    }
+
+    //Mapper AlimentoPasto
+    
+    public static AlimentoPastoDto toAlimentoPastoDtoSafe(AlimentoPasto ap) {
+        if (ap == null) return null;
+
+        AlimentoPastoDto dto = new AlimentoPastoDto();
+        dto.setId(ap.getId());
+
+        // Ruolo light
+        Pasto pasto = ap.getPasto();
+        if (pasto != null) {
+            dto.setPasto(toPastoDtoLight(pasto));
+        }
+
+        // Permesso light
+        AlimentoBase alim = ap.getAlimento();
+        if (alim != null) {
+            dto.setAlimento(toAlimentoBaseDtoLight(alim));
+        }
+
+        return dto;
+    }
+	
 	
 	//Mapper per l'entità scheda
 	

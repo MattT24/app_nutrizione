@@ -48,4 +48,11 @@ public class AlimentoDaEvitareService {
 	public AlimentoDaEvitareDto dettaglio(Long id) {
 		return repo.findById(id).map(DtoMapper::toAlimentoDaEvitareDto).orElseThrow(()-> new RuntimeException("AlimentoDaEvitare non trovato"));
 	}
+	
+	@Transactional(readOnly = true)
+	public AlimentoDaEvitareDto getByNome(@Valid String nome) {
+		AlimentoDaEvitare a = repo.findByNome(nome)
+                .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+		return DtoMapper.toAlimentoDaEvitareDto(a);
+	}
 }
