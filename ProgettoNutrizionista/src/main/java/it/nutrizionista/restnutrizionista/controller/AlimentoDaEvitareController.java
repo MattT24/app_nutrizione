@@ -16,7 +16,6 @@ import org.springframework.web.bind.annotation.RestController;
 import it.nutrizionista.restnutrizionista.dto.AlimentoDaEvitareDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoDaEvitareFormDto;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
-import it.nutrizionista.restnutrizionista.dto.NomeRequest;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.service.AlimentoDaEvitareService;
 import jakarta.validation.Valid;
@@ -68,12 +67,6 @@ public class AlimentoDaEvitareController {
 		var dto = service.getById(req.getId());
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	}
-	
-	@GetMapping("/byNome")
-	@PreAuthorize("hasAuthority('ALIMENTO_DA_EVITARE_READ')")
-	public ResponseEntity<AlimentoDaEvitareDto> getByNome(@Valid @RequestBody NomeRequest nome){
-		var dto = service.getByNome(nome.getNome());
-		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
-	 }
+
 	
 }

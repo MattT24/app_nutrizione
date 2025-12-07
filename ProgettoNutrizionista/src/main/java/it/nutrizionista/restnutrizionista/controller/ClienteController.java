@@ -74,7 +74,7 @@ public class ClienteController {
 	
 	@GetMapping("/byCognome")
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
-	public ResponseEntity<ClienteDto> getByNome(@Valid @RequestBody CognomeRequest cognome){
+	public ResponseEntity<ClienteDto> getByCognome(@Valid @RequestBody CognomeRequest cognome){
 		var dto = service.getByCognome(cognome.getCognome());
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	 }

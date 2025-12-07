@@ -50,10 +50,9 @@ public class PastoController {
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('PASTO_READ')")
-	public PageResponse<PastoDto> allMyClienti(Pageable pageable){ 
+	public PageResponse<PastoDto> allMyPasti(Pageable pageable){ 
 		return service.listAll(pageable);
-	} 
-	
+	}
 	
 	@GetMapping("/dettaglio")
 	@PreAuthorize("hasAuthority('PASTO_DETTAGLIO')")
