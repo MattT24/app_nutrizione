@@ -242,6 +242,57 @@ public class DtoMapper {
 		return dto;
 	    
 	}
+	
+	public static Cliente toCliente(ClienteFormDto form) {
+	    if (form == null) return null;
+
+	    Cliente c = new Cliente();
+	    c.setSesso(form.getSesso());
+	    c.setNome(form.getNome());
+	    c.setCognome(form.getCognome());
+	    c.setCodiceFiscale(form.getCodiceFiscale());
+	    c.setEmail(form.getEmail());
+	    c.setTelefono(form.getTelefono());
+	    c.setDataNascita(form.getDataNascita());
+	    c.setPeso(form.getPeso());
+	    c.setAltezza(form.getAltezza());
+	    c.setNumAllenamentiSett(form.getNumAllenamentiSett());
+	    c.setIntolleranze(form.getIntolleranze());
+	    c.setFunzioniIntestinali(form.getFunzioniIntestinali());
+	    c.setProblematicheSalutari(form.getProblematicheSalutari());
+	    c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno());
+	    c.setAssunzioneFarmaci(form.getAssunzioneFarmaci());
+	    c.setBeveAlcol(form.getBeveAlcol());
+	    c.setNutrizionista(toUtenteLight(form.getNutrizionista()));
+	    
+	    return c;
+	}
+	
+	public static Cliente toClienteLight(ClienteFormDto form) {
+	    if (form == null) return null;
+
+	    Cliente c = new Cliente();
+	    c.setSesso(form.getSesso());
+	    c.setNome(form.getNome());
+	    c.setCognome(form.getCognome());
+	    c.setCodiceFiscale(form.getCodiceFiscale());
+	    c.setEmail(form.getEmail());
+	    c.setTelefono(form.getTelefono());
+	    c.setDataNascita(form.getDataNascita());
+	    c.setPeso(form.getPeso());
+	    c.setAltezza(form.getAltezza());
+	    c.setNumAllenamentiSett(form.getNumAllenamentiSett());
+	    c.setIntolleranze(form.getIntolleranze());
+	    c.setFunzioniIntestinali(form.getFunzioniIntestinali());
+	    c.setProblematicheSalutari(form.getProblematicheSalutari());
+	    c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno());
+	    c.setAssunzioneFarmaci(form.getAssunzioneFarmaci());
+	    c.setBeveAlcol(form.getBeveAlcol());
+	    
+	    return c;
+	}
+	
+	
 	//mapper cliente con solo le cose essenziali, vedete se aggiungere info
 	public static ClienteDto toClienteDtoLight(Cliente c) {
 	    if (c == null) {
@@ -375,6 +426,42 @@ public class DtoMapper {
 		return dto;
 	}
 	
+    public static PastoDto toPastoDtoWithAssoc(Pasto p) {
+        if (p == null) return null;
+        PastoDto dto = toPastoDtoLight(p);
+        if (p.getAlimentiPasto() != null) {
+            dto.setAlimentiPasto(
+                p.getAlimentiPasto().stream()
+                  .map(DtoMapper::toAlimentoPastoDtoSafe) // safe: nested light
+                  .collect(Collectors.toList())
+            );
+        }
+        return dto;
+    }
+
+    //Mapper AlimentoPasto
+    
+    public static AlimentoPastoDto toAlimentoPastoDtoSafe(AlimentoPasto ap) {
+        if (ap == null) return null;
+
+        AlimentoPastoDto dto = new AlimentoPastoDto();
+        dto.setId(ap.getId());
+
+        // Ruolo light
+        Pasto pasto = ap.getPasto();
+        if (pasto != null) {
+            dto.setPasto(toPastoDtoLight(pasto));
+        }
+
+        // Permesso light
+        AlimentoBase alim = ap.getAlimento();
+        if (alim != null) {
+            dto.setAlimento(toAlimentoBaseDtoLight(alim));
+        }
+
+        return dto;
+    }
+	
 	
 	//Mapper per l'entità scheda
 	
@@ -392,9 +479,45 @@ public class DtoMapper {
 	}
 	//mapper per l' entità misurazioneAntrometrica
 
-	public static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica misurazioni) {
+	public static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica m) {
+		if (m == null) {
+	        return null;
+	    }
+		MisurazioneAntropometricaDto dto = new MisurazioneAntropometricaDto();
+		dto.setId(m.getId());
+		dto.setBicipiteD(m.getBicipiteD());
+		dto.setBicipiteS(m.getBicipiteS());
+		dto.setCliente(toClienteDtoLight(m.getCliente()));
+		dto.setCreatedAt(m.getCreatedAt());
+		dto.setUpdatedAt(m.getUpdatedAt());
+		dto.setDataMisurazione(m.getDataMisurazione());
+		dto.setFianchi(m.getFianchi());
+		dto.setGambaD(m.getGambaD());
+		dto.setGambaS(m.getGambaS());
+		dto.setSpalle(m.getSpalle());
+		dto.setTorace(m.getTorace());
+		dto.setVita(m.getVita());
+		return dto;
+	}
 
-		return null;
+	public static MisurazioneAntropometricaDto toMisurazioneDtoLight(MisurazioneAntropometrica m) { //senza cliente
+		if (m == null) {
+	        return null;
+	    }
+		MisurazioneAntropometricaDto dto = new MisurazioneAntropometricaDto();
+		dto.setId(m.getId());
+		dto.setBicipiteD(m.getBicipiteD());
+		dto.setBicipiteS(m.getBicipiteS());
+		dto.setCreatedAt(m.getCreatedAt());
+		dto.setUpdatedAt(m.getUpdatedAt());
+		dto.setDataMisurazione(m.getDataMisurazione());
+		dto.setFianchi(m.getFianchi());
+		dto.setGambaD(m.getGambaD());
+		dto.setGambaS(m.getGambaS());
+		dto.setSpalle(m.getSpalle());
+		dto.setTorace(m.getTorace());
+		dto.setVita(m.getVita());
+		return dto;
 	}
 	
 	
@@ -481,6 +604,7 @@ public class DtoMapper {
 
 	        return appuntamento;
 	    }
+
 
 
 

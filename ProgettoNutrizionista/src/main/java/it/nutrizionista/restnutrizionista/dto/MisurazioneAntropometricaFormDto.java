@@ -1,9 +1,10 @@
 package it.nutrizionista.restnutrizionista.dto;
 
-import java.time.Instant;
 import java.time.LocalDate;
 
-public class MisurazioneAntropometricaDto {
+import jakarta.validation.constraints.NotBlank;
+
+public class MisurazioneAntropometricaFormDto {
 
 	private Long id;
 	private Double spalle;
@@ -15,10 +16,9 @@ public class MisurazioneAntropometricaDto {
 	private Double bicipiteS;
 	private Double bicipiteD;
 	private LocalDate dataMisurazione;
+	@NotBlank(message = "Il cliente è obbligatorio")
 	private ClienteDto cliente;
-    private Instant createdAt;
-    private Instant updatedAt;
-    
+	
 	public Long getId() {
 		return id;
 	}
@@ -85,18 +85,6 @@ public class MisurazioneAntropometricaDto {
 	public void setCliente(ClienteDto cliente) {
 		this.cliente = cliente;
 	}
-	public Instant getCreatedAt() {
-		return createdAt;
-	}
-	public void setCreatedAt(Instant createdAt) {
-		this.createdAt = createdAt;
-	}
-	public Instant getUpdatedAt() {
-		return updatedAt;
-	}
-	public void setUpdatedAt(Instant updatedAt) {
-		this.updatedAt = updatedAt;
-	}
-    
-    
+	
+	
 }

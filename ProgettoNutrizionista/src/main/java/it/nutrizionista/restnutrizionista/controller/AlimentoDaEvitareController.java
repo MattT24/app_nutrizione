@@ -60,4 +60,13 @@ public class AlimentoDaEvitareController {
 		var dto = service.dettaglio(id.getId());
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	}
+	
+	@GetMapping("/byId")
+	@PreAuthorize("hasAuthority('ALIMENTO_DA_EVITARE_READ')")
+	public ResponseEntity<AlimentoDaEvitareDto> getById(@Valid @RequestBody IdRequest req){
+		var dto = service.getById(req.getId());
+		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+	}
+
+	
 }

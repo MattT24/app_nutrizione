@@ -50,11 +50,18 @@ public class ClienteController {
 		service.delete(req.getId());
 		return ResponseEntity.noContent().build();
 	}
+
+	@DeleteMapping("/mio")
+	@PreAuthorize("hasAuthority('CLIENTE_MY_DELETE')")
+	public ResponseEntity<Void> deleteMyCliente(@RequestBody IdRequest req){
+		 service.deleteMyCliente(req.getId());
+		 return ResponseEntity.noContent().build();
+	}
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
 	public PageResponse<ClienteDto> allMyClienti(Pageable pageable){ 
-		return service.listAll(pageable);
+		return service.allMyClienti( pageable);
 	} 
 	
 	@GetMapping("/byId")
@@ -74,7 +81,7 @@ public class ClienteController {
 	
 	@GetMapping("/byCognome")
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
-	public ResponseEntity<ClienteDto> getByNome(@Valid @RequestBody CognomeRequest cognome){
+	public ResponseEntity<ClienteDto> getByCognome(@Valid @RequestBody CognomeRequest cognome){
 		var dto = service.getByCognome(cognome.getCognome());
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	 }

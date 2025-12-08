@@ -2,45 +2,82 @@ package it.nutrizionista.restnutrizionista.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
-
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
-import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
-
+import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
+import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
+import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import jakarta.validation.Valid;
 
 @Service
 public class ClienteService {
 
 	@Autowired private ClienteRepository repo;
+	@Autowired private UtenteRepository repoUtente;
 
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
-		Cliente c = new Cliente();
-		return DtoMapper.toClienteDto(repo.save(c));
+		Cliente c = DtoMapper.toCliente(form);
+		
+		return DtoMapper.toClienteDtoLight(repo.save(c));
 	}
 
 
 	@Transactional
 	public ClienteDto update(@Valid ClienteFormDto form) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+	    Utente u = repoUtente.findByEmail(email)
+	    			.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
 		if (form.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
+		if (!form.getNutrizionista().getId().equals(u.getId())) 
+			throw new RuntimeException("Non autorizzato");
 		Cliente c = repo.findById(form.getId())
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
+		c.setSesso(form.getSesso());
+		c.setNome(form.getNome());
+		c.setCognome(form.getCognome());
+		c.setCodiceFiscale(form.getCodiceFiscale());
+		c.setEmail(form.getEmail());
+		c.setTelefono(form.getTelefono());
+		c.setDataNascita(form.getDataNascita());
+		c.setPeso(form.getPeso());
+		c.setAltezza(form.getAltezza());
+		c.setNumAllenamentiSett(form.getNumAllenamentiSett());
+		c.setIntolleranze(form.getIntolleranze());
+		c.setFunzioniIntestinali(form.getFunzioniIntestinali());
+		c.setProblematicheSalutari(form.getProblematicheSalutari());
+		c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno());
+		c.setAssunzioneFarmaci(form.getAssunzioneFarmaci());
+		c.setBeveAlcol(form.getBeveAlcol());
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
 
 	@Transactional
     public void delete(Long id) { repo.deleteById(id); }
+	
+	public void deleteMyCliente(Long id) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+	    Utente u = repoUtente.findByEmail(email)
+	    			.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+	    if (id == null) throw new RuntimeException("Id cliente obbligatorio per il delete");
+	    Cliente c = repo.findById(id)
+	    		.orElseThrow(() -> new RuntimeException("Cliente non trovato"));
+	    if(!u.getId().equals(c.getNutrizionista().getId())) throw new RuntimeException("L'utente non possiede il cliente");
+		repo.deleteById(id);
+	}
 
 	@Transactional(readOnly = true)
-	public PageResponse<ClienteDto> listAll(Pageable pageable) {
-		return PageResponse.from(repo.findAll(pageable).map(DtoMapper::toClienteDto));
+	public PageResponse<ClienteDto> allMyClienti( Pageable pageable) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+	    Utente u = repoUtente.findByEmail(email)
+	    			.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+		return PageResponse.from(repo.findByNutrizionistaId(u.getId(),pageable).map(DtoMapper::toClienteDtoLight));
 	}
 
 	@Transactional(readOnly = true)
@@ -52,13 +89,13 @@ public class ClienteService {
 	public ClienteDto getByNome(@Valid String nome) {
 		Cliente c = repo.findByNome(nome)
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
-		return DtoMapper.toClienteDto(repo.save(c));
+		return DtoMapper.toClienteDtoLight(c);
 	}
 	@Transactional(readOnly = true)
 	public ClienteDto getByCognome(@Valid String cognome) {
 		Cliente c = repo.findByCognome(cognome)
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
-		return DtoMapper.toClienteDto(repo.save(c));
+		return DtoMapper.toClienteDtoLight(c);
 	}
 	
 	@Transactional(readOnly = true)

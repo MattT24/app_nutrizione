@@ -13,6 +13,8 @@ import jakarta.persistence.EntityListeners;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -49,6 +51,10 @@ public class MisurazioneAntropometrica {
 	
 	@Column(name = "data_misurazione")
 	private LocalDate dataMisurazione;
+	
+	@OneToOne
+    @JoinColumn(name = "cliente_id")
+	private Cliente cliente;
 	
     @CreatedDate
     @Column(nullable = false) 
@@ -152,6 +158,14 @@ public class MisurazioneAntropometrica {
 
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+
+	public Cliente getCliente() {
+		return cliente;
+	}
+
+	public void setCliente(Cliente cliente) {
+		this.cliente = cliente;
 	}
 	
 

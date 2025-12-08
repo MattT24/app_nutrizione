@@ -12,9 +12,6 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
-import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
@@ -53,10 +50,9 @@ public class PastoController {
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('PASTO_READ')")
-	public PageResponse<PastoDto> allMyClienti(Pageable pageable){ 
+	public PageResponse<PastoDto> allMyPasti(Pageable pageable){ 
 		return service.listAll(pageable);
-	} 
-	
+	}
 	
 	@GetMapping("/dettaglio")
 	@PreAuthorize("hasAuthority('PASTO_DETTAGLIO')")
