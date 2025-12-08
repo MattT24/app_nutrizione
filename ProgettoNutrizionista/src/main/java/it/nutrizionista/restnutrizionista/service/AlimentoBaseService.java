@@ -20,7 +20,7 @@ public class AlimentoBaseService {
 
 	@Transactional
 	public AlimentoBaseDto create(@Valid AlimentoBaseFormDto form) {
-		AlimentoBase a = new AlimentoBase();
+		AlimentoBase a = DtoMapper.toAlimentoBase(form);
 		return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
 	}
 
@@ -30,6 +30,7 @@ public class AlimentoBaseService {
 		if (form.getId() == null) throw new RuntimeException("Id Alimento obbligatorio per update");
 		AlimentoBase a = repo.findById(form.getId())
                 .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+		DtoMapper.updateAlimentoBaseFromForm(a, form);
 		return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
 	}
 
