@@ -23,7 +23,11 @@ public class ClienteService {
 
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
+		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+	    Utente u = repoUtente.findByEmail(email)
+	    			.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
 		Cliente c = DtoMapper.toCliente(form);
+		c.setNutrizionista(u);
 		
 		return DtoMapper.toClienteDtoLight(repo.save(c));
 	}
@@ -35,26 +39,10 @@ public class ClienteService {
 	    Utente u = repoUtente.findByEmail(email)
 	    			.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
 		if (form.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
-		if (!form.getNutrizionista().getId().equals(u.getId())) 
-			throw new RuntimeException("Non autorizzato");
 		Cliente c = repo.findById(form.getId())
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
-		c.setSesso(form.getSesso());
-		c.setNome(form.getNome());
-		c.setCognome(form.getCognome());
-		c.setCodiceFiscale(form.getCodiceFiscale());
-		c.setEmail(form.getEmail());
-		c.setTelefono(form.getTelefono());
-		c.setDataNascita(form.getDataNascita());
-		c.setPeso(form.getPeso());
-		c.setAltezza(form.getAltezza());
-		c.setNumAllenamentiSett(form.getNumAllenamentiSett());
-		c.setIntolleranze(form.getIntolleranze());
-		c.setFunzioniIntestinali(form.getFunzioniIntestinali());
-		c.setProblematicheSalutari(form.getProblematicheSalutari());
-		c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno());
-		c.setAssunzioneFarmaci(form.getAssunzioneFarmaci());
-		c.setBeveAlcol(form.getBeveAlcol());
+		if (!c.getNutrizionista().getId().equals(u.getId())) throw new RuntimeException("Non autorizzato");
+		DtoMapper.updateClienteFromForm(c, form);
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
 

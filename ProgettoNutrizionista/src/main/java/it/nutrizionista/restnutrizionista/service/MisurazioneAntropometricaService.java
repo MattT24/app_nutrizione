@@ -7,8 +7,10 @@ import org.springframework.transaction.annotation.Transactional;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
+import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
 import jakarta.validation.Valid;
 
@@ -16,20 +18,24 @@ import jakarta.validation.Valid;
 public class MisurazioneAntropometricaService {
 
 	@Autowired private MisurazioneAntropometricaRepository repo;
-	
+	@Autowired private ClienteRepository clienteRepo;
+
 
 	@Transactional
 	public MisurazioneAntropometricaDto create(@Valid MisurazioneAntropometricaFormDto form) {
-		MisurazioneAntropometrica m = new MisurazioneAntropometrica();
+	    Cliente cliente = clienteRepo.findById(form.getId())
+	            .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
+		MisurazioneAntropometrica m = DtoMapper.toMisurazione(form);
+		m.setCliente(cliente);
 		return DtoMapper.toMisurazioneDtoLight(repo.save(m));
 	}
-
 
 	@Transactional
 	public MisurazioneAntropometricaDto update(@Valid MisurazioneAntropometricaFormDto form) {
 		if (form.getId() == null) throw new RuntimeException("Id Misurazione obbligatoria per update");
 		MisurazioneAntropometrica m = repo.findById(form.getId())
-                .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+				.orElseThrow(() -> new RuntimeException("Misurazione non trovata"));
+		DtoMapper.updateMisurazioneFromForm(m, form);
 		return DtoMapper.toMisurazioneDtoLight(repo.save(m));
 	}
 
