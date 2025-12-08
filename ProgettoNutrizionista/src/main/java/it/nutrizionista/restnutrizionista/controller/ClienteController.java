@@ -50,11 +50,18 @@ public class ClienteController {
 		service.delete(req.getId());
 		return ResponseEntity.noContent().build();
 	}
+
+	@DeleteMapping("/mio")
+	@PreAuthorize("hasAuthority('CLIENTE_MY_DELETE')")
+	public ResponseEntity<Void> deleteMyCliente(@RequestBody IdRequest req){
+		 service.deleteMyCliente(req.getId());
+		 return ResponseEntity.noContent().build();
+	}
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
 	public PageResponse<ClienteDto> allMyClienti(Pageable pageable){ 
-		return service.listAll(pageable);
+		return service.allMyClienti( pageable);
 	} 
 	
 	@GetMapping("/byId")

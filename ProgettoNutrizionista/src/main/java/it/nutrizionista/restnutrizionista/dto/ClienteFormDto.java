@@ -34,6 +34,12 @@ public class ClienteFormDto {
     private MisurazioneAntropometricaDto misurazioni;
     private UtenteDto nutrizionista;
     
+	public Sesso getSesso() {
+		return sesso;
+	}
+	public void setSesso(Sesso sesso) {
+		this.sesso = sesso;
+	}
 	public Long getId() {
 		return id;
 	}
