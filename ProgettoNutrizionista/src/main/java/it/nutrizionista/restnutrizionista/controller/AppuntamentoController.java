@@ -69,7 +69,7 @@ public class AppuntamentoController {
      * Recupera un appuntamento per ID
      * GET /api/appuntamenti/{id}               //questo metodo, utile per l' admin, non so se serve in realtà
      */
-    @GetMapping("/{id}")							//rotta testata e funzionante su postman
+ 						//rotta testata e funzionante su postman
     public ResponseEntity<AppuntamentoDto> getAppuntamentoById(@PathVariable Long id) {
         try {
             AppuntamentoDto appuntamento = appuntamentoService.getAppuntamentoById(id);
@@ -145,6 +145,8 @@ public class AppuntamentoController {
      * Recupera gli appuntamenti del nutrizionista autenticato in un range di date
      * GET /api/appuntamenti/nutrizionista/me/range?dataInizio=2024-01-01&dataFine=2024-01-31		//rotta testata e funzionante su postman
      */																								//avrebbe senso metterli in ordine di data crescente
+
+
     @GetMapping("/nutrizionista/me/range")
     public ResponseEntity<List<AppuntamentoDto>> getMyAppuntamentiByDateRange(
             @AuthenticationPrincipal UserDetails userDetails,
@@ -162,6 +164,7 @@ public class AppuntamentoController {
 
     /**
      * Cambia lo stato di un appuntamento								//rotta testata e funzionante su postman
+
      * PATCH /api/appuntamenti/{id}/stato?stato=CONFERMATO
      */
     @PatchMapping("/{id}/stato")

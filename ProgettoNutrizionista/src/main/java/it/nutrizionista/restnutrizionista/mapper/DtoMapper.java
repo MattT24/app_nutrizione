@@ -482,7 +482,6 @@ public class DtoMapper {
 	        return appuntamento;
 	    }
 	    
-	    
 	    public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDto) {
 	        
 	        // Aggiorna data
@@ -528,3 +527,5 @@ public class DtoMapper {
 	        }
 	    }
 }
+ 
+

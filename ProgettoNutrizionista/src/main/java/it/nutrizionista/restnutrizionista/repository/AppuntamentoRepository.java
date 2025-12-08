@@ -26,5 +26,10 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
 
     List<Appuntamento> findByNutrizionistaAndDataBetween(Utente nutrizionista, LocalDate dataInizio, LocalDate dataFine);
 
-    boolean existsByNutrizionistaAndDataAndOra(Utente nutrizionista, LocalDate data, LocalTime ora);
+    boolean existsByNutrizionistaAndDataAndOra(
+    	    Utente nutrizionista,						//capiamo se esiste un appuntamento già in quella data e ora
+    	    LocalDate data,
+    	    LocalTime ora
+    	);
+
 }
