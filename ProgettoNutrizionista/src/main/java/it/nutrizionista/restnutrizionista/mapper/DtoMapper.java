@@ -4,6 +4,7 @@ import java.util.stream.Collectors;
 
 import it.nutrizionista.restnutrizionista.dto.*;
 import it.nutrizionista.restnutrizionista.entity.*;
+import jakarta.validation.Valid;
 
 /**
  * Mapper Entity -> DTO con metodi ESPLICITI (niente overload con booleani),
@@ -77,8 +78,6 @@ public class DtoMapper {
         dto.setId(r.getId());
         dto.setNome(r.getNome());
         dto.setAlias(r.getAlias());
-        dto.setCreatedAt(r.getCreatedAt());
-        dto.setUpdatedAt(r.getUpdatedAt());
         return dto;
     }
 
@@ -145,8 +144,7 @@ public class DtoMapper {
         dto.setIndirizzo(u.getIndirizzo());
         dto.setRuolo(toRuoloDtoLight(u.getRuolo())); // ruolo light
         dto.setFilePathLogo(u.getFilePathLogo());
-        dto.setCreatedAt(u.getCreatedAt());
-        dto.setUpdatedAt(u.getUpdatedAt());
+
         return dto;
     }
     public static UtenteDto toUtenteDtoLight(Utente u) { //senza ruolo
@@ -161,8 +159,6 @@ public class DtoMapper {
         dto.setTelefono(u.getTelefono());
         dto.setIndirizzo(u.getIndirizzo());
         dto.setFilePathLogo(u.getFilePathLogo());
-        dto.setCreatedAt(u.getCreatedAt());
-        dto.setUpdatedAt(u.getUpdatedAt());
         return dto;
     }
     public static Utente toUtente(UtenteDto dto) {
@@ -178,8 +174,6 @@ public class DtoMapper {
         u.setIndirizzo(dto.getIndirizzo());
         u.setRuolo(toRuoloLight(dto.getRuolo())); // ruolo light
         u.setFilePathLogo(dto.getFilePathLogo());
-        u.setCreatedAt(dto.getCreatedAt());
-        u.setUpdatedAt(dto.getUpdatedAt());
         return u;
     }
     public static Utente toUtenteLight(UtenteDto dto) { //senza ruolo
@@ -194,8 +188,7 @@ public class DtoMapper {
         u.setTelefono(dto.getTelefono());
         u.setIndirizzo(dto.getIndirizzo());
         u.setFilePathLogo(dto.getFilePathLogo());
-        u.setCreatedAt(dto.getCreatedAt());
-        u.setUpdatedAt(dto.getUpdatedAt());
+
         return u;
     }
 
@@ -205,8 +198,6 @@ public class DtoMapper {
         r.setId(dto.getId());
         r.setNome(dto.getNome());
         r.setAlias(dto.getAlias());
-        r.setCreatedAt(dto.getCreatedAt());
-        r.setUpdatedAt(dto.getUpdatedAt());
         return r;
     }
 	
@@ -228,7 +219,6 @@ public class DtoMapper {
 	    dto.setEmail(c.getEmail());
 	    dto.setDataNascita(c.getDataNascita());
 	    dto.setProblematicheSalutari(c.getProblematicheSalutari());
-	    dto.setCreatedAt(c.getCreatedAt());
 	    dto.setFunzioniIntestinali(c.getFunzioniIntestinali());
 	    dto.setIntolleranze(c.getIntolleranze());
 	    dto.setMisurazioni(toMisurazioneDto(c.getMisurazioni()));
@@ -236,12 +226,81 @@ public class DtoMapper {
 	    dto.setNumAllenamentiSett(c.getNumAllenamentiSett());
 	    dto.setNutrizionista(toUtenteDto(c.getNutrizionista()));
 	    dto.setPeso(c.getPeso());
-	    dto.setProblematicheSalutari(c.getProblematicheSalutari());
-	    dto.setUpdatedAt(c.getUpdatedAt());
-	    
+	    dto.setProblematicheSalutari(c.getProblematicheSalutari());    
 		return dto;
 	    
 	}
+	
+	public static Cliente toCliente(ClienteFormDto form) {
+	    if (form == null) return null;
+
+	    Cliente c = new Cliente();
+	    c.setSesso(form.getSesso());
+	    c.setNome(form.getNome());
+	    c.setCognome(form.getCognome());
+	    c.setCodiceFiscale(form.getCodiceFiscale());
+	    c.setEmail(form.getEmail());
+	    c.setTelefono(form.getTelefono());
+	    c.setDataNascita(form.getDataNascita());
+	    c.setPeso(form.getPeso());
+	    c.setAltezza(form.getAltezza());
+	    c.setNumAllenamentiSett(form.getNumAllenamentiSett());
+	    c.setIntolleranze(form.getIntolleranze());
+	    c.setFunzioniIntestinali(form.getFunzioniIntestinali());
+	    c.setProblematicheSalutari(form.getProblematicheSalutari());
+	    c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno());
+	    c.setAssunzioneFarmaci(form.getAssunzioneFarmaci());
+	    c.setBeveAlcol(form.getBeveAlcol());
+	    
+	    return c;
+	}
+	
+	public static Cliente toClienteLight(ClienteFormDto form) {
+	    if (form == null) return null;
+
+	    Cliente c = new Cliente();
+	    c.setSesso(form.getSesso());
+	    c.setNome(form.getNome());
+	    c.setCognome(form.getCognome());
+	    c.setCodiceFiscale(form.getCodiceFiscale());
+	    c.setEmail(form.getEmail());
+	    c.setTelefono(form.getTelefono());
+	    c.setDataNascita(form.getDataNascita());
+	    c.setPeso(form.getPeso());
+	    c.setAltezza(form.getAltezza());
+	    c.setNumAllenamentiSett(form.getNumAllenamentiSett());
+	    c.setIntolleranze(form.getIntolleranze());
+	    c.setFunzioniIntestinali(form.getFunzioniIntestinali());
+	    c.setProblematicheSalutari(form.getProblematicheSalutari());
+	    c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno());
+	    c.setAssunzioneFarmaci(form.getAssunzioneFarmaci());
+	    c.setBeveAlcol(form.getBeveAlcol());
+	    
+	    return c;
+	}
+	
+	public static void updateClienteFromForm(Cliente c, ClienteFormDto form) {
+	    if (c == null || form == null) return;
+
+	    c.setSesso(form.getSesso());
+	    c.setNome(form.getNome());
+	    c.setCognome(form.getCognome());
+	    c.setCodiceFiscale(form.getCodiceFiscale());
+	    c.setEmail(form.getEmail());
+	    c.setTelefono(form.getTelefono());
+	    c.setDataNascita(form.getDataNascita());
+	    c.setPeso(form.getPeso());
+	    c.setAltezza(form.getAltezza());
+	    c.setNumAllenamentiSett(form.getNumAllenamentiSett());
+	    c.setIntolleranze(form.getIntolleranze());
+	    c.setFunzioniIntestinali(form.getFunzioniIntestinali());
+	    c.setProblematicheSalutari(form.getProblematicheSalutari());
+	    c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno());
+	    c.setAssunzioneFarmaci(form.getAssunzioneFarmaci());
+	    c.setBeveAlcol(form.getBeveAlcol());
+	}
+	
+	
 	//mapper cliente con solo le cose essenziali, vedete se aggiungere info
 	public static ClienteDto toClienteDtoLight(Cliente c) {
 	    if (c == null) {
@@ -257,6 +316,28 @@ public class DtoMapper {
  
 	//Mapper per l'entita alimentoBase
 	
+	public static AlimentoBase toAlimentoBase(AlimentoBaseFormDto dto) {
+	    if (dto == null) {
+	        return null;
+	    }
+	    AlimentoBase a = new AlimentoBase();
+	    a.setId(dto.getId());
+	    a.setNome(dto.getNome());
+	    a.setMacronutrienti(toMacro(dto.getMacroNutrienti()));
+	    a.setMicronutrienti(toMicro(dto.getMicroNutrienti()));
+	    a.setMisuraInGrammi(dto.getMisuraInGrammi());
+	    return a;
+	}
+	
+	public static void updateAlimentoBaseFromForm(AlimentoBase a, AlimentoBaseFormDto form) {
+	    if (a == null || form == null) return;
+
+	    a.setNome(form.getNome());
+	    a.setMisuraInGrammi(form.getMisuraInGrammi());
+	    a.setMacronutrienti(toMacro(form.getMacroNutrienti()));
+	    a.setMicronutrienti(toMicro(form.getMicroNutrienti()));
+	}
+	
 	public static AlimentoBaseDto toAlimentoBaseDto(AlimentoBase a) {
 		if (a == null) {
 	        return null;
@@ -267,8 +348,7 @@ public class DtoMapper {
 		dto.setMacroNutrienti(toMacroDto(a.getMacronutrienti()));
 		dto.setMicroNutrienti(toMicroDto(a.getMicronutrienti()));
 		dto.setMisuraInGrammi(a.getMisuraInGrammi());
-		dto.setCreatedAt(a.getCreatedAt());
-		dto.setUpdatedAt(a.getUpdatedAt());
+
 		return dto;
 	}
 	
@@ -317,6 +397,7 @@ public class DtoMapper {
 		dto.setCliente(toClienteDtoLight(a.getCliente()));
 		return dto;
 	}
+	
 	//Mapper per l'entità Macro
 	
 	public static MacroDto toMacroDto(Macro m) {
@@ -332,6 +413,22 @@ public class DtoMapper {
 		dto.setCarboidrati(m.getCarboidrati());
 		return dto;
 	}
+	
+	public static Macro toMacro(MacroDto dto) {
+	    if (dto == null) {
+	        return null;
+	    }
+
+	    Macro m = new Macro();
+	    m.setId(dto.getId());
+	    m.setCalorie(dto.getCalorie());
+	    m.setGrassi(dto.getGrassi());
+	    m.setProteine(dto.getProteine());
+	    m.setCarboidrati(dto.getCarboidrati());
+	    
+	    return m;
+	}
+	
 	//Mapper per l'entità Micro DA FINIRE
 	
 	public static MicroDto toMicroDto(Micro m) {
@@ -342,6 +439,15 @@ public class DtoMapper {
 //		dto.setId(m.getId());
 
 		return dto;
+	}
+	public static Micro toMicro(MicroDto dto) {
+		if (dto == null) {
+	        return null;
+	    }
+		Micro m = new Micro();
+//		dto.setId(m.getId());
+
+		return m;
 	}
 	
 	//Mapper per l'entita Pasto
@@ -375,6 +481,42 @@ public class DtoMapper {
 		return dto;
 	}
 	
+    public static PastoDto toPastoDtoWithAssoc(Pasto p) {
+        if (p == null) return null;
+        PastoDto dto = toPastoDtoLight(p);
+        if (p.getAlimentiPasto() != null) {
+            dto.setAlimentiPasto(
+                p.getAlimentiPasto().stream()
+                  .map(DtoMapper::toAlimentoPastoDtoSafe) // safe: nested light
+                  .collect(Collectors.toList())
+            );
+        }
+        return dto;
+    }
+
+    //Mapper AlimentoPasto
+    
+    public static AlimentoPastoDto toAlimentoPastoDtoSafe(AlimentoPasto ap) {
+        if (ap == null) return null;
+
+        AlimentoPastoDto dto = new AlimentoPastoDto();
+        dto.setId(ap.getId());
+
+        // Ruolo light
+        Pasto pasto = ap.getPasto();
+        if (pasto != null) {
+            dto.setPasto(toPastoDtoLight(pasto));
+        }
+
+        // Permesso light
+        AlimentoBase alim = ap.getAlimento();
+        if (alim != null) {
+            dto.setAlimento(toAlimentoBaseDtoLight(alim));
+        }
+
+        return dto;
+    }
+	
 	
 	//Mapper per l'entità scheda
 	
@@ -392,11 +534,81 @@ public class DtoMapper {
 	}
 	//mapper per l' entità misurazioneAntrometrica
 
-	public static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica misurazioni) {
+	public static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica m) {
+		if (m == null) {
+	        return null;
+	    }
+		MisurazioneAntropometricaDto dto = new MisurazioneAntropometricaDto();
+		dto.setId(m.getId());
+		dto.setBicipiteD(m.getBicipiteD());
+		dto.setBicipiteS(m.getBicipiteS());
+		dto.setCliente(toClienteDtoLight(m.getCliente()));
+		dto.setCreatedAt(m.getCreatedAt());
+		dto.setUpdatedAt(m.getUpdatedAt());
+		dto.setDataMisurazione(m.getDataMisurazione());
+		dto.setFianchi(m.getFianchi());
+		dto.setGambaD(m.getGambaD());
+		dto.setGambaS(m.getGambaS());
+		dto.setSpalle(m.getSpalle());
+		dto.setTorace(m.getTorace());
+		dto.setVita(m.getVita());
+		return dto;
+	}
 
-		return null;
+	public static MisurazioneAntropometricaDto toMisurazioneDtoLight(MisurazioneAntropometrica m) { //senza cliente
+		if (m == null) {
+	        return null;
+	    }
+		MisurazioneAntropometricaDto dto = new MisurazioneAntropometricaDto();
+		dto.setId(m.getId());
+		dto.setBicipiteD(m.getBicipiteD());
+		dto.setBicipiteS(m.getBicipiteS());
+		dto.setCreatedAt(m.getCreatedAt());
+		dto.setUpdatedAt(m.getUpdatedAt());
+		dto.setDataMisurazione(m.getDataMisurazione());
+		dto.setFianchi(m.getFianchi());
+		dto.setGambaD(m.getGambaD());
+		dto.setGambaS(m.getGambaS());
+		dto.setSpalle(m.getSpalle());
+		dto.setTorace(m.getTorace());
+		dto.setVita(m.getVita());
+		return dto;
 	}
 	
+	public static MisurazioneAntropometrica toMisurazione(MisurazioneAntropometricaFormDto form) {
+	    if (form == null) return null;
+
+	    MisurazioneAntropometrica m = new MisurazioneAntropometrica();
+	    m.setId(form.getId());
+	    m.setBicipiteD(form.getBicipiteD());
+	    m.setBicipiteS(form.getBicipiteS());
+	    m.setDataMisurazione(form.getDataMisurazione());
+	    m.setFianchi(form.getFianchi());
+	    m.setGambaD(form.getGambaD());
+	    m.setGambaS(form.getGambaS());
+	    m.setSpalle(form.getSpalle());
+	    m.setTorace(form.getTorace());
+	    m.setVita(form.getVita());
+
+	    return m;
+	}
+	
+	public static void updateMisurazioneFromForm(
+	        MisurazioneAntropometrica m,
+	        MisurazioneAntropometricaFormDto form) {
+
+	    if (m == null || form == null) return;
+
+	    m.setBicipiteD(form.getBicipiteD());
+	    m.setBicipiteS(form.getBicipiteS());
+	    m.setDataMisurazione(form.getDataMisurazione());
+	    m.setFianchi(form.getFianchi());
+	    m.setGambaD(form.getGambaD());
+	    m.setGambaS(form.getGambaS());
+	    m.setSpalle(form.getSpalle());
+	    m.setTorace(form.getTorace());
+	    m.setVita(form.getVita());
+	}
 	
 	//mapper per l'entità appuntamento
 

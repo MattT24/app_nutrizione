@@ -8,28 +8,42 @@ import org.springframework.transaction.annotation.Transactional;
 import it.nutrizionista.restnutrizionista.dto.AlimentoDaEvitareDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoDaEvitareFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AlimentoDaEvitare;
+import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
+import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoDaEvitareRepository;
+import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import jakarta.validation.Valid;
 
 @Service
 public class AlimentoDaEvitareService {
 
 	@Autowired private AlimentoDaEvitareRepository repo;
-
+	@Autowired private ClienteRepository clienteRepo;
+	@ Autowired private AlimentoBaseRepository alimentoRepo;
 	@Transactional
 	public AlimentoDaEvitareDto create(@Valid AlimentoDaEvitareFormDto form) {
-		AlimentoDaEvitare a = new AlimentoDaEvitare();
-		return DtoMapper.toAlimentoDaEvitareDtoLight(repo.save(a));
+		AlimentoDaEvitare e = new AlimentoDaEvitare();
+	    Cliente cliente = clienteRepo.findById(form.getCliente().getId())
+	            .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
+	    AlimentoBase alimento = alimentoRepo.findById(form.getAlimento().getId())
+	            .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+		e.setCliente(cliente);
+		e.setAlimento(alimento);
+		return DtoMapper.toAlimentoDaEvitareDtoLight(repo.save(e));
 	}
 
 	@Transactional
 	public AlimentoDaEvitareDto update(@Valid AlimentoDaEvitareFormDto form) {
 		if (form.getId() == null) throw new RuntimeException("Id AlimentoDaEvitare obbligatorio per update");
-		AlimentoDaEvitare a = repo.findById(form.getId())
+		AlimentoDaEvitare e = repo.findById(form.getId())
                 .orElseThrow(() -> new RuntimeException("AlimentoDaEvitare non trovato"));
-		return DtoMapper.toAlimentoDaEvitareDtoLight(repo.save(a));
+		AlimentoBase alimento = alimentoRepo.findById(form.getAlimento().getId())
+	            .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+		e.setAlimento(alimento);
+		return DtoMapper.toAlimentoDaEvitareDtoLight(repo.save(e));
 	}
 	@Transactional
     public void delete(Long id) { repo.deleteById(id); }
@@ -48,4 +62,5 @@ public class AlimentoDaEvitareService {
 	public AlimentoDaEvitareDto dettaglio(Long id) {
 		return repo.findById(id).map(DtoMapper::toAlimentoDaEvitareDto).orElseThrow(()-> new RuntimeException("AlimentoDaEvitare non trovato"));
 	}
+	
 }
