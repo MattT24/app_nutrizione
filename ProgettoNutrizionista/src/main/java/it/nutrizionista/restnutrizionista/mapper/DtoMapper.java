@@ -693,12 +693,51 @@ public class DtoMapper {
 
 	        return appuntamento;
 	    }
-
-
-
-
-
-
-	
-}
 	    
+	    public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDto) {
+	        
+	        // Aggiorna data
+	        if (formDto.getData() != null) {
+	            appuntamento.setData(formDto.getData());
+	        }
+	        
+	        // Aggiorna ora
+	        if (formDto.getOra() != null) {
+	            appuntamento.setOra(formDto.getOra());
+	        }
+	        
+	        // Aggiorna descrizione appuntamento
+	        if (formDto.getDescrizioneAppuntamento() != null) {
+	            appuntamento.setDescrizioneAppuntamento(formDto.getDescrizioneAppuntamento());
+	        }
+	        
+	        // Aggiorna modalità (ONLINE/IN_PRESENZA)
+	        if (formDto.getModalita() != null) {
+	            appuntamento.setModalita(formDto.getModalita());
+	        }
+	        
+	        // Aggiorna stato (PROGRAMMATO/CONFERMATO/ANNULLATO)
+	        if (formDto.getStato() != null) {
+	            appuntamento.setStato(formDto.getStato());
+	        }
+	        
+	        // Aggiorna luogo
+	        if (formDto.getLuogo() != null) {
+	            appuntamento.setLuogo(formDto.getLuogo());
+	        }
+	        
+	        // Aggiorna email cliente
+	        if (formDto.getEmailCliente() != null) {
+	            appuntamento.setEmailCliente(formDto.getEmailCliente());
+	        }
+	        
+	        // Aggiorna dati cliente temporaneo (se non è un cliente registrato)
+	        if (formDto.getClienteId() == null) {
+	            // Cliente non registrato - aggiorna i campi temporanei
+	            appuntamento.setClienteNomeTemp(formDto.getClienteNome());
+	            appuntamento.setClienteCognomeTemp(formDto.getClienteCognome());
+	        }
+	    }
+}
+ 
+
