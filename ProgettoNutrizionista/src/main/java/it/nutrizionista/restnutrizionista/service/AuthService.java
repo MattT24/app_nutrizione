@@ -38,19 +38,34 @@ public class AuthService {
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
-        // 2) Genera JWT
-        String token = jwtUtils.generateJwtToken(req.getEmail(), Map.of());
 
-        // 3) Recupera utente con ruolo e permessi già inizializzati
+        // 2) Recupera utente con ruolo e permessi già inizializzati
         Utente u = utenteRepository.findByEmail(req.getEmail())
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
 
-        // 4) Ruoli (nel tuo dominio: uno solo, ma restituiamo una lista)
+        // 3) Estrai i permessi (authorities) dal ruolo
+        List<String> authorities = u.getRuolo() != null
+                ? u.getRuolo().getRuoloPermessi().stream()
+                    .map(rp -> rp.getPermesso().getAlias())
+                    .collect(Collectors.toList())
+                : List.of();
+
+        // 4) Crea i claims da inserire nel JWT
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("authorities", authorities); // ← QUESTO È FONDAMENTALE!
+        claims.put("email", u.getEmail());
+        claims.put("nome", u.getNome());
+        claims.put("cognome", u.getCognome());
+
+        // 5) Genera JWT CON i permessi
+        String token = jwtUtils.generateJwtToken(req.getEmail(), claims);
+
+        // 6) Ruoli (nel tuo dominio: uno solo, ma restituiamo una lista)
         List<RuoloDto> ruoli = u.getRuolo() != null
                 ? List.of(DtoMapper.toRuoloDtoLight(u.getRuolo()))
                 : List.of();
 
-        // 5) Permessi dal ruolo (dedupe per alias)
+        // 7) Permessi dal ruolo (dedupe per alias)
         List<PermessoDto> permessi = u.getRuolo() != null
                 ? u.getRuolo().getRuoloPermessi().stream()
                     .map(rp -> DtoMapper.toPermessoDtoLight(rp.getPermesso()))
@@ -59,7 +74,7 @@ public class AuthService {
                             m -> new ArrayList<>(m.values())))
                 : List.of();
 
-        // 6) Gruppi dai permessi (DTO già pronti; dedupe per alias)
+        // 8) Gruppi dai permessi (DTO già pronti; dedupe per alias)
         List<GruppoDto> gruppi = permessi.stream()
                 .map(PermessoDto::getGruppo)
                 .filter(Objects::nonNull)
@@ -67,12 +82,12 @@ public class AuthService {
                         Collectors.toMap(GruppoDto::getAlias, g -> g, (a, b) -> a),
                         m -> new ArrayList<>(m.values())));
 
-        // 7) Costruisci risposta
+        // 9) Costruisci risposta
         LoginResponse resp = new LoginResponse();
         resp.setToken(token);
         resp.setEmail(u.getEmail());
-        resp.setNome(u.getNome());         // NEW
-        resp.setCognome(u.getCognome());   // NEW
+        resp.setNome(u.getNome());
+        resp.setCognome(u.getCognome());
         resp.setRuoli(ruoli);
         resp.setPermessi(permessi);
         resp.setGruppi(gruppi);
