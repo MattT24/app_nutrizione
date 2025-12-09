@@ -18,5 +18,5 @@ public class Micro {
     private Long id;
 	
 	
-	
+	private String nome;
 }
