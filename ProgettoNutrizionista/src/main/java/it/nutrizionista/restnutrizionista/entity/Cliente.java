@@ -31,7 +31,8 @@ public class Cliente {
 	
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Enumerated(EnumType.STRING)
+	@Column(nullable = false)
+	@Enumerated(EnumType.STRING)
 	private Sesso sesso;
     @Column(nullable = false) private String nome;
     @Column(nullable = false) private String cognome;

@@ -18,7 +18,6 @@ import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
-import jakarta.validation.Valid;
 
 import java.io.IOException;
 import java.nio.file.Files;
