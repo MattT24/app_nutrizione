@@ -1,15 +1,17 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import java.util.List;
+
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class SchedaFormDto {
 
 	private Long id;
-    @NotBlank(message = "Il cliente è obbligatorio")
+    @NotNull(message = "Il cliente è obbligatorio")
 	private Cliente cliente;
     //non ho idea dell'annotazione dei boolean
-    @NotBlank(message = "Il boolean è obbligatorio")
     private Boolean attiva;
     
 	public Long getId() {
@@ -30,6 +32,6 @@ public class SchedaFormDto {
 	public void setAttiva(Boolean attiva) {
 		this.attiva = attiva;
 	}
-    
+	
     
 }
