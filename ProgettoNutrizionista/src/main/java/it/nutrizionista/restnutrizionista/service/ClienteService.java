@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -62,6 +63,10 @@ public class ClienteService {
 
 	@Transactional(readOnly = true)
 	public PageResponse<ClienteDto> allMyClienti( Pageable pageable) {
+	    int maxSize = 12;
+	    if (pageable.getPageSize() > maxSize) {
+	        pageable = PageRequest.of(pageable.getPageNumber(), maxSize, pageable.getSort());
+	    }		
 		String email = SecurityContextHolder.getContext().getAuthentication().getName();
 	    Utente u = repoUtente.findByEmail(email)
 	    			.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));

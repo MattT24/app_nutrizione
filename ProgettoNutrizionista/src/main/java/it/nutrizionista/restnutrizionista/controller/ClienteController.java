@@ -2,6 +2,7 @@ package it.nutrizionista.restnutrizionista.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
@@ -60,7 +62,7 @@ public class ClienteController {
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
-	public PageResponse<ClienteDto> allMyClienti(Pageable pageable){ 
+	public PageResponse<ClienteDto> allMyClienti(@PageableDefault(size = 12, page = 0) Pageable pageable){ 
 		return service.allMyClienti( pageable);
 	} 
 	
@@ -87,7 +89,7 @@ public class ClienteController {
 	 }
 	
 	
-	@GetMapping("/dettaglio")
+	@PostMapping("/dettaglio")
 	@PreAuthorize("hasAuthority('CLIENTE_DETTAGLIO')")
 	public ResponseEntity<ClienteDto> dettaglio(@RequestBody IdRequest id){
 		var dto = service.dettaglio(id.getId());
