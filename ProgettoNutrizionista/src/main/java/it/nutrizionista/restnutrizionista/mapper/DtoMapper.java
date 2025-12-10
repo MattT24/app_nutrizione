@@ -738,6 +738,67 @@ public class DtoMapper {
 	            appuntamento.setClienteCognomeTemp(formDto.getClienteCognome());
 	        }
 	    }
+	    public static void updateSchedaFromForm(Scheda s, SchedaFormDto form) {
+		    if (s == null || form == null) return;
+
+		    s.setCliente(form.getCliente());
+		    s.setAttiva(form.getAttiva());
+
+		}
+	    
+	    public static SchedaDto toSchedaDtoLight(Scheda s) {
+	    		if (s == null) {
+		        return null;
+		    }
+	    		
+	    		SchedaDto dto = new SchedaDto();
+	    		dto.setId(s.getId());
+	    		dto.setAttiva(s.getAttiva());
+	    		dto.setCliente(toClienteDtoLight(s.getCliente()));
+	    		dto.setPasti(
+	                    s.getPasti().stream()
+	                      .map(DtoMapper::toPastoDtoLight) 
+	                      .collect(Collectors.toList())
+	                );
+	    		return dto;
+	    }
+	    
+	    public static SchedaDto toSchedaDtoListaPasti(Scheda s) {
+    		if (s == null) {
+	        return null;
+	    }
+    		
+    		SchedaDto dto = new SchedaDto();
+    		
+    		dto.setId(s.getId());
+    		dto.setAttiva(s.getAttiva());
+    		dto.setCliente(toClienteDtoLight(s.getCliente()));
+    		dto.setPasti(
+                    s.getPasti().stream()
+                      .map(DtoMapper::toPastoDtoLight) 
+                      .collect(Collectors.toList())
+                );
+    		return dto;
+    }
+	    
+	    public static SchedaDto toSchedaDtoLista(Scheda s) {
+		if (s == null) {
+        return null;
+    }
+		
+		SchedaDto dto = new SchedaDto();
+		
+		dto.setId(s.getId());
+		dto.setAttiva(s.getAttiva());
+		dto.setPasti(
+                s.getPasti().stream()
+                  .map(DtoMapper::toPastoDtoLight) 
+                  .collect(Collectors.toList())
+            );
+		return dto;
+}
+	    
+	    
 }
  
 

@@ -11,7 +11,6 @@ public class ClienteFormDto {
 
 	private Long id;
 
-    @NotNull(message = "Il sesso è obbligatorio")
 	private Sesso sesso;
     @NotBlank(message = "Il nome è obbligatorio")
     private String nome;
