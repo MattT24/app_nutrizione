@@ -12,6 +12,7 @@ import it.nutrizionista.restnutrizionista.dto.LogoRequestDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteFormDto;
+import it.nutrizionista.restnutrizionista.dto.UtenteProfileUpdateDto;
 import it.nutrizionista.restnutrizionista.service.UtenteService;
 
 import java.io.IOException;
@@ -87,14 +88,16 @@ public class UtenteController {
     	return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
     }
     
-    //si potrebbe fare una nuova entità con il numero di like
+  
     @PutMapping("/myprofile")
     @PreAuthorize("hasAuthority('UTENTE_PROFILE')")
-    public ResponseEntity<UtenteDto> updateMyProfile(@Valid @RequestBody UtenteFormDto form){
-    	
-    	var updated = service.updateMyProfile(form);
-    	return ResponseEntity.status(201).body(updated);
+    public ResponseEntity<UtenteDto> updateMyProfile(
+            @Valid @RequestBody UtenteProfileUpdateDto form
+    ) {
+        var updated = service.updateMyProfile(form);
+        return ResponseEntity.ok(updated);
     }
+
     
  // Inserimento Logo nutrizionista
     @PostMapping("/logo")

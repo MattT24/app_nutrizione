@@ -13,6 +13,7 @@ import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.ResetPasswordDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteFormDto;
+import it.nutrizionista.restnutrizionista.dto.UtenteProfileUpdateDto;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
@@ -126,12 +127,11 @@ public class UtenteService {
         u.setRuolo(ruolo);
     }
     
-    public UtenteDto updateMyProfile(UtenteFormDto form) {
-    	// controllo token
-		String email = SecurityContextHolder.getContext().getAuthentication().getName();
+    public UtenteDto updateMyProfile(UtenteProfileUpdateDto form) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         Utente u = repo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
-        
+
         u.setNome(form.getNome());
         u.setCognome(form.getCognome());
         u.setCodiceFiscale(form.getCodiceFiscale());
@@ -139,9 +139,10 @@ public class UtenteService {
         u.setDataNascita(form.getDataNascita());
         u.setTelefono(form.getTelefono());
         u.setIndirizzo(form.getIndirizzo());
-        
+
         return DtoMapper.toUtenteDto(repo.save(u));
     }
+
     
     public UtenteDto updateMyPassword(ResetPasswordDto dto) {    	
 		String email = SecurityContextHolder.getContext().getAuthentication().getName();
