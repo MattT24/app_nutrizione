@@ -162,7 +162,7 @@ public class UtenteService {
         Utente utente = repo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utente non trovato con email: " + email));
         
-        if (utente.getId() != logo.getUtente().getId()) throw new RuntimeException("L'utente non corrisponde");
+        if (utente.getId() != logo.getUtenteId()) throw new RuntimeException("L'utente non corrisponde");
         
         MultipartFile file = logo.getImage();
 	    if (file != null && !file.isEmpty()) {

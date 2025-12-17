@@ -96,10 +96,14 @@ public class UtenteController {
     	return ResponseEntity.status(201).body(updated);
     }
     
-  //Inserimento Logo nutrizionista
-    @PutMapping("/logo")
-    public ResponseEntity<UtenteDto> create (@Valid @ModelAttribute LogoRequestDto form) throws IOException {
-		 var dto = service.updateLogo(form);
-		 return ResponseEntity.status(201).body(dto);
-	 }
+ // Inserimento Logo nutrizionista
+    @PostMapping("/logo")
+    public ResponseEntity<UtenteDto> uploadLogo(
+            @Valid @ModelAttribute LogoRequestDto form
+    ) throws IOException {
+
+        var dto = service.updateLogo(form);
+        return ResponseEntity.ok(dto);
+    }
+
 }

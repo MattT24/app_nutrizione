@@ -7,18 +7,19 @@ import jakarta.validation.constraints.NotNull;
 
 public class LogoRequestDto {
 	
-	@NotNull(message = "L'utente è obbligatorio")
-	private UtenteDto utente;
-	
-	@NotNull(message = "Il file è obbligatorio")
-	private MultipartFile image;
+    @NotNull(message = "L'id utente è obbligatorio")
+    private Long utenteId;
 
-	public UtenteDto getUtente() {
-		return utente;
+    @NotNull(message = "Il file è obbligatorio")
+    private MultipartFile image;
+
+
+	public Long getUtenteId() {
+		return utenteId;
 	}
 
-	public void setUtente(UtenteDto utente) {
-		this.utente = utente;
+	public void setUtenteId(Long utenteId) {
+		this.utenteId = utenteId;
 	}
 
 	public MultipartFile getImage() {
