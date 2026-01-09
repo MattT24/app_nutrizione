@@ -25,8 +25,8 @@ public class Macro {
     private Long id;
 	
 	@OneToOne
-    @JoinColumn(name = "alimento_base_id")
-    private AlimentoBase alimento;
+	@JoinColumn(name = "alimento_base_id", nullable = false, unique = true)
+	private AlimentoBase alimento;
    
 	@Column(nullable = false)
 	private Double calorie;

@@ -10,7 +10,7 @@ public class AlimentoBaseDto {
     private List<AlimentoPastoDto> alimentiScelti;
     private List<AlimentoDaEvitareDto> alimentiEvitati;
     private MacroDto macroNutrienti;
-    private MicroDto microNutrienti;
+    private List<ValoreMicroDto> micronutrienti;
     private Double misuraInGrammi;
     private Instant createdAt;
     private Instant updatedAt;
@@ -44,12 +44,6 @@ public class AlimentoBaseDto {
 	public void setMacroNutrienti(MacroDto macroNutrienti) {
 		this.macroNutrienti = macroNutrienti;
 	}
-	public MicroDto getMicroNutrienti() {
-		return microNutrienti;
-	}
-	public void setMicroNutrienti(MicroDto microNutrienti) {
-		this.microNutrienti = microNutrienti;
-	}
 	public Double getMisuraInGrammi() {
 		return misuraInGrammi;
 	}
@@ -68,7 +62,13 @@ public class AlimentoBaseDto {
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
 	}
-    
+	public List<ValoreMicroDto> getMicronutrienti() {
+		return micronutrienti;
+	}
+	public void setMicronutrienti(List<ValoreMicroDto> micronutrienti) {
+		this.micronutrienti = micronutrienti;
+	}
+
     
     
 }
