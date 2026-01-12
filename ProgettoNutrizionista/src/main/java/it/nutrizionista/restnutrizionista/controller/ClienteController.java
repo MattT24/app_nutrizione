@@ -62,7 +62,7 @@ public class ClienteController {
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
-	public PageResponse<ClienteDto> allMyClienti(@PageableDefault(size = 12, page = 0) Pageable pageable){ 
+	public PageResponse<ClienteDto> allMyClienti(@PageableDefault(size = 8, page = 0) Pageable pageable){ 
 		return service.allMyClienti( pageable);
 	} 
 	

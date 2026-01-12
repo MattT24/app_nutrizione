@@ -1,9 +1,12 @@
-	package it.nutrizionista.restnutrizionista.dto;
+package it.nutrizionista.restnutrizionista.dto;
 
-public class MicroDto {
-	
+import jakarta.validation.constraints.NotNull;
+
+public class MicroFormDto {
+
     private Long id;
-
+    
+    @NotNull(message = "Il nome è obbligatorio")
     private String nome;     // Ferro, Vitamina C, Zinco
 
     private String unita;    // mg, µg
@@ -41,6 +44,5 @@ public class MicroDto {
 	public void setCategoria(String categoria) {
 		this.categoria = categoria;
 	}
-    
     
 }
