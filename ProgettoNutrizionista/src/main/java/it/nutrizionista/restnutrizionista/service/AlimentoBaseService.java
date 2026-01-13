@@ -1,9 +1,5 @@
 package it.nutrizionista.restnutrizionista.service;
 
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -13,36 +9,29 @@ import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
-import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
-import it.nutrizionista.restnutrizionista.repository.MicroRepository;
 import jakarta.validation.Valid;
 
 @Service
 public class AlimentoBaseService {
 
 	@Autowired private AlimentoBaseRepository repo;
-	@Autowired private  MicroRepository microRepository;
 
 	@Transactional
 	public AlimentoBaseDto create(@Valid AlimentoBaseFormDto form) {
-	    Map<Long, Micro> microCatalogo = loadMicroCatalogo();
-	    AlimentoBase a = DtoMapper.toAlimentoBase(form, microCatalogo);
-	    return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
+		AlimentoBase a = DtoMapper.toAlimentoBase(form);
+		return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
 	}
 
 
 	@Transactional
 	public AlimentoBaseDto update(@Valid AlimentoBaseFormDto form) {
-	    if (form.getId() == null) {
-	        throw new RuntimeException("Id Alimento obbligatorio per update");
-	    }
-	    AlimentoBase a = repo.findById(form.getId())
-	            .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
-	    Map<Long, Micro> microCatalogo = loadMicroCatalogo();
-	    DtoMapper.updateAlimentoBaseFromForm(a, form, microCatalogo);
-	    return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
+		if (form.getId() == null) throw new RuntimeException("Id Alimento obbligatorio per update");
+		AlimentoBase a = repo.findById(form.getId())
+                .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+		DtoMapper.updateAlimentoBaseFromForm(a, form);
+		return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
 	}
 
 	@Transactional
@@ -74,12 +63,4 @@ public class AlimentoBaseService {
 		return DtoMapper.toAlimentoBaseDto(a);
 	}
 
-	private Map<Long, Micro> loadMicroCatalogo() {
-	    return microRepository.findAll()
-	            .stream()
-	            .collect(Collectors.toMap(
-	                Micro::getId,
-	                Function.identity()
-	            ));
-	}
 }

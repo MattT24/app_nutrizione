@@ -1,46 +1,5 @@
 	package it.nutrizionista.restnutrizionista.dto;
 
 public class MicroDto {
-	
-    private Long id;
 
-    private String nome;     // Ferro, Vitamina C, Zinco
-
-    private String unita;    // mg, µg
-
-    private String categoria; // vitamina, minerale, altro
-
-	public Long getId() {
-		return id;
-	}
-
-	public void setId(Long id) {
-		this.id = id;
-	}
-
-	public String getNome() {
-		return nome;
-	}
-
-	public void setNome(String nome) {
-		this.nome = nome;
-	}
-
-	public String getUnita() {
-		return unita;
-	}
-
-	public void setUnita(String unita) {
-		this.unita = unita;
-	}
-
-	public String getCategoria() {
-		return categoria;
-	}
-
-	public void setCategoria(String categoria) {
-		this.categoria = categoria;
-	}
-    
-    
 }

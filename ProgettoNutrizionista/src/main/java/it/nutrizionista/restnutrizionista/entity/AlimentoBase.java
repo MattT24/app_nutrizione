@@ -1,14 +1,12 @@
 package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
+ 
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -17,6 +15,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -38,14 +37,15 @@ public class AlimentoBase {
 	@OneToMany(mappedBy = "alimento", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<AlimentoDaEvitare> alimentiEvitati;
  
-	@OneToOne(fetch = FetchType.LAZY, mappedBy = "alimento")
-	private Macro macroNutrienti;
-
+    @OneToOne
+    @JoinColumn(name = "macro_id")
+    private Macro macroNutrienti;
+    @OneToOne
+    @JoinColumn(name = "micro_id")
+    private Micro microNutrienti;
     @Column(name = "misura_grammi", nullable = false)
     private Double misuraInGrammi;
 
-    @OneToMany(mappedBy = "alimento", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<ValoreMicro> micronutrienti = new HashSet<>();
  
     
     @CreatedDate
@@ -66,6 +66,12 @@ public class AlimentoBase {
 	}
 	public void setMacronutrienti(Macro macronutrienti) {
 		this.macroNutrienti = macronutrienti;
+	}
+	public Micro getMicronutrienti() {
+		return microNutrienti;
+	}
+	public void setMicronutrienti(Micro micronutrienti) {
+		this.microNutrienti = micronutrienti;
 	}
 	public Double getMisuraInGrammi() {
 		return misuraInGrammi;
@@ -102,24 +108,6 @@ public class AlimentoBase {
 	}
 	public void setAlimentiEvitati(List<AlimentoDaEvitare> alimentiEvitati) {
 		this.alimentiEvitati = alimentiEvitati;
-	}
-	public List<AlimentoPasto> getAlimentiScelti() {
-		return alimentiScelti;
-	}
-	public void setAlimentiScelti(List<AlimentoPasto> alimentiScelti) {
-		this.alimentiScelti = alimentiScelti;
-	}
-	public Macro getMacroNutrienti() {
-		return macroNutrienti;
-	}
-	public void setMacroNutrienti(Macro macroNutrienti) {
-		this.macroNutrienti = macroNutrienti;
-	}
-	public Set<ValoreMicro> getMicronutrienti() {
-		return micronutrienti;
-	}
-	public void setMicronutrienti(Set<ValoreMicro> micronutrienti) {
-		this.micronutrienti = micronutrienti;
 	}
 	
 	
