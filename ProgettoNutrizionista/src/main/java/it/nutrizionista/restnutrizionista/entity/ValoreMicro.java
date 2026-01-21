@@ -23,7 +23,7 @@ import jakarta.persistence.UniqueConstraint;
     uniqueConstraints = {
         @UniqueConstraint(columnNames = {
             "alimento_id",
-            "micro_id"
+            "micronutriente_id"
         })
     }
 )

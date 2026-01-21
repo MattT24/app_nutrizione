@@ -12,7 +12,7 @@ import it.nutrizionista.restnutrizionista.entity.Scheda;
 public interface SchedaRepository extends JpaRepository<Scheda, Long> {
 
 	List<Scheda> findByClienteIdAndAttivaTrue(Long id);
-
+//TODO da ricontrollare
 	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto"})
     @Query("SELECT s FROM Scheda s WHERE s.id = :id")
     Optional<Scheda> findByIdWithPastiAndAlimenti(Long id);
