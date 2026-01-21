@@ -1,5 +1,8 @@
 package it.nutrizionista.restnutrizionista.mapper;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import it.nutrizionista.restnutrizionista.dto.*;
@@ -316,27 +319,67 @@ public class DtoMapper {
  
 	//Mapper per l'entita alimentoBase
 	
-	public static AlimentoBase toAlimentoBase(AlimentoBaseFormDto dto) {
-	    if (dto == null) {
-	        return null;
-	    }
+	public static AlimentoBase toAlimentoBase(
+	        AlimentoBaseFormDto dto,
+	        Map<Long, Micro> microCatalogo
+	) {
+	    if (dto == null) return null;
+
 	    AlimentoBase a = new AlimentoBase();
 	    a.setId(dto.getId());
 	    a.setNome(dto.getNome());
-	    a.setMacronutrienti(toMacro(dto.getMacroNutrienti()));
-	    a.setMicronutrienti(toMicro(dto.getMicroNutrienti()));
 	    a.setMisuraInGrammi(dto.getMisuraInGrammi());
+
+	    // Macro
+	    Macro macro = toMacro(dto.getMacroNutrienti());
+	    macro.setAlimento(a);
+	    a.setMacronutrienti(macro);
+
+	    // Micronutrienti (usa metodo unico)
+	    mapMicroFromForm(a, dto.getMicroNutrienti(), microCatalogo);
+
 	    return a;
 	}
 	
-	public static void updateAlimentoBaseFromForm(AlimentoBase a, AlimentoBaseFormDto form) {
+	public static void updateAlimentoBaseFromForm(
+	        AlimentoBase a,
+	        AlimentoBaseFormDto form,
+	        Map<Long, Micro> microCatalogo
+	) {
 	    if (a == null || form == null) return;
 
 	    a.setNome(form.getNome());
 	    a.setMisuraInGrammi(form.getMisuraInGrammi());
+
+	    // Macro
 	    a.setMacronutrienti(toMacro(form.getMacroNutrienti()));
-	    a.setMicronutrienti(toMicro(form.getMicroNutrienti()));
+	    //Micro
+	    mapMicroFromForm(a, form.getMicroNutrienti(), microCatalogo);
+
 	}
+	public static void mapMicroFromForm(
+	        AlimentoBase alimento,
+	        List<ValoreMicroFormDto> form,
+	        Map<Long, Micro> microCatalogo
+	) {
+	    alimento.getMicronutrienti().clear();
+
+	    if (form == null) return;
+
+	    for (ValoreMicroFormDto dto : form) {
+	        Micro micro = microCatalogo.get(dto.getMicronutriente().getId());
+	        if (micro == null) continue;
+
+	        ValoreMicro vm = new ValoreMicro();
+	        vm.setAlimento(alimento);
+	        vm.setMicronutriente(micro);
+	        vm.setValore(dto.getValore());
+
+	        alimento.getMicronutrienti().add(vm);
+	    }
+	}
+
+
 	
 	public static AlimentoBaseDto toAlimentoBaseDto(AlimentoBase a) {
 		if (a == null) {
@@ -346,7 +389,7 @@ public class DtoMapper {
 		dto.setId(a.getId());
 		dto.setNome(a.getNome());
 		dto.setMacroNutrienti(toMacroDto(a.getMacronutrienti()));
-		dto.setMicroNutrienti(toMicroDto(a.getMicronutrienti()));
+		dto.setMicronutrienti(toValoreMicroDto(a.getMicronutrienti()));
 		dto.setMisuraInGrammi(a.getMisuraInGrammi());
 
 		return dto;
@@ -432,24 +475,38 @@ public class DtoMapper {
 	//Mapper per l'entità Micro DA FINIRE
 	
 	public static MicroDto toMicroDto(Micro m) {
-		if (m == null) {
-	        return null;
-	    }
-		MicroDto dto = new MicroDto();
-//		dto.setId(m.getId());
-
-		return dto;
+	    if (m == null) return null;
+	    MicroDto dto = new MicroDto();
+	    dto.setId(m.getId());
+	    dto.setNome(m.getNome());
+	    dto.setUnita(m.getUnita());
+	    dto.setCategoria(m.getCategoria());
+	    return dto;
 	}
+	
 	public static Micro toMicro(MicroDto dto) {
 		if (dto == null) {
 	        return null;
 	    }
 		Micro m = new Micro();
-//		dto.setId(m.getId());
-
-		return m;
+	    m.setId(dto.getId());
+	    m.setNome(dto.getNome());
+	    m.setUnita(dto.getUnita());
+	    m.setCategoria(dto.getCategoria());
+	    return m;
 	}
 	
+	//ValoreMicro
+	public static List<ValoreMicroDto> toValoreMicroDto(Set<ValoreMicro> valori) {
+	    return valori.stream()
+	        .map(vm -> {
+	            ValoreMicroDto dto = new ValoreMicroDto();
+	            dto.setValore(vm.getValore());
+	            dto.setMicronutriente(toMicroDto(vm.getMicronutriente()));
+	            return dto;
+	        })
+	        .toList();
+	}
 	//Mapper per l'entita Pasto
 
 	
