@@ -37,7 +37,7 @@ public class AlimentoBase {
 	
 	@OneToMany(mappedBy = "alimento", fetch = FetchType.LAZY)
     private List<AlimentoDaEvitare> alimentiEvitati;
- 
+
 	@OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, optional = false, mappedBy = "alimento")
 	private Macro macroNutrienti;
 
