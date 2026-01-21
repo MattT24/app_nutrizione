@@ -28,7 +28,6 @@ public class ClienteFormDto {
     private String quantitaEQualitaDelSonno;
     private String assunzioneFarmaci;
     private Boolean beveAlcol;
-    private MisurazioneAntropometricaDto misurazioni;
     private UtenteDto nutrizionista;
     
 	public Sesso getSesso() {
@@ -126,12 +125,6 @@ public class ClienteFormDto {
 	}
 	public void setBeveAlcol(Boolean beveAlcol) {
 		this.beveAlcol = beveAlcol;
-	}
-	public MisurazioneAntropometricaDto getMisurazioni() {
-		return misurazioni;
-	}
-	public void setMisurazioni(MisurazioneAntropometricaDto misurazioni) {
-		this.misurazioni = misurazioni;
 	}
 	public UtenteDto getNutrizionista() {
 		return nutrizionista;

@@ -66,24 +66,18 @@ public class ClienteController {
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	}
 	
-	
-	//va reso page response o list
 	@GetMapping("/byNome")
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
-	public ResponseEntity<List<ClienteDto>> getByNome(@Valid @RequestBody NomeRequest nome){
-		var dto = service.findByNome(nome.getNome());
-		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+	public List<ClienteDto> getByNome(@Valid @RequestBody NomeRequest nome){
+		return service.findByNome(nome.getNome());
+	
 	 }
-	
-	//va reso page response o list
-	
+		
 	@GetMapping("/byCognome")
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
-	public ResponseEntity<List<ClienteDto>> getByCognome(@Valid @RequestBody CognomeRequest cognome){
-		var dto = service.findByCognome(cognome.getCognome());
-		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+	public List<ClienteDto> getByCognome(@Valid @RequestBody CognomeRequest cognome){
+		return service.findByCognome(cognome.getCognome());
 	}
-	
 	
 	@PostMapping("/dettaglio")
 	@PreAuthorize("hasAuthority('CLIENTE_DETTAGLIO')")

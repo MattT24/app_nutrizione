@@ -28,7 +28,7 @@ public class ClienteDto {
     private String assunzioneFarmaci;
     private Boolean beveAlcol;
     private List<AlimentoDaEvitareDto> alimentiDaEvitare;
-    private MisurazioneAntropometricaDto misurazioni;
+    private List<MisurazioneAntropometricaDto> misurazioni;
     private UtenteDto nutrizionista;
     private List<SchedaDto> schede;
     private Instant createdAt;
@@ -133,10 +133,11 @@ public class ClienteDto {
 	public void setAlimentiDaEvitare(List<AlimentoDaEvitareDto> alimentiDaEvitare) {
 		this.alimentiDaEvitare = alimentiDaEvitare;
 	}
-	public MisurazioneAntropometricaDto getMisurazioni() {
+
+	public List<MisurazioneAntropometricaDto> getMisurazioni() {
 		return misurazioni;
 	}
-	public void setMisurazioni(MisurazioneAntropometricaDto misurazioni) {
+	public void setMisurazioni(List<MisurazioneAntropometricaDto> misurazioni) {
 		this.misurazioni = misurazioni;
 	}
 	public UtenteDto getNutrizionista() {
