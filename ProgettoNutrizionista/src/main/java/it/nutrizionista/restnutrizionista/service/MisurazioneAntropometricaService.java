@@ -23,7 +23,7 @@ public class MisurazioneAntropometricaService {
 
 	@Transactional
 	public MisurazioneAntropometricaDto create(@Valid MisurazioneAntropometricaFormDto form) {
-	    Cliente cliente = clienteRepo.findById(form.getId())
+	    Cliente cliente = clienteRepo.findById(form.getCliente().getId())
 	            .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
 		MisurazioneAntropometrica m = DtoMapper.toMisurazione(form);
 		m.setCliente(cliente);
