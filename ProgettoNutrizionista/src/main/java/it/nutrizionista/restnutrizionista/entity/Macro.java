@@ -24,7 +24,7 @@ public class Macro {
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 	
-	@OneToOne
+	@OneToOne(optional = false)
 	@JoinColumn(name = "alimento_base_id", nullable = false, unique = true)
 	private AlimentoBase alimento;
    

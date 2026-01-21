@@ -50,7 +50,7 @@ public class AlimentoBaseService {
 
 	@Transactional(readOnly = true)
 	public PageResponse<AlimentoBaseDto> listAll(Pageable pageable) {
-		return PageResponse.from(repo.findAll(pageable).map(DtoMapper::toAlimentoBaseDto));
+		return PageResponse.from(repo.findAll(pageable).map(DtoMapper::toAlimentoBaseDtoLight));
 	}
 
 	@Transactional(readOnly = true)
@@ -71,7 +71,7 @@ public class AlimentoBaseService {
 	public AlimentoBaseDto getByNome(@Valid String nome) {
 		AlimentoBase a = repo.findByNome(nome)
                 .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
-		return DtoMapper.toAlimentoBaseDto(a);
+		return DtoMapper.toAlimentoBaseDtoLight(a);
 	}
 
 	private Map<Long, Micro> loadMicroCatalogo() {

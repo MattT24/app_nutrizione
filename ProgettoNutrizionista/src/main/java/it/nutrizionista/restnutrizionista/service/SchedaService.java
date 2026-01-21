@@ -41,7 +41,7 @@ public class SchedaService {
 		Scheda s = new Scheda();
 		s.setAttiva(form.getAttiva() != null ? form.getAttiva() : true);	
 		s.setCliente(form.getCliente());
-		return DtoMapper.toSchedaDto(repo.save(s));
+		return DtoMapper.toSchedaDtoLight(repo.save(s));
 	}
 
 	@Transactional
@@ -77,7 +77,7 @@ public class SchedaService {
 		Scheda s = repo.findById(id)
 				.orElseThrow(() -> new RuntimeException("Scheda non trovata"));
 		if (u.getId()!= s.getCliente().getNutrizionista().getId()) throw new RuntimeException("Non autorizzato");
-		return DtoMapper.toSchedaDtoLight(s);
+		return DtoMapper.toSchedaDto(s);
 	}
 
 	@Transactional(readOnly = true)

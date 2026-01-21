@@ -6,5 +6,6 @@ import it.nutrizionista.restnutrizionista.entity.AlimentoDaEvitare;
 
 public interface AlimentoDaEvitareRepository extends JpaRepository<AlimentoDaEvitare, Long>{
 
+	boolean existsByClienteIdAndAlimentoId(Long clienteId, Long alimentoId);
 
 }

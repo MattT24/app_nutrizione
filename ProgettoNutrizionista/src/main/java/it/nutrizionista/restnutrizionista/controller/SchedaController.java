@@ -28,42 +28,43 @@ public class SchedaController {
 	@Autowired private SchedaService service;
 
 	@PostMapping
-	//@PreAuthorize("hasAuthority('SCHEDA_CREATE')")
+	@PreAuthorize("hasAuthority('SCHEDA_CREATE')")
 	public ResponseEntity<SchedaDto> addScheda(@Valid @RequestBody SchedaFormDto form){
 		var create = service.create(form);
 		return ResponseEntity.status(201).body(create);
 	}
 
 	@PutMapping
-	//@PreAuthorize("hasAuthority('SCHEDA_UPDATE')")
+	@PreAuthorize("hasAuthority('SCHEDA_UPDATE')")
 	public ResponseEntity<SchedaDto> updateScheda(@Valid @RequestBody SchedaFormDto form){
 		var updated = service.update(form);
 		return ResponseEntity.status(201).body(updated);
 	}
 
 	@DeleteMapping
-	//@PreAuthorize("hasAuthority('SCHEDA_DELETE')")
+	@PreAuthorize("hasAuthority('SCHEDA_DELETE')")
 	public ResponseEntity<Void> delete(@Valid @RequestBody IdRequest req) {
 		service.delete(req.getId());
 		return ResponseEntity.noContent().build();
 	}
 
 	@GetMapping("/byId")
-	//@PreAuthorize("hasAuthority('SCHEDA_READ')")
+	@PreAuthorize("hasAuthority('SCHEDA_READ')")
 	public ResponseEntity<SchedaDto> getById(@Valid @RequestBody IdRequest req){
 		var dto = service.getById(req.getId());
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	}
 
+	//non so a che serve questa
 	@GetMapping("/pasti")
-	//@PreAuthorize("hasAuthority('SCHEDA_READ')")
+	@PreAuthorize("hasAuthority('SCHEDA_READ')")
 	public ResponseEntity<SchedaDto> pastiByScheda(@Valid @RequestBody IdRequest req){
 		var dto = service.pastiByScheda(req.getId());
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	}
 
 	@GetMapping("/byCliente")
-	//@PreAuthorize("hasAuthority('SCHEDA_READ')")
+	@PreAuthorize("hasAuthority('SCHEDA_READ')")
 	public List<SchedaDto> schedeByCliente(@Valid @RequestBody IdRequest req){
 		var dto = service.schedeByCliente(req.getId());
 		return dto;

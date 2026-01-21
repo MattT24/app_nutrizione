@@ -26,16 +26,24 @@ public class AlimentoPastoService {
 	@Autowired private PastoRepository repoPasto;
 	@Autowired private AlimentoBaseRepository repoAlimento;
 
+	@Transactional
+    public PastoDto associaAlimento(AlimentoPastoRequest req) {
+        Pasto p = repoPasto.findById(req.getPasto().getId())
+                .orElseThrow(() -> new RuntimeException("Pasto non trovato"));
+        
+        AlimentoBase a = repoAlimento.findById(req.getAlimento().getId())
+                .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
 
-	public PastoDto associaAlimento(AlimentoPastoRequest req) {
-		Pasto p = repoPasto.findById(req.getPasto().getId()).orElseThrow(() -> new RuntimeException("Pasto non trovato"));
-		AlimentoBase a = repoAlimento.findById(req.getAlimento().getId()).orElseThrow(() -> new RuntimeException("Alimento non trovato"));
-		
-		if (!repo.existsByPasto_IdAndAlimento_Id(p.getId(), a.getId())) {
-            repo.save(new AlimentoPasto(a, p, req.getQuantita()));
+        if (repo.existsByPasto_IdAndAlimento_Id(p.getId(), a.getId())) {
+             throw new RuntimeException("Alimento già presente nel pasto");
         }
-		return DtoMapper.toPastoDtoWithAssoc(p);
-	}
+
+        AlimentoPasto associazione = new AlimentoPasto(a, p, req.getQuantita());
+        repo.save(associazione);
+        p.getAlimentiPasto().add(associazione); 
+
+        return DtoMapper.toPastoDtoWithAssoc(p);
+    }
 	
     @Transactional
     public PastoDto eliminaAssociazione(AlimentoPastoRequest req) {
@@ -45,7 +53,7 @@ public class AlimentoPastoService {
         return DtoMapper.toPastoDtoWithAssoc(p);
     }
     
-    @Transactional
+    @Transactional(readOnly = true)
     public List<AlimentoBaseDto> listAlimentyByPasto(Long pastoId) {
         return repo.findByPasto_Id(pastoId).stream()
                 .map(AlimentoPasto::getAlimento)
