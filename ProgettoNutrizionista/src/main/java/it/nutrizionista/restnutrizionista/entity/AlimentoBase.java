@@ -32,13 +32,13 @@ public class AlimentoBase {
 	@Column(name = "nome", nullable = false, unique = true)
 	private String nome;
 	
-	@OneToMany(mappedBy = "alimento", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	@OneToMany(mappedBy = "alimento", fetch = FetchType.LAZY)
     private List<AlimentoPasto> alimentiScelti;
 	
-	@OneToMany(mappedBy = "alimento", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	@OneToMany(mappedBy = "alimento", fetch = FetchType.LAZY)
     private List<AlimentoDaEvitare> alimentiEvitati;
- 
-	@OneToOne(fetch = FetchType.LAZY, mappedBy = "alimento")
+
+	@OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, optional = false, mappedBy = "alimento")
 	private Macro macroNutrienti;
 
     @Column(name = "misura_grammi", nullable = false)

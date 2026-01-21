@@ -57,10 +57,6 @@ public class UtenteService {
     /** Aggiorna Profilo Utente. */
     @Transactional
     public UtenteDto updateProfile(UtenteFormDto form) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Utente ut = repo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
-		if (ut.getId() != form.getId()) throw new RuntimeException("L'utente non è il proprietario dell'account");
         if (form.getId() == null) throw new RuntimeException("Id utente obbligatorio per update");
         Utente u = repo.findById(form.getId())
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
@@ -135,7 +131,6 @@ public class UtenteService {
         u.setNome(form.getNome());
         u.setCognome(form.getCognome());
         u.setCodiceFiscale(form.getCodiceFiscale());
-        u.setEmail(form.getEmail());
         u.setDataNascita(form.getDataNascita());
         u.setTelefono(form.getTelefono());
         u.setIndirizzo(form.getIndirizzo());
@@ -146,8 +141,8 @@ public class UtenteService {
     
     public UtenteDto updateMyPassword(ResetPasswordDto dto) {    	
 		String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Utente utente = repo.findByEmail(dto.getEmail())
-                .orElseThrow(() -> new RuntimeException("Utente non trovato con email: " + dto.getEmail()));
+        Utente utente = repo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utente non trovato con email: "));
        
         if (!dto.getPassword().equals(dto.getConfermaPassword())) {
             throw new RuntimeException("Le password inserite non coincidono");
