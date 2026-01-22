@@ -3,6 +3,7 @@ package it.nutrizionista.restnutrizionista.dto;
 import java.time.LocalDate;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class MisurazioneAntropometricaFormDto {
 
@@ -16,7 +17,7 @@ public class MisurazioneAntropometricaFormDto {
 	private Double bicipiteS;
 	private Double bicipiteD;
 	private LocalDate dataMisurazione;
-	@NotBlank(message = "Il cliente è obbligatorio")
+	@NotNull(message = "Il cliente è obbligatorio")
 	private ClienteDto cliente;
 	
 	public Long getId() {

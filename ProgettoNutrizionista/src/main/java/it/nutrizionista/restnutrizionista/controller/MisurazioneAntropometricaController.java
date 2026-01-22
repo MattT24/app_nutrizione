@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
@@ -49,7 +50,9 @@ public class MisurazioneAntropometricaController {
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('MISURAZIONE_ANTROPOMETRICA_READ')")
-	public PageResponse<MisurazioneAntropometricaDto> allMisurazioniByCliente(@Valid @RequestBody IdRequest req, Pageable pageable){ 
-		return service.allMisurazioniByCliente(req.getId(), pageable);
-	} 
+	public PageResponse<MisurazioneAntropometricaDto> allMisurazioniByCliente(
+	        @RequestParam("clienteId") Long clienteId, Pageable pageable){ 
+	    return service.allMisurazioniByCliente(clienteId, pageable);
+	}
+
 }
