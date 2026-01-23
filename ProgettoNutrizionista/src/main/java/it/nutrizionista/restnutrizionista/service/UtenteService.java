@@ -61,7 +61,7 @@ public class UtenteService {
         Utente u = repo.findById(form.getId())
                 .orElseThrow(() -> new RuntimeException("Utente non trovato"));
         apply(u, form, false);
-        return DtoMapper.toUtenteDto(repo.save(u)); // Ruolo light
+        return DtoMapper.toUtenteDtoLight(repo.save(u)); // Senza Ruolo
     }
 
     /** Elimina utente. */
@@ -86,14 +86,14 @@ public class UtenteService {
     /** Lista paginata utenti (mapper light). */
     @Transactional(readOnly = true)
     public PageResponse<UtenteDto> list(Pageable pageable) {
-        return PageResponse.from(repo.findAll(pageable).map(DtoMapper::toUtenteDto));
+        return PageResponse.from(repo.findAll(pageable).map(DtoMapper::toUtenteDtoLight));
     }
 
     /** Lista completa non paginata (mapper light). */
     @Transactional(readOnly = true)
     public List<UtenteDto> listAll() {
         return repo.findAll().stream()
-                .map(DtoMapper::toUtenteDto)
+                .map(DtoMapper::toUtenteDtoLight)
                 .collect(Collectors.toList());
     }
 
