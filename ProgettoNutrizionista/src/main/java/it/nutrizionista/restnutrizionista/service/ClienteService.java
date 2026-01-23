@@ -49,7 +49,7 @@ public class ClienteService {
 	public ClienteDto update(@Valid ClienteFormDto form) {
 	    Utente u = getMe();
 		if (form.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
-		Cliente c = repo.findByIdAndNutrizionistaId(form.getId(), u.getId())
+		Cliente c = repo.findByIdAndNutrizionista_Id(form.getId(), u.getId())
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato o non autorizzato"));
 		DtoMapper.updateClienteFromForm(c, form);
 		return DtoMapper.toClienteDto(repo.save(c));
@@ -58,7 +58,7 @@ public class ClienteService {
 	public void deleteMyCliente(Long id) {
 	    Utente me = getMe();
 	    if (id == null) throw new RuntimeException("Id cliente obbligatorio per il delete");
-        Cliente c = repo.findByIdAndNutrizionistaId(id, me.getId())
+        Cliente c = repo.findByIdAndNutrizionista_Id(id, me.getId())
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato o non autorizzato"));
 		repo.delete(c);
 	}
@@ -70,13 +70,13 @@ public class ClienteService {
 	    if (pageable.getPageSize() > maxSize) {
 	        pageable = PageRequest.of(pageable.getPageNumber(), maxSize, pageable.getSort());
 	    }		
-		return PageResponse.from(repo.findByNutrizionistaId(u.getId(),pageable).map(DtoMapper::toClienteDtoLight));
+		return PageResponse.from(repo.findByNutrizionista_Id(u.getId(),pageable).map(DtoMapper::toClienteDtoLight));
 	}
 
 	@Transactional(readOnly = true)
     public ClienteDto getById(Long id) {
         Utente me = getMe();
-        return repo.findByIdAndNutrizionistaId(id, me.getId())
+        return repo.findByIdAndNutrizionista_Id(id, me.getId())
                 .map(DtoMapper::toClienteDtoLight)
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato o non autorizzato"));
     }
@@ -84,13 +84,13 @@ public class ClienteService {
 	@Transactional(readOnly = true)
     public List<ClienteDto> findByNome(String nome) {
         Utente me = getMe();
-        return repo.findByNutrizionistaIdAndNomeContainingIgnoreCase(me.getId(), nome)
+        return repo.findByNutrizionista_IdAndNomeContainingIgnoreCase(me.getId(), nome)
                 .stream().map(DtoMapper::toClienteDtoLight).toList();
     }
 	@Transactional(readOnly = true)
 	public List<ClienteDto> findByCognome(@Valid String cognome) {
         Utente me = getMe();
-        return repo.findByNutrizionistaIdAndCognomeContainingIgnoreCase(me.getId(), cognome)
+        return repo.findByNutrizionista_IdAndCognomeContainingIgnoreCase(me.getId(), cognome)
                 .stream().map(DtoMapper::toClienteDtoLight).toList();
 	}
 	
@@ -98,7 +98,7 @@ public class ClienteService {
     public ClienteDto dettaglio(Long id) {
         Utente me = getMe();
         // Qui usi il mapper completo (con misurazioni ecc)
-        return repo.findByIdAndNutrizionistaId(id, me.getId())
+        return repo.findByIdAndNutrizionista_Id(id, me.getId())
                 .map(DtoMapper::toClienteDto) 
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato o non autorizzato"));
     }

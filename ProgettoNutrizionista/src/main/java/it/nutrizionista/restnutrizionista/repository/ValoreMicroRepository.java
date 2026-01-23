@@ -16,5 +16,5 @@ public interface ValoreMicroRepository extends JpaRepository<ValoreMicro, Long> 
 	    JOIN FETCH vm.micronutriente
 	    WHERE vm.alimento.id = :id
 	""")
-	Set<ValoreMicro> findByAlimentoId(Long id);
+	Set<ValoreMicro> findByAlimento_Id(Long id);
 }

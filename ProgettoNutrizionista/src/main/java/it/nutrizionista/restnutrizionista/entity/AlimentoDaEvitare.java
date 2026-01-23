@@ -9,15 +9,22 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "alimenti_da_evitare_per_cliente")
+@Table(name = "alimenti_da_evitare_per_cliente",
+uniqueConstraints = {
+        // VINCOLO FONDAMENTALE: Impedisce di inserire due volte "Mela" per lo stesso "Mario"
+        @UniqueConstraint(columnNames = {"cliente_id", "alimento_id"})
+})
 @EntityListeners(AuditingEntityListener.class)
 public class AlimentoDaEvitare {
 	
@@ -33,6 +40,12 @@ public class AlimentoDaEvitare {
     @JoinColumn(name = "cliente_id")
 	private Cliente cliente;
 	
+	@Enumerated(EnumType.STRING)
+    @Column(nullable = false, name = "tipo_restrizione")
+    private TipoRestrizione tipo; 
+
+    @Column(name = "note")
+    private String note;
 	
 	@CreatedDate
     @Column(nullable = false) 
@@ -69,6 +82,18 @@ public class AlimentoDaEvitare {
 	}
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+	public TipoRestrizione getTipo() {
+		return tipo;
+	}
+	public void setTipo(TipoRestrizione tipo) {
+		this.tipo = tipo;
+	}
+	public String getNote() {
+		return note;
+	}
+	public void setNote(String note) {
+		this.note = note;
 	}
     
     

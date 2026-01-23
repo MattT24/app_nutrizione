@@ -11,6 +11,10 @@ public class AlimentoPastoRequest {
     @NotBlank(message = "La quantita è obbligatoria")
     private int quantita;
     
+    private boolean forzaInserimento = false; 
+
+    public boolean isForzaInserimento() { return forzaInserimento; }
+    public void setForzaInserimento(boolean forzaInserimento) { this.forzaInserimento = forzaInserimento; }
 
 	public AlimentoBaseDto getAlimento() {
 		return alimento;

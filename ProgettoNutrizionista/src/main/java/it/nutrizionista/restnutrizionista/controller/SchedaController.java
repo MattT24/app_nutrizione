@@ -70,10 +70,18 @@ public class SchedaController {
 		return dto;
 	}
 
-	@PostMapping("/duplica")
-	@PreAuthorize("hasAuthority('SCHEDA_CREATE')")
-	public ResponseEntity<SchedaDto> duplicateScheda(@Valid @RequestBody IdRequest req){
-		var create = service.duplicateScheda(req.getId());
-		return ResponseEntity.status(201).body(create);
-	}
+	// 1. Duplica la scheda PER LO STESSO CLIENTE (Clone rapido)
+    @PostMapping("/{id}/duplicate")
+    @PreAuthorize("hasAuthority('SCHEDA_CREATE')")
+    public SchedaDto duplicateScheda(@Valid @RequestBody IdRequest req) {
+        return service.duplicateScheda(req.getId());
+    }
+
+    // 2. Importa la scheda SU UN ALTRO CLIENTE (Clone con controlli)
+    // POST /api/schede/import?sourceId=123&targetClienteId=45
+    @PostMapping("/import")
+    @PreAuthorize("hasAuthority('SCHEDA_CREATE')")
+    public SchedaDto importFromCliente(@Valid @RequestBody IdRequest req1, @RequestBody IdRequest req2) {
+        return service.duplicateFromCliente(req1.getId(), req2.getId());
+    }
 }

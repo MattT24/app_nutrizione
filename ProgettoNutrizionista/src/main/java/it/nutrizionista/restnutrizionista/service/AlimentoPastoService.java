@@ -11,10 +11,13 @@ import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoPastoRequest;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
+import it.nutrizionista.restnutrizionista.entity.AlimentoDaEvitare;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
+import it.nutrizionista.restnutrizionista.entity.TipoRestrizione;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
+import it.nutrizionista.restnutrizionista.repository.AlimentoDaEvitareRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 
@@ -25,6 +28,7 @@ public class AlimentoPastoService {
 	@Autowired private AlimentoPastoRepository repo;
 	@Autowired private PastoRepository repoPasto;
 	@Autowired private AlimentoBaseRepository repoAlimento;
+	@Autowired private AlimentoDaEvitareRepository repoDaEvitare;
 
 	@Transactional
     public PastoDto associaAlimento(AlimentoPastoRequest req) {
@@ -33,6 +37,29 @@ public class AlimentoPastoService {
         
         AlimentoBase a = repoAlimento.findById(req.getAlimento().getId())
                 .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+        
+        Long clienteId = p.getScheda().getCliente().getId();
+
+        // Cerchiamo se c'è una restrizione
+        var restrizioneOpt = repoDaEvitare.findByCliente_IdAndAlimento_Id(clienteId, a.getId());
+
+        if (restrizioneOpt.isPresent()) {
+            AlimentoDaEvitare restrizione = restrizioneOpt.get();
+
+            // CASO 1: ALLERGIA -> BLOCCO TOTALE (Non importa il flag forzaInserimento)
+            if (restrizione.getTipo() == TipoRestrizione.ALLERGIA) {
+                throw new RuntimeException("BLOCCO SICUREZZA: Il cliente è ALLERGICO a '" + a.getNome() + "'. Inserimento vietato.");
+            }
+
+            // CASO 2: INTOLLERANZA/GUSTO -> WARNING SCAVALCABILE
+            // Se c'è una restrizione MA il frontend non ha mandato forzaInserimento = true
+            if (!req.isForzaInserimento()) {
+                // Lanciamo un errore specifico che il frontend riconoscerà per mostrare il popup di conferma
+                throw new RuntimeException("WARNING_RESTRIZIONE: Il cliente evita '" + a.getNome() + "' per: " + restrizione.getTipo() + ". Vuoi forzare l'inserimento?");
+            }
+            
+            // Se req.isForzaInserimento() è TRUE, il codice prosegue qui sotto (bypassando il warning)
+        }
 
         if (repo.existsByPasto_IdAndAlimento_Id(p.getId(), a.getId())) {
              throw new RuntimeException("Alimento già presente nel pasto");

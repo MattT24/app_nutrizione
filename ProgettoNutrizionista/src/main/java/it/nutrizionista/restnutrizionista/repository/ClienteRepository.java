@@ -12,15 +12,15 @@ import it.nutrizionista.restnutrizionista.entity.Cliente;
 public interface ClienteRepository extends JpaRepository<Cliente, Long>{
     
     // Cerca per ID e Nutrizionista (per sicurezza rapida)
-    Optional<Cliente> findByIdAndNutrizionistaId(Long id, Long nutrizionistaId);
+    Optional<Cliente> findByIdAndNutrizionista_Id(Long id, Long nutrizionistaId);
 
     // Cerca paginata per nutrizionista
-    Page<Cliente> findByNutrizionistaId(Long nutrizionistaId, Pageable pageable);
+    Page<Cliente> findByNutrizionista_Id(Long nutrizionistaId, Pageable pageable);
     
     // Ricerca parziale (es. "Mar" trova "Mario") limitata al nutrizionista
-    List<Cliente> findByNutrizionistaIdAndNomeContainingIgnoreCase(Long nutrizionistaId, String nome);
+    List<Cliente> findByNutrizionista_IdAndNomeContainingIgnoreCase(Long nutrizionistaId, String nome);
     
-    List<Cliente> findByNutrizionistaIdAndCognomeContainingIgnoreCase(Long nutrizionistaId, String cognome);
+    List<Cliente> findByNutrizionista_IdAndCognomeContainingIgnoreCase(Long nutrizionistaId, String cognome);
     
     // Verifica duplicati codice fiscale
     boolean existsByCodiceFiscale(String codiceFiscale);
