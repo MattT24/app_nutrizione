@@ -1,6 +1,6 @@
 package it.nutrizionista.restnutrizionista.entity;
 
 public enum Sesso {
-	Maschio,
-	Femmina
+	MASCHIO,
+	FEMMINA
 }
