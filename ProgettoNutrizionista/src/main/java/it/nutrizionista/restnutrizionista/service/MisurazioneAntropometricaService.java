@@ -34,7 +34,7 @@ public class MisurazioneAntropometricaService {
     @Transactional
     public MisurazioneAntropometricaDto create(@Valid MisurazioneAntropometricaFormDto form) {
         Utente me = getMe();
-        Cliente cliente = clienteRepo.findByIdAndNutrizionistaId(form.getCliente().getId(), me.getId())
+        Cliente cliente = clienteRepo.findByIdAndNutrizionista_Id(form.getCliente().getId(), me.getId())
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato o non autorizzato"));
 
         MisurazioneAntropometrica m = DtoMapper.toMisurazione(form);
@@ -70,11 +70,11 @@ public class MisurazioneAntropometricaService {
 	@Transactional(readOnly = true)
 	public PageResponse<MisurazioneAntropometricaDto> allMisurazioniByCliente(Long id,Pageable pageable) {
 		Utente me = getMe();
-        boolean isMioCliente = clienteRepo.findByIdAndNutrizionistaId(id, me.getId()).isPresent();
+        boolean isMioCliente = clienteRepo.findByIdAndNutrizionista_Id(id, me.getId()).isPresent();
         if (!isMioCliente) {
             throw new RuntimeException("Cliente non trovato o non autorizzato");
         }
-		return PageResponse.from(repo.findByClienteId(id,pageable).map(DtoMapper::toMisurazioneDtoLight));
+		return PageResponse.from(repo.findByCliente_Id(id,pageable).map(DtoMapper::toMisurazioneDtoLight));
 	}
 
 }

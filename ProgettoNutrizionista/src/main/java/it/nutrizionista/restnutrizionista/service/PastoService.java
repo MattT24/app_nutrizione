@@ -25,6 +25,7 @@ public class PastoService {
 	@Autowired private SchedaRepository schedaRepo;
 	@Autowired private UtenteRepository utenteRepo;
 
+	
 	@Transactional
     public PastoDto create(@Valid PastoFormDto form) {
         if (form.getScheda().getId() == null) throw new RuntimeException("ID Scheda obbligatorio");     
@@ -58,7 +59,7 @@ public class PastoService {
         Utente nutrizionista = utenteRepo.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
         return PageResponse.from(
-            repo.findByNutrizionistaId(nutrizionista.getId(), pageable)
+            repo.findByNutrizionista_Id(nutrizionista.getId(), pageable)
                 .map(DtoMapper::toPastoDtoLight) //restituirà solo i nomi dei pasti e non gli alimenti all'interno
         );
     }

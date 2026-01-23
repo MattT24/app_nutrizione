@@ -2,12 +2,16 @@ package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
 
+import it.nutrizionista.restnutrizionista.entity.TipoRestrizione;
+
 
 public class AlimentoDaEvitareDto {
 
     private Long id;
 	private AlimentoBaseDto alimento;
 	private ClienteDto cliente;
+	private TipoRestrizione tipo; 
+    private String note;
     private Instant createdAt;
     private Instant updatedAt;
     
@@ -42,6 +46,18 @@ public class AlimentoDaEvitareDto {
 	}
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+	public TipoRestrizione getTipo() {
+		return tipo;
+	}
+	public void setTipo(TipoRestrizione tipo) {
+		this.tipo = tipo;
+	}
+	public String getNote() {
+		return note;
+	}
+	public void setNote(String note) {
+		this.note = note;
 	}
     
     

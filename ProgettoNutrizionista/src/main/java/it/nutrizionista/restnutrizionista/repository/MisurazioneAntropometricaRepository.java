@@ -8,6 +8,6 @@ import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 
 public interface MisurazioneAntropometricaRepository extends JpaRepository<MisurazioneAntropometrica, Long> {
 
-	Page<MisurazioneAntropometrica> findByClienteId(Long id, Pageable pageable);
+	Page<MisurazioneAntropometrica> findByCliente_Id(Long id, Pageable pageable);
 
 }

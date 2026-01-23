@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import it.nutrizionista.restnutrizionista.entity.TipoRestrizione;
 import jakarta.validation.constraints.NotBlank;
 
 public class AlimentoDaEvitareFormDto {
@@ -9,6 +10,9 @@ public class AlimentoDaEvitareFormDto {
 	private AlimentoBaseDto alimento;
     @NotBlank(message = "Il cliente è obbligatorio")
 	private ClienteDto cliente;
+    
+    private TipoRestrizione tipo; 
+    private String note;
 
     
 	public Long getId() {
@@ -28,6 +32,18 @@ public class AlimentoDaEvitareFormDto {
 	}
 	public void setCliente(ClienteDto cliente) {
 		this.cliente = cliente;
+	}
+	public TipoRestrizione getTipo() {
+		return tipo;
+	}
+	public void setTipo(TipoRestrizione tipo) {
+		this.tipo = tipo;
+	}
+	public String getNote() {
+		return note;
+	}
+	public void setNote(String note) {
+		this.note = note;
 	}
 
     

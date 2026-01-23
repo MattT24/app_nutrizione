@@ -25,7 +25,7 @@ public class AlimentoDaEvitareService {
 	@ Autowired private AlimentoBaseRepository alimentoRepo;
 	@Transactional
 	public AlimentoDaEvitareDto create(@Valid AlimentoDaEvitareFormDto form) {
-		if (repo.existsByClienteIdAndAlimentoId(form.getCliente().getId(), form.getAlimento().getId())) {
+		if (repo.existsByCliente_IdAndAlimento_Id(form.getCliente().getId(), form.getAlimento().getId())) {
 	        throw new RuntimeException("Questo alimento è già nella lista 'da evitare' del cliente");
 	    }
 		AlimentoDaEvitare e = new AlimentoDaEvitare();
