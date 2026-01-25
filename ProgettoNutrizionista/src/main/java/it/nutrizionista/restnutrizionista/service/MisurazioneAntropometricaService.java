@@ -68,13 +68,13 @@ public class MisurazioneAntropometricaService {
 		repo.deleteById(id); }
 
 	@Transactional(readOnly = true)
-	public PageResponse<MisurazioneAntropometricaDto> allMisurazioniByCliente(Long id,Pageable pageable) {
+	public PageResponse<MisurazioneAntropometricaDto> allMisurazioniCliente(Long id,Pageable pageable) {
 		Utente me = getMe();
         boolean isMioCliente = clienteRepo.findByIdAndNutrizionista_Id(id, me.getId()).isPresent();
         if (!isMioCliente) {
             throw new RuntimeException("Cliente non trovato o non autorizzato");
         }
-		return PageResponse.from(repo.findByCliente_Id(id,pageable).map(DtoMapper::toMisurazioneDtoLight));
+		return PageResponse.from(repo.findByCliente_IdOrderByDataMisurazioneDesc(id,pageable).map(DtoMapper::toMisurazioneDtoLight));
 	}
 
 }
