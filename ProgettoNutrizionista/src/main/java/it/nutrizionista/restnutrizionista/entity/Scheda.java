@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 import org.springframework.data.annotation.CreatedDate;
@@ -28,6 +29,9 @@ public class Scheda {
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 	
+    @Column(nullable = false)
+    private String nome;
+	
 	@ManyToOne
     @JoinColumn(name = "cliente_id")
 	private Cliente cliente;
@@ -37,6 +41,9 @@ public class Scheda {
     
     @OneToMany(mappedBy = "scheda", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Pasto> pasti;
+    
+	@Column(name = "data_creazione")
+    private LocalDate dataCreazione;
     
     @CreatedDate
     @Column(nullable = false) 
@@ -77,6 +84,21 @@ public class Scheda {
 	}
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+	public LocalDate getDataCreazione() {
+		return dataCreazione;
+	}
+	public void setDataCreazione(LocalDate dataCreazione) {
+		this.dataCreazione = dataCreazione;
+	}
+	public String getNome() {
+		return nome;
+	}
+	public void setNome(String nome) {
+		this.nome = nome;
+	}
+	public void setCreatedAt(Instant createdAt) {
+		this.createdAt = createdAt;
 	}
     
     

@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 
 
@@ -8,8 +9,10 @@ public class SchedaDto {
 
 	private Long id;
 	private ClienteDto cliente;
+	private String nome;
     private Boolean attiva;
     private List<PastoDto> pasti;
+    private LocalDate dataCreazione;
     private Instant createdAt; 
     private Instant updatedAt;
 	public Long getId() {
@@ -48,6 +51,18 @@ public class SchedaDto {
 	}
 	public void setCliente(ClienteDto cliente) {
 		this.cliente = cliente;
+	}
+	public LocalDate getDataCreazione() {
+		return dataCreazione;
+	}
+	public void setDataCreazione(LocalDate dataCreazione) {
+		this.dataCreazione = dataCreazione;
+	}
+	public String getNome() {
+		return nome;
+	}
+	public void setNome(String nome) {
+		this.nome = nome;
 	}
     
 }

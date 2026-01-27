@@ -603,6 +603,8 @@ public class DtoMapper {
 		dto.setId(s.getId());
 		dto.setAttiva(s.getAttiva());
 		dto.setCliente(toClienteDtoLight(s.getCliente()));
+		dto.setDataCreazione(s.getDataCreazione());
+		dto.setNome(s.getNome());
 		dto.setCreatedAt(s.getCreatedAt());
 		dto.setUpdatedAt(s.getUpdatedAt());
 		return dto;
@@ -611,9 +613,8 @@ public class DtoMapper {
 	public static void updateSchedaFromForm(Scheda s, SchedaFormDto form) {
 	    if (s == null || form == null) return;
 
-	    s.setCliente(form.getCliente());
 	    s.setAttiva(form.getAttiva());
-
+		s.setNome(form.getNome());
 	}
     
     public static SchedaDto toSchedaDto(Scheda s) {
@@ -625,48 +626,18 @@ public class DtoMapper {
     		dto.setId(s.getId());
     		dto.setAttiva(s.getAttiva());
     		dto.setCliente(toClienteDtoLight(s.getCliente()));
+    		dto.setDataCreazione(s.getDataCreazione());
+    		dto.setNome(s.getNome());
     		dto.setPasti(
                     s.getPasti().stream()
-                      .map(DtoMapper::toPastoDtoLight) 
+                      .map(DtoMapper::toPastoDtoWithAssoc) 
                       .collect(Collectors.toList())
                 );
     		return dto;
     }
+   
     
-    public static SchedaDto toSchedaDtoListaPasti(Scheda s) {
-		if (s == null) {
-        return null;
-    }
-		
-		SchedaDto dto = new SchedaDto();
-		
-		dto.setId(s.getId());
-		dto.setAttiva(s.getAttiva());
-		dto.setCliente(toClienteDtoLight(s.getCliente()));
-		dto.setPasti(
-                s.getPasti().stream()
-                  .map(DtoMapper::toPastoDtoLight) 
-                  .collect(Collectors.toList())
-            );
-		return dto;
-}
-    
-    public static SchedaDto toSchedaDtoLista(Scheda s) {
-	if (s == null) {
-    return null;
-}
-	
-	SchedaDto dto = new SchedaDto();
-	
-	dto.setId(s.getId());
-	dto.setAttiva(s.getAttiva());
-	dto.setPasti(
-            s.getPasti().stream()
-              .map(DtoMapper::toPastoDtoLight) 
-              .collect(Collectors.toList())
-        );
-	return dto;
-}
+
 	//mapper per l' entità misurazioneAntrometrica
 
 	public static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica m) {
