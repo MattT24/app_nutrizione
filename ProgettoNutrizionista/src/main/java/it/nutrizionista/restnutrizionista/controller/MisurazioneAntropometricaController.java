@@ -52,7 +52,7 @@ public class MisurazioneAntropometricaController {
 	@PreAuthorize("hasAuthority('MISURAZIONE_ANTROPOMETRICA_READ')")
 	public PageResponse<MisurazioneAntropometricaDto> allMisurazioniByCliente(
 	        @RequestParam("clienteId") Long clienteId, Pageable pageable){ 
-	    return service.allMisurazioniByCliente(clienteId, pageable);
+	    return service.allMisurazioniCliente(clienteId, pageable);
 	}
 
 }
