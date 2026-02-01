@@ -330,7 +330,9 @@ public class DtoMapper {
 	    ClienteDto dto = new ClienteDto();
 	    dto.setId(c.getId());
 	    dto.setNome(c.getNome());
-	    dto.setCognome(c.getCognome());	    
+	    dto.setCognome(c.getCognome());
+	    dto.setDataNascita(c.getDataNascita());
+
 		return dto;
 	    
 	}
