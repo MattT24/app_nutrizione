@@ -3,6 +3,7 @@ package it.nutrizionista.restnutrizionista.controller;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -12,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
@@ -65,8 +67,8 @@ public class SchedaController {
 
 	@GetMapping("/byCliente")
 	@PreAuthorize("hasAuthority('SCHEDA_READ')")
-	public List<SchedaDto> schedeByCliente(@Valid @RequestBody IdRequest req){
-		var dto = service.schedeByCliente(req.getId());
+	public List<SchedaDto> schedeByCliente(@RequestParam Long clienteId, Pageable pageable){
+		var dto = service.schedeByCliente(clienteId, pageable);
 		return dto;
 	}
 

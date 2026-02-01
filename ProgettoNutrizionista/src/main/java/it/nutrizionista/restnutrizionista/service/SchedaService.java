@@ -1,10 +1,12 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +33,12 @@ public class SchedaService {
 	@Autowired private UtenteRepository repoUtente;
 	@Autowired private ClienteRepository repoCliente;
 	@Autowired private AlimentoDaEvitareRepository repoRestrizioni;
+	
+	private Utente getMe() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return repoUtente.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+    }
 
 
 	@Transactional
@@ -43,6 +51,8 @@ public class SchedaService {
 		}
 
 		Scheda s = new Scheda();
+		s.setNome(form.getNome()); 
+        s.setDataCreazione(LocalDate.now());
 		s.setAttiva(form.getAttiva() != null ? form.getAttiva() : true);	
 		s.setCliente(form.getCliente());
 		return DtoMapper.toSchedaDtoLight(repo.save(s));
@@ -50,88 +60,97 @@ public class SchedaService {
 
 	@Transactional
 	public SchedaDto update(SchedaFormDto form) {
-		String email = SecurityContextHolder.getContext().getAuthentication().getName();
-		Utente u = repoUtente.findByEmail(email)
-				.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+		Utente u =getMe();
 		if (form.getId() == null) throw new RuntimeException("Id scheda obbligatorio per update");
 		Scheda s = repo.findById(form.getId())
 				.orElseThrow(() -> new RuntimeException("Scheda non trovata"));
-		if (u.getId()!= s.getCliente().getNutrizionista().getId()) throw new RuntimeException("Non autorizzato");
+		checkOwnership(s, u);
 		DtoMapper.updateSchedaFromForm(s, form);
-		return DtoMapper.toSchedaDto(repo.save(s));
+		return DtoMapper.toSchedaDtoLight(repo.save(s));
 	}
 
 	@Transactional
 	public void delete(Long id) {
-		String email = SecurityContextHolder.getContext().getAuthentication().getName();
-		Utente u = repoUtente.findByEmail(email)
-				.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+		Utente u = getMe();
 		if (id == null) throw new RuntimeException("Id scheda obbligatorio per il delete");
 		Scheda s = repo.findById(id)
 				.orElseThrow(() -> new RuntimeException("Scheda non trovata"));
-		if(u.getId()!= s.getCliente().getNutrizionista().getId()) throw new RuntimeException("L'utente non possiede la scheda");
+		checkOwnership(s, u);
 		repo.deleteById(id);
 	}
 
 	@Transactional(readOnly = true)
 	public SchedaDto getById(Long id) {
-		String email = SecurityContextHolder.getContext().getAuthentication().getName();
-		Utente u = repoUtente.findByEmail(email)
-				.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+		Utente u = getMe();
 		Scheda s = repo.findById(id)
 				.orElseThrow(() -> new RuntimeException("Scheda non trovata"));
-		if (u.getId()!= s.getCliente().getNutrizionista().getId()) throw new RuntimeException("Non autorizzato");
+		checkOwnership(s, u);
 		return DtoMapper.toSchedaDto(s);
 	}
 
 	@Transactional(readOnly = true)
 	public SchedaDto pastiByScheda(Long id) {
-		return  repo.findById(id).map(DtoMapper::toSchedaDtoListaPasti).orElseThrow(()-> new RuntimeException("Scheda non trovata"));
+		return  repo.findById(id).map(DtoMapper::toSchedaDto).orElseThrow(()-> new RuntimeException("Scheda non trovata"));
 	}
 
 	@Transactional(readOnly = true)
-	public List<SchedaDto> schedeByCliente(Long id) {
+	public List<SchedaDto> schedeByCliente(Long id, Pageable pageable) {
 		Cliente c = repoCliente.findById(id).orElseThrow(()-> new RuntimeException("Cliente non trovato"));
-		return c.getSchede().stream().map(DtoMapper::toSchedaDtoListaPasti).collect(Collectors.toList());
+		return c.getSchede().stream().map(DtoMapper::toSchedaDto).collect(Collectors.toList());
+	}
+
+	// Metodo helper privato
+	private void checkOwnership(Scheda scheda, Utente nutrizionista) {
+	    if (!scheda.getCliente().getNutrizionista().getId().equals(nutrizionista.getId())) {
+	        throw new SecurityException("NON AUTORIZZATO: Questa scheda appartiene al cliente di un altro professionista.");
+	    }
 	}
 
 
 	@Transactional
 	public SchedaDto duplicateScheda(Long schedaId) {
+		Utente me = getMe();
 		//  Carica la scheda originale
 		Scheda originale = repo.findByIdWithPastiAndAlimenti(schedaId)
 				.orElseThrow(() -> new RuntimeException("Scheda originale non trovata"));
+
+	    checkOwnership(originale, me);
 
 		// Crea il guscio della nuova scheda
 		Scheda clone = new Scheda();
 		clone.setCliente(originale.getCliente());
 		clone.setAttiva(false); // Nasce disattivata per sicurezza
-
+		clone.setNome(originale.getNome()+ " (Copia)"); 
+        clone.setDataCreazione(LocalDate.now());
 		// Copia dei Pasti
 		clone.setPasti(clonePastiList(originale.getPasti(), clone));
-		return DtoMapper.toSchedaDto(repo.save(clone));
+		return DtoMapper.toSchedaDtoLight(repo.save(clone));
 	}
 
 	@Transactional
-    public SchedaDto duplicateFromCliente(Long sourceSchedaId, Long targetClienteId) {
+    public SchedaDto duplicateFromCliente(Long schedaId, Long targetClienteId) {
         
-        // 1. Carica dati
-        Scheda source = repo.findByIdWithPastiAndAlimenti(sourceSchedaId)
-                .orElseThrow(() -> new RuntimeException("Scheda sorgente non trovata"));
-        
+		Utente me = getMe();
+		//  Carica la scheda originale
+		Scheda originale = repo.findByIdWithPastiAndAlimenti(schedaId)
+				.orElseThrow(() -> new RuntimeException("Scheda originale non trovata"));
+
+	    checkOwnership(originale, me);
         Cliente targetCliente = repoCliente.findById(targetClienteId)
                 .orElseThrow(() -> new RuntimeException("Cliente destinazione non trovato"));
 
         // 2. CONTROLLO SICUREZZA (Solo qui!)
-        checkSafetyRestrictions(source, targetClienteId);
+        checkSafetyRestrictions(originale, targetClienteId);
 
         // 3. Prepara il clone (Nuovo Cliente)
         Scheda clone = new Scheda();
         clone.setCliente(targetCliente); // <--- Nuovo cliente
+        clone.setNome(originale.getNome()); 
+        clone.setDataCreazione(LocalDate.now());
         clone.setAttiva(false);
 
         // 4. Copia i pasti (uso metodo helper)
-        clone.setPasti(clonePastiList(source.getPasti(), clone));
+        clone.setPasti(clonePastiList(originale.getPasti(), clone));
 
         return DtoMapper.toSchedaDto(repo.save(clone));
     }
@@ -182,6 +201,28 @@ public class SchedaService {
             }
             throw new RuntimeException(sb.toString());
         }
+    }
+    @Transactional
+    public SchedaDto activateScheda(Long schedaId) {
+        // 1. Recupera la scheda e l'utente loggato
+        Utente me = getMe(); 
+        Scheda scheda = repo.findById(schedaId)
+                .orElseThrow(() -> new RuntimeException("Scheda non trovata"));
+
+        // 2. Controllo sicurezza (vedi punto 2 sotto)
+        checkOwnership(scheda, me);
+
+        // 3. Disattiva TUTTE le schede di quel cliente
+        List<Scheda> schedeCliente = repo.findByCliente_Id(scheda.getCliente().getId());
+        for (Scheda s : schedeCliente) {
+            s.setAttiva(false);
+        }
+
+        // 4. Attiva SOLO quella richiesta
+        scheda.setAttiva(true);
+        
+        // 5. Salva (Hibernate gestirà l'update di tutte le schede modificate nella transazione)
+        return DtoMapper.toSchedaDto(repo.save(scheda));
     }
 }
 
