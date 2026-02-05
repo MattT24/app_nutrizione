@@ -22,48 +22,60 @@ public class AlimentoDaEvitareService {
 
 	@Autowired private AlimentoDaEvitareRepository repo;
 	@Autowired private ClienteRepository clienteRepo;
-	@ Autowired private AlimentoBaseRepository alimentoRepo;
+	@Autowired private AlimentoBaseRepository alimentoRepo;
+
 	@Transactional
 	public AlimentoDaEvitareDto create(@Valid AlimentoDaEvitareFormDto form) {
+        // Verifica esistenza
 		if (repo.existsByCliente_IdAndAlimento_Id(form.getCliente().getId(), form.getAlimento().getId())) {
-	        throw new RuntimeException("Questo alimento è già nella lista 'da evitare' del cliente");
-	    }
+			throw new RuntimeException("Questo alimento è già nella lista 'da evitare' del cliente");
+		}
+        
 		AlimentoDaEvitare e = new AlimentoDaEvitare();
-	    Cliente cliente = clienteRepo.findById(form.getCliente().getId())
-	            .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
-	    AlimentoBase alimento = alimentoRepo.findById(form.getAlimento().getId())
-	            .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+		Cliente cliente = clienteRepo.findById(form.getCliente().getId())
+				.orElseThrow(() -> new RuntimeException("Cliente non trovato"));
+        
+		AlimentoBase alimento = alimentoRepo.findById(form.getAlimento().getId())
+				.orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+        
 		e.setCliente(cliente);
 		e.setAlimento(alimento);
+        // e.setTipo(form.getTipo()); // Se gestisci il tipo (Allergia/Gusto)
+        
 		return DtoMapper.toAlimentoDaEvitareDtoLight(repo.save(e));
 	}
 
 	@Transactional
 	public AlimentoDaEvitareDto update(@Valid AlimentoDaEvitareFormDto form) {
-		if (form.getId() == null) throw new RuntimeException("Id AlimentoDaEvitare obbligatorio per update");
+		if (form.getId() == null) throw new RuntimeException("Id obbligatorio per update");
+        
 		AlimentoDaEvitare e = repo.findById(form.getId())
-                .orElseThrow(() -> new RuntimeException("AlimentoDaEvitare non trovato"));
+				.orElseThrow(() -> new RuntimeException("Elemento non trovato"));
+        
+        // Se si vuole cambiare alimento (raro, di solito si cancella e ricrea)
 		AlimentoBase alimento = alimentoRepo.findById(form.getAlimento().getId())
-	            .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+				.orElseThrow(() -> new RuntimeException("Alimento non trovato"));
 		e.setAlimento(alimento);
+        
 		return DtoMapper.toAlimentoDaEvitareDtoLight(repo.save(e));
 	}
-	@Transactional
-    public void delete(Long id) { repo.deleteById(id); }
 
+	@Transactional
+	public void delete(Long id) { repo.deleteById(id); }
+
+    // Lista per cliente (Paginata)
 	@Transactional(readOnly = true)
-	public PageResponse<AlimentoDaEvitareDto> listAll(Pageable pageable) {
-		return PageResponse.from(repo.findAll(pageable).map(DtoMapper::toAlimentoDaEvitareDtoLight));
+	public PageResponse<AlimentoDaEvitareDto> listByCliente(Long clienteId, Pageable pageable) {
+		return PageResponse.from(
+            repo.findByCliente_Id(clienteId, pageable)
+                .map(DtoMapper::toAlimentoDaEvitareDtoLight)
+        );
 	}
 
 	@Transactional(readOnly = true)
 	public AlimentoDaEvitareDto getById(Long id) {
-		return  repo.findById(id).map(DtoMapper::toAlimentoDaEvitareDtoLight).orElseThrow(()-> new RuntimeException("AlimentoDaEvitare non trovato"));
+		return repo.findById(id)
+            .map(DtoMapper::toAlimentoDaEvitareDtoLight)
+            .orElseThrow(()-> new RuntimeException("Elemento non trovato"));
 	}
-	
-	@Transactional(readOnly = true)
-	public AlimentoDaEvitareDto dettaglio(Long id) {
-		return repo.findById(id).map(DtoMapper::toAlimentoDaEvitareDto).orElseThrow(()-> new RuntimeException("AlimentoDaEvitare non trovato"));
-	}
-	
 }
