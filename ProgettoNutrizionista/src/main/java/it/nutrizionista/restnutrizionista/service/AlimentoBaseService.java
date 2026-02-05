@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -72,6 +73,16 @@ public class AlimentoBaseService {
 		AlimentoBase a = repo.findByNome(nome)
                 .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
 		return DtoMapper.toAlimentoBaseDtoLight(a);
+	}
+	// Aggiungi questo metodo nel Service
+	@Transactional(readOnly = true)
+	public List<AlimentoBaseDto> search(String query) {
+	    // Cerca alimenti che contengono la stringa (case insensitive)
+	    List<AlimentoBase> list = repo.findByNomeContainingIgnoreCase(query);
+	    // Ritorna la lista mappata (Light va bene per le select)
+	    return list.stream()
+	               .map(DtoMapper::toAlimentoBaseDtoLight)
+	               .collect(Collectors.toList());
 	}
 
 	private Map<Long, Micro> loadMicroCatalogo() {

@@ -4,15 +4,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import it.nutrizionista.restnutrizionista.dto.IdRequest;
+import org.springframework.web.bind.annotation.*; // Importa tutto
+
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PastoFormDto;
@@ -26,39 +19,38 @@ public class PastoController {
 
 	@Autowired private PastoService service;
 	
-	
 	@PostMapping
 	@PreAuthorize("hasAuthority('PASTO_CREATE')")
-	public ResponseEntity<PastoDto> add(@Valid @RequestBody PastoFormDto form){
+	public ResponseEntity<PastoDto> create(@Valid @RequestBody PastoFormDto form){
 		var create = service.create(form);
-        return ResponseEntity.status(201).body(create);
-    }
+		return ResponseEntity.status(201).body(create);
+	}
 	
 	@PutMapping
-    @PreAuthorize("hasAuthority('PASTO_UPDATE')")
+	@PreAuthorize("hasAuthority('PASTO_UPDATE')")
 	public ResponseEntity<PastoDto> update(@Valid @RequestBody PastoFormDto form){
 		var updated = service.update(form);
-        return ResponseEntity.status(201).body(updated);
-    }
+		return ResponseEntity.ok(updated);
+	}
 
-	@DeleteMapping
+	@DeleteMapping("/{id}")
 	@PreAuthorize("hasAuthority('PASTO_DELETE')")
-	public ResponseEntity<Void> delete(@Valid @RequestBody IdRequest req) {
-		service.delete(req.getId());
+	public ResponseEntity<Void> delete(@PathVariable Long id) {
+		service.delete(id);
 		return ResponseEntity.noContent().build();
 	}
 	
+    // Tutti i pasti del nutrizionista (poco usato ma ok)
 	@GetMapping
 	@PreAuthorize("hasAuthority('PASTO_READ')")
-	public PageResponse<PastoDto> allMyPasti(Pageable pageable){ 
-		return service.listAllMyPasti(pageable);
+	public ResponseEntity<PageResponse<PastoDto>> allMyPasti(Pageable pageable){
+		return ResponseEntity.ok(service.listAllMyPasti(pageable));
 	}
 	
-	@GetMapping("/dettaglio")
-	@PreAuthorize("hasAuthority('PASTO_DETTAGLIO')")
-	public ResponseEntity<PastoDto> dettaglio(@RequestBody IdRequest id){
-		var dto = service.dettaglio(id.getId());
-		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+	@GetMapping("/{id}")
+	@PreAuthorize("hasAuthority('PASTO_READ')")
+	public ResponseEntity<PastoDto> getById(@PathVariable Long id){
+		var dto = service.dettaglio(id); // Uso dettaglio per avere tutto
+		return ResponseEntity.ok(dto);
 	}
 }
-

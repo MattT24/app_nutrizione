@@ -3,6 +3,8 @@ package it.nutrizionista.restnutrizionista.repository;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,5 +19,6 @@ public interface SchedaRepository extends JpaRepository<Scheda, Long> {
     @Query("SELECT s FROM Scheda s WHERE s.id = :id")
     Optional<Scheda> findByIdWithPastiAndAlimenti(Long id);
 	List<Scheda> findByCliente_Id(Long id);
+	Page<Scheda> findByCliente_IdOrderByDataCreazioneDesc(Long clienteId, Pageable pageable);
 	
 }

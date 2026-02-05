@@ -6,11 +6,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoDaEvitare;
@@ -39,14 +41,26 @@ public class SchedaService {
         return repoUtente.findByEmail(email)
                 .orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
     }
-
+	
+	private void checkClienteOwnership(Cliente cliente, Utente nutrizionista) {
+        if (!cliente.getNutrizionista().getId().equals(nutrizionista.getId())) {
+            throw new SecurityException("NON AUTORIZZATO: Il cliente selezionato non è gestito da te.");
+        }
+    }
 
 	@Transactional
 	public SchedaDto create(@Valid SchedaFormDto form) {
+		Utente me = getMe();
 		if (form.getId() != null) throw new RuntimeException("Id non richiesto per create");
+		Cliente cliente = repoCliente.findById(form.getCliente().getId())
+                .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
+		checkClienteOwnership(cliente, me);
+        
 		if (Boolean.TRUE.equals(form.getAttiva())) {
 			List<Scheda> schedeAttive = repo.findByCliente_IdAndAttivaTrue(form.getCliente().getId());
-			schedeAttive.forEach(vecchia -> vecchia.setAttiva(false));
+			for (Scheda vecchia : schedeAttive) {
+	            vecchia.setAttiva(false);
+	        }
 			repo.saveAll(schedeAttive);
 		}
 
@@ -89,14 +103,14 @@ public class SchedaService {
 	}
 
 	@Transactional(readOnly = true)
-	public SchedaDto pastiByScheda(Long id) {
-		return  repo.findById(id).map(DtoMapper::toSchedaDto).orElseThrow(()-> new RuntimeException("Scheda non trovata"));
-	}
-
-	@Transactional(readOnly = true)
-	public List<SchedaDto> schedeByCliente(Long id, Pageable pageable) {
-		Cliente c = repoCliente.findById(id).orElseThrow(()-> new RuntimeException("Cliente non trovato"));
-		return c.getSchede().stream().map(DtoMapper::toSchedaDto).collect(Collectors.toList());
+	public PageResponse<SchedaDto> schedeByCliente(Long clienteId, Pageable pageable) {
+		Utente me = getMe();
+        Cliente c = repoCliente.findById(clienteId)
+                .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
+        checkClienteOwnership(c, me);
+	    Page<Scheda> page = repo.findByCliente_IdOrderByDataCreazioneDesc(clienteId, pageable);
+	    Page<SchedaDto> dtoPage = page.map(DtoMapper::toSchedaDtoLight);
+	    return PageResponse.from(dtoPage);
 	}
 
 	// Metodo helper privato
