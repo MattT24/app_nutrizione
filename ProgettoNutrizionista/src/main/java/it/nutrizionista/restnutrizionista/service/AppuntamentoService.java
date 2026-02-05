@@ -3,15 +3,16 @@ package it.nutrizionista.restnutrizionista.service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
+import it.nutrizionista.restnutrizionista.dto.CalendarEventDto;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
@@ -23,260 +24,195 @@ import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 @Service
 public class AppuntamentoService {
 
-    @Autowired
-    private AppuntamentoRepository appuntamentoRepository;
+    private final AppuntamentoRepository repo;
+    private final UtenteRepository repoUtente;
+    private final ClienteRepository repoCliente;
 
-    @Autowired
-    private UtenteRepository utenteRepository;
+    public AppuntamentoService(AppuntamentoRepository repo, UtenteRepository repoUtente, ClienteRepository repoCliente) {
+        this.repo = repo;
+        this.repoUtente = repoUtente;
+        this.repoCliente = repoCliente;
+    }
 
-    @Autowired
-    private ClienteRepository clienteRepository;
+    private Utente getMe() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        return repoUtente.findByEmail(email).orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+    }
+
+    // ============ CRUD ============
 
     @Transactional
-    public AppuntamentoDto createAppuntamento(String email, AppuntamentoFormDto formDto) {
-        Utente nutrizionista = utenteRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Nutrizionista non trovato con email: " + email));
+    public AppuntamentoDto create(AppuntamentoFormDto form) {
+        Utente me = getMe();
 
-        Cliente cliente = null;
+        Cliente cliente = resolveCliente(form);
 
-        if (formDto.getClienteId() != null) {
-            cliente = clienteRepository.findById(formDto.getClienteId())
-                    .orElseThrow(() -> new RuntimeException("Cliente non trovato con id: " + formDto.getClienteId()));
-        } else {
-            if (formDto.getClienteNome() == null || formDto.getClienteNome().trim().isEmpty()) {
-                throw new RuntimeException("Il nome del cliente è obbligatorio");
-            }
-            if (formDto.getClienteCognome() == null || formDto.getClienteCognome().trim().isEmpty()) {
-                throw new RuntimeException("Il cognome del cliente è obbligatorio");
-            }
-            if (formDto.getEmailCliente() == null || formDto.getEmailCliente().trim().isEmpty()) {
-                throw new RuntimeException("L'email del cliente è obbligatoria");
-            }
-        }
+        validateBusiness(form, me.getId(), null);
 
-        validateAppuntamento(formDto, nutrizionista, cliente, null);
-
-        Appuntamento appuntamento = DtoMapper.toAppuntamento(formDto, nutrizionista, cliente);
-
-        Appuntamento saved = appuntamentoRepository.save(appuntamento);
-
+        Appuntamento a = DtoMapper.toAppuntamento(form, me, cliente);
+        Appuntamento saved = repo.save(a);
         return DtoMapper.toAppuntamentoDto(saved);
     }
 
     @Transactional
-    public AppuntamentoDto updateAppuntamento(Long appuntamentoId, AppuntamentoFormDto formDto) {
-        Appuntamento appuntamento = appuntamentoRepository.findById(appuntamentoId)
-                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato con id: " + appuntamentoId));
+    public AppuntamentoDto update(Long id, AppuntamentoFormDto form) {
+        Utente me = getMe();
 
-        Cliente cliente = appuntamento.getCliente();
+        Appuntamento a = repo.findByIdAndNutrizionista_Id(id, me.getId())
+                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato o non autorizzato"));
 
-        if (formDto.getClienteId() != null) {
-            if (appuntamento.getCliente() == null || 
-                !formDto.getClienteId().equals(appuntamento.getCliente().getId())) {
-                cliente = clienteRepository.findById(formDto.getClienteId())
-                        .orElseThrow(() -> new RuntimeException("Cliente non trovato con id: " + formDto.getClienteId()));
-                appuntamento.setCliente(cliente);
-                appuntamento.setClienteNomeTemp(null);
-                appuntamento.setClienteCognomeTemp(null);
-            }
-        } else {
-            if (formDto.getClienteNome() == null || formDto.getClienteNome().trim().isEmpty()) {
-                throw new RuntimeException("Il nome del cliente è obbligatorio");
-            }
-            if (formDto.getClienteCognome() == null || formDto.getClienteCognome().trim().isEmpty()) {
-                throw new RuntimeException("Il cognome del cliente è obbligatorio");
-            }
-            appuntamento.setCliente(null);
-            cliente = null;
+        Cliente cliente = resolveCliente(form);
+
+        // se passo cliente registrato, pulisco i campi temp; se non registrato, setto cliente null
+        a.setCliente(cliente);
+        if (cliente != null) {
+            a.setClienteNomeTemp(null);
+            a.setClienteCognomeTemp(null);
         }
 
-        validateAppuntamento(formDto, appuntamento.getNutrizionista(), cliente, appuntamentoId);
+        validateBusiness(form, me.getId(), id);
 
-        DtoMapper.updateAppuntamentoFromFormDto(appuntamento, formDto);
-
-        Appuntamento updated = appuntamentoRepository.save(appuntamento);
-
-        return DtoMapper.toAppuntamentoDto(updated);
+        DtoMapper.updateAppuntamentoFromFormDto(a, form);
+        Appuntamento saved = repo.save(a);
+        return DtoMapper.toAppuntamentoDto(saved);
     }
 
     @Transactional(readOnly = true)
-    public AppuntamentoDto getAppuntamentoById(Long id) {
-        Appuntamento appuntamento = appuntamentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato con id: " + id));
-        return DtoMapper.toAppuntamentoDto(appuntamento);
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppuntamentoDto> getAllAppuntamenti() {
-        return appuntamentoRepository.findAll().stream()
-                .map(DtoMapper::toAppuntamentoDto)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppuntamentoDto> getAppuntamentiByCliente(Long clienteId) {
-        Cliente cliente = clienteRepository.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato con id: " + clienteId));
-
-        return appuntamentoRepository.findByCliente(cliente).stream()
-                .map(DtoMapper::toAppuntamentoDto)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppuntamentoDto> getAppuntamentiByNutrizionista(String email) {
-        Utente nutrizionista = utenteRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Nutrizionista non trovato con email: " + email));
-
-        return appuntamentoRepository.findByNutrizionista(nutrizionista).stream()
-                .map(DtoMapper::toAppuntamentoDto)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppuntamentoDto> getAppuntamentiByData(LocalDate data) {
-        return appuntamentoRepository.findByData(data).stream()
-                .map(DtoMapper::toAppuntamentoDto)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppuntamentoDto> getAppuntamentiByStato(Appuntamento.StatoAppuntamento stato) {
-        return appuntamentoRepository.findByStato(stato).stream()
-                .map(DtoMapper::toAppuntamentoDto)
-                .collect(Collectors.toList());
-    }
-
-    @Transactional(readOnly = true)
-    public List<AppuntamentoDto> getAppuntamentiByNutricionistaAndDateRange(
-            String email, LocalDate dataInizio, LocalDate dataFine) {
-        Utente nutrizionista = utenteRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Nutrizionista non trovato con email: " + email));
-
-        return appuntamentoRepository.findByNutrizionistaAndDataBetween(nutrizionista, dataInizio, dataFine)
-                .stream()
-                .map(DtoMapper::toAppuntamentoDto)
-                .collect(Collectors.toList());
+    public AppuntamentoDto getById(Long id) {
+        Utente me = getMe();
+        Appuntamento a = repo.findByIdAndNutrizionista_Id(id, me.getId())
+                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato o non autorizzato"));
+        return DtoMapper.toAppuntamentoDto(a);
     }
 
     @Transactional
-    public AppuntamentoDto cambiaStatoAppuntamento(Long appuntamentoId, Appuntamento.StatoAppuntamento nuovoStato) {
-        Appuntamento appuntamento = appuntamentoRepository.findById(appuntamentoId)
-                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato con id: " + appuntamentoId));
+    public void delete(Long id) {
+        Utente me = getMe();
+        Appuntamento a = repo.findByIdAndNutrizionista_Id(id, me.getId())
+                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato o non autorizzato"));
 
-        validateCambioStato(appuntamento, nuovoStato);
-
-        appuntamento.setStato(nuovoStato);
-        Appuntamento updated = appuntamentoRepository.save(appuntamento);
-
-        return DtoMapper.toAppuntamentoDto(updated);
-    }
-
-    @Transactional
-    public void deleteAppuntamento(Long id) {
-        Appuntamento appuntamento = appuntamentoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato con id: " + id));
-
-        if (appuntamento.getStato() == Appuntamento.StatoAppuntamento.CONFERMATO) {
+        // regola opzionale: non cancellare confermati
+        if (a.getStato() == Appuntamento.StatoAppuntamento.CONFERMATO) {
             throw new RuntimeException("Non è possibile eliminare un appuntamento confermato. Annullalo prima.");
         }
-
-        appuntamentoRepository.deleteById(id);
+        repo.delete(a);
     }
 
-    private void validateAppuntamento(AppuntamentoFormDto formDto, Utente nutrizionista, 
-                                      Cliente cliente, Long appuntamentoIdToExclude) {
-        LocalDate oggi = LocalDate.now();
-        if (formDto.getData() != null && formDto.getData().isBefore(oggi)) {
-            throw new RuntimeException("La data dell'appuntamento non può essere nel passato");
+    // ============ FULLCALENDAR: GET range + drag/drop ============
+
+    @Transactional(readOnly = true)
+    public List<CalendarEventDto> getMyCalendarEvents(LocalDate start, LocalDate end) {
+        Utente me = getMe();
+
+        // FullCalendar spesso passa end esclusivo; per sicurezza includiamo anche il giorno precedente:
+        LocalDate inclusiveEnd = end.minusDays(1);
+
+        return repo.findByNutrizionista_IdAndDataBetween(me.getId(), start, inclusiveEnd).stream()
+                .map(this::toCalendarEvent)
+                .toList();
+    }
+
+    @Transactional
+    public AppuntamentoDto moveResize(Long id, LocalDateTime newStart, LocalDateTime newEnd) {
+        Utente me = getMe();
+
+        Appuntamento a = repo.findByIdAndNutrizionista_Id(id, me.getId())
+                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato o non autorizzato"));
+
+        // per ora usiamo solo start -> data/ora
+        AppuntamentoFormDto form = new AppuntamentoFormDto();
+        form.setData(newStart.toLocalDate());
+        form.setOra(newStart.toLocalTime());
+        form.setDescrizioneAppuntamento(a.getDescrizioneAppuntamento());
+        form.setModalita(a.getModalita());
+        form.setStato(a.getStato());
+        form.setLuogo(a.getLuogo());
+        form.setEmailCliente(a.getEmailCliente());
+
+        if (a.getCliente() != null) {
+            form.setClienteId(a.getCliente().getId());
+        } else {
+            form.setClienteNome(a.getClienteNomeTemp());
+            form.setClienteCognome(a.getClienteCognomeTemp());
         }
 
-        if (formDto.getData() != null && formDto.getOra() != null) {
-            if (formDto.getData().isEqual(oggi)) {
-                LocalTime adesso = LocalTime.now();
-                if (formDto.getOra().isBefore(adesso)) {
-                    throw new RuntimeException("L'orario dell'appuntamento non può essere nel passato");
-                }
-            }
+        validateBusiness(form, me.getId(), id);
+
+        a.setData(form.getData());
+        a.setOra(form.getOra());
+
+        return DtoMapper.toAppuntamentoDto(repo.save(a));
+    }
+
+    // ============ Helpers ============
+
+    private Cliente resolveCliente(AppuntamentoFormDto form) {
+        if (form.getClienteId() != null) {
+            return repoCliente.findById(form.getClienteId())
+                    .orElseThrow(() -> new RuntimeException("Cliente non trovato con id: " + form.getClienteId()));
         }
 
-        if (formDto.getOra() != null) {
-            LocalTime orarioApertura = LocalTime.of(8, 0);
-            LocalTime orarioChiusura = LocalTime.of(20, 0);
-            if (formDto.getOra().isBefore(orarioApertura) || formDto.getOra().isAfter(orarioChiusura)) {
-                throw new RuntimeException("L'appuntamento deve essere fissato tra le 8:00 e le 20:00");
-            }
+        // cliente non registrato: obbligatori
+        if (isBlank(form.getClienteNome())) throw new RuntimeException("Il nome del cliente è obbligatorio");
+        if (isBlank(form.getClienteCognome())) throw new RuntimeException("Il cognome del cliente è obbligatorio");
+        if (isBlank(form.getEmailCliente())) throw new RuntimeException("L'email del cliente è obbligatoria");
+
+        return null;
+    }
+
+    private void validateBusiness(AppuntamentoFormDto form, Long nutrizionistaId, Long excludeId) {
+        if (form.getData() == null) throw new RuntimeException("Data obbligatoria");
+        if (form.getOra() == null) throw new RuntimeException("Ora obbligatoria");
+        if (isBlank(form.getDescrizioneAppuntamento())) throw new RuntimeException("Descrizione obbligatoria");
+        if (form.getModalita() == null) throw new RuntimeException("Modalità obbligatoria");
+
+        // slot lavorativo (come già fai) – qui lo tengo semplice
+        LocalTime apertura = LocalTime.of(8, 0);
+        LocalTime chiusura = LocalTime.of(20, 0);
+        if (form.getOra().isBefore(apertura) || form.getOra().isAfter(chiusura)) {
+            throw new RuntimeException("L'appuntamento deve essere tra le 8:00 e le 20:00");
         }
 
-        if (formDto.getDescrizioneAppuntamento() == null || 
-            formDto.getDescrizioneAppuntamento().trim().isEmpty()) {
-            throw new RuntimeException("La descrizione dell'appuntamento è obbligatoria");
-        }
+        // conflitto nutrizionista (update-safe)
+        boolean busy = (excludeId == null)
+                ? repo.existsByNutrizionista_IdAndDataAndOra(nutrizionistaId, form.getData(), form.getOra())
+                : repo.existsByNutrizionista_IdAndDataAndOraAndIdNot(nutrizionistaId, form.getData(), form.getOra(), excludeId);
 
-        if (formDto.getModalita() == Appuntamento.Modalita.IN_PRESENZA) {
-            if (formDto.getLuogo() == null || formDto.getLuogo().trim().isEmpty()) {
-                throw new RuntimeException("Il luogo è obbligatorio per gli appuntamenti in presenza");
-            }
-        }
+        if (busy) throw new RuntimeException("Hai già un appuntamento in questa data e ora");
 
-        if (formDto.getData() != null && formDto.getOra() != null) {
-            boolean appuntamentoEsistente = appuntamentoRepository
-                    .existsByNutrizionistaAndDataAndOra(
-                            nutrizionista,
-                            formDto.getData(),
-                            formDto.getOra()
-                    );
-
-            if (appuntamentoEsistente) {
-                throw new RuntimeException("Il nutrizionista ha già un appuntamento in questa data e ora");
-            }
-        }
-
-        if (cliente != null && formDto.getData() != null && formDto.getOra() != null) {
-            List<Appuntamento> appuntamentiCliente = appuntamentoRepository
-                    .findByClienteAndData(cliente, formDto.getData());
-
-            for (Appuntamento esistente : appuntamentiCliente) {
-                if (appuntamentoIdToExclude != null && esistente.getId().equals(appuntamentoIdToExclude)) {
-                    continue;
-                }
-
-                LocalTime oraInizio = formDto.getOra();
-                LocalTime oraFine = formDto.getOra().plusHours(1);
-                LocalTime oraInizioEsistente = esistente.getOra();
-                LocalTime oraFineEsistente = esistente.getOra().plusHours(1);
-
-                if (!(oraFine.isBefore(oraInizioEsistente) || oraInizio.isAfter(oraFineEsistente))) {
-                    throw new RuntimeException("Il cliente ha già un appuntamento in questo orario");
-                }
-            }
-        }
-
-        if (formDto.getEmailCliente() != null && !formDto.getEmailCliente().trim().isEmpty()) {
-            if (!formDto.getEmailCliente().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
-                throw new RuntimeException("L'email del cliente non è valida");
-            }
+        // in presenza -> luogo obbligatorio
+        if (form.getModalita() == Appuntamento.Modalita.IN_PRESENZA && isBlank(form.getLuogo())) {
+            throw new RuntimeException("Il luogo è obbligatorio per gli appuntamenti in presenza");
         }
     }
 
-    private void validateCambioStato(Appuntamento appuntamento, Appuntamento.StatoAppuntamento nuovoStato) {
-        Appuntamento.StatoAppuntamento statoCorrente = appuntamento.getStato();
+    private CalendarEventDto toCalendarEvent(Appuntamento a) {
+        CalendarEventDto ev = new CalendarEventDto();
+        ev.setId(a.getId());
 
-        if (statoCorrente == Appuntamento.StatoAppuntamento.ANNULLATO) {
-            throw new RuntimeException("Non è possibile modificare lo stato di un appuntamento annullato");
-        }
+        String clienteNome = a.getCliente() != null ? a.getCliente().getNome() : a.getClienteNomeTemp();
+        String clienteCognome = a.getCliente() != null ? a.getCliente().getCognome() : a.getClienteCognomeTemp();
 
-        if (nuovoStato == Appuntamento.StatoAppuntamento.CONFERMATO) {
-            LocalDateTime dataOraAppuntamento = LocalDateTime.of(appuntamento.getData(), appuntamento.getOra());
-            if (dataOraAppuntamento.isBefore(LocalDateTime.now())) {
-                throw new RuntimeException("Non è possibile confermare un appuntamento già passato");
-            }
-        }
+        ev.setTitle((clienteNome != null ? clienteNome : "") + " " + (clienteCognome != null ? clienteCognome : ""));
 
-        if (nuovoStato == Appuntamento.StatoAppuntamento.ANNULLATO) {
-            if (appuntamento.getData().isEqual(LocalDate.now())) {
-                throw new RuntimeException("Non è possibile annullare un appuntamento il giorno stesso");
-            }
-        }
+        LocalDateTime start = LocalDateTime.of(a.getData(), a.getOra());
+        ev.setStart(start);
+        ev.setEnd(start.plusMinutes(60)); // durata base 60 min (poi possiamo renderla configurabile)
+
+        var props = new HashMap<String, Object>();
+        props.put("stato", a.getStato());
+        props.put("modalita", a.getModalita());
+        props.put("luogo", a.getLuogo());
+        props.put("emailCliente", a.getEmailCliente());
+        props.put("descrizione", a.getDescrizioneAppuntamento());
+        props.put("clienteRegistrato", a.getCliente() != null);
+        props.put("clienteId", a.getCliente() != null ? a.getCliente().getId() : null);
+
+        ev.setExtendedProps(props);
+        return ev;
+    }
+
+    private boolean isBlank(String s) {
+        return s == null || s.trim().isEmpty();
     }
 }
