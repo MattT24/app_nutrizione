@@ -78,6 +78,9 @@ public class Cliente {
 
 	@OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<MisurazioneAntropometrica> misurazioni = new ArrayList<>();
+	
+	@OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Plicometria> plicometrie = new ArrayList<>();
 
 	@OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<Scheda> schede;
@@ -91,6 +94,14 @@ public class Cliente {
 
 	public Long getId() {
 		return id;
+	}
+
+	public List<Plicometria> getPlicometrie() {
+		return plicometrie;
+	}
+
+	public void setPlicometrie(List<Plicometria> plicometrie) {
+		this.plicometrie = plicometrie;
 	}
 
 	public void setId(Long id) {

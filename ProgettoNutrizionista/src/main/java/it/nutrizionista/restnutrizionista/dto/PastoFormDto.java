@@ -3,15 +3,15 @@ package it.nutrizionista.restnutrizionista.dto;
 import java.time.LocalTime;
 
 import it.nutrizionista.restnutrizionista.entity.NomePasto;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 
 public class PastoFormDto {
 
     private Long id;
-    @NotBlank(message = "Il nome è obbligatorio")
+    @NotNull(message = "Il nome è obbligatorio")
     private NomePasto nome;
-    @NotBlank(message = "La scheda è obbligatoria")
+    @NotNull(message = "La scheda è obbligatoria")
     private SchedaDto scheda;
     //secondo me gli orari sono opzionali
     private LocalTime orarioInizio;

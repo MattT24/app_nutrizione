@@ -55,9 +55,13 @@ public class SchedaService {
 		Cliente cliente = repoCliente.findById(form.getCliente().getId())
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
 		checkClienteOwnership(cliente, me);
+		
+		// Determina se la nuova scheda sarà attiva (default true se null)
+		boolean nuovaSchedaAttiva = form.getAttiva() == null || Boolean.TRUE.equals(form.getAttiva());
         
-		if (Boolean.TRUE.equals(form.getAttiva())) {
-			List<Scheda> schedeAttive = repo.findByCliente_IdAndAttivaTrue(form.getCliente().getId());
+		// Se la nuova scheda sarà attiva, disattiva tutte le altre del cliente
+		if (nuovaSchedaAttiva) {
+			List<Scheda> schedeAttive = repo.findByCliente_IdAndAttivaTrue(cliente.getId());
 			for (Scheda vecchia : schedeAttive) {
 	            vecchia.setAttiva(false);
 	        }
@@ -67,8 +71,8 @@ public class SchedaService {
 		Scheda s = new Scheda();
 		s.setNome(form.getNome()); 
         s.setDataCreazione(LocalDate.now());
-		s.setAttiva(form.getAttiva() != null ? form.getAttiva() : true);	
-		s.setCliente(form.getCliente());
+		s.setAttiva(nuovaSchedaAttiva);	
+		s.setCliente(cliente);
 		return DtoMapper.toSchedaDtoLight(repo.save(s));
 	}
 
@@ -109,7 +113,7 @@ public class SchedaService {
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
         checkClienteOwnership(c, me);
 	    Page<Scheda> page = repo.findByCliente_IdOrderByDataCreazioneDesc(clienteId, pageable);
-	    Page<SchedaDto> dtoPage = page.map(DtoMapper::toSchedaDtoLight);
+	    Page<SchedaDto> dtoPage = page.map(DtoMapper::toSchedaDtoLista);
 	    return PageResponse.from(dtoPage);
 	}
 

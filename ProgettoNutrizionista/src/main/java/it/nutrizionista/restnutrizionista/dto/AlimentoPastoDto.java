@@ -9,7 +9,7 @@ public class AlimentoPastoDto {
 	private Long id;
     private AlimentoBaseDto alimento;
     private PastoDto pasto;
-    private int quantità;
+    private int quantita;
     private Instant createdAt;
     private Instant updatedAt;
     
@@ -31,11 +31,11 @@ public class AlimentoPastoDto {
 	public void setPasto(PastoDto pasto) {
 		this.pasto = pasto;
 	}
-	public int getQuantità() {
-		return quantità;
+	public int getQuantita() {
+		return quantita;
 	}
-	public void setQuantità(int quantità) {
-		this.quantità = quantità;
+	public void setQuantita(int quantita) {
+		this.quantita = quantita;
 	}
 	public Instant getCreatedAt() {
 		return createdAt;
