@@ -1,26 +1,99 @@
 package it.nutrizionista.restnutrizionista.dto;
 
-import java.time.Instant;
 import java.time.LocalDate;
+
 import it.nutrizionista.restnutrizionista.entity.Metodo;
+import jakarta.persistence.Column;
 
 public class PlicometriaDto {
 
-	private Long id;
+    private Long id;
+	
+	@Column(name = "data_misurazione")
 	private LocalDate dataMisurazione;
-	private Double plicaTricipite;
-	private Double plicaSottoscapolare;
-	private Double plicaPettorale;
-	private Double plicaAscellareMedia;
-	private Double plicaSovrailiaca;
-	private Double plicaAddominale;
-	private Double plicaCoscia;
-	private Metodo metodo;
-	private Instant createdAt;
-	private Instant updatedAt;
+	private ClienteDto cliente;
+	private Double tricipite;
+    private Double bicipite;      // Nuovo (usato in Durnin)
+    private Double sottoscapolare;
+    private Double sovrailiaca;
+    private Double addominale;
+    private Double coscia;
+    private Double pettorale;     // Nuovo (usato in JP3 Uomo)
+    private Double ascellare;     // Nuovo (usato in JP7)
+    private Double polpaccio;     // Nuovo (usato in altri metodi)
+
+    private Double percentualeMassaGrassa;
+    private String note;
+    private Metodo metodo;
 	
 	public Long getId() {
 		return id;
+	}
+	public Double getTricipite() {
+		return tricipite;
+	}
+	public void setTricipite(Double tricipite) {
+		this.tricipite = tricipite;
+	}
+	public Double getBicipite() {
+		return bicipite;
+	}
+	public void setBicipite(Double bicipite) {
+		this.bicipite = bicipite;
+	}
+	public Double getSottoscapolare() {
+		return sottoscapolare;
+	}
+	public void setSottoscapolare(Double sottoscapolare) {
+		this.sottoscapolare = sottoscapolare;
+	}
+	public Double getSovrailiaca() {
+		return sovrailiaca;
+	}
+	public void setSovrailiaca(Double sovrailiaca) {
+		this.sovrailiaca = sovrailiaca;
+	}
+	public Double getAddominale() {
+		return addominale;
+	}
+	public void setAddominale(Double addominale) {
+		this.addominale = addominale;
+	}
+	public Double getCoscia() {
+		return coscia;
+	}
+	public void setCoscia(Double coscia) {
+		this.coscia = coscia;
+	}
+	public Double getPettorale() {
+		return pettorale;
+	}
+	public void setPettorale(Double pettorale) {
+		this.pettorale = pettorale;
+	}
+	public Double getAscellare() {
+		return ascellare;
+	}
+	public void setAscellare(Double ascellare) {
+		this.ascellare = ascellare;
+	}
+	public Double getPolpaccio() {
+		return polpaccio;
+	}
+	public void setPolpaccio(Double polpaccio) {
+		this.polpaccio = polpaccio;
+	}
+	public Double getPercentualeMassaGrassa() {
+		return percentualeMassaGrassa;
+	}
+	public void setPercentualeMassaGrassa(Double percentualeMassaGrassa) {
+		this.percentualeMassaGrassa = percentualeMassaGrassa;
+	}
+	public String getNote() {
+		return note;
+	}
+	public void setNote(String note) {
+		this.note = note;
 	}
 	public void setId(Long id) {
 		this.id = id;
@@ -31,66 +104,21 @@ public class PlicometriaDto {
 	public void setDataMisurazione(LocalDate dataMisurazione) {
 		this.dataMisurazione = dataMisurazione;
 	}
-	public Double getPlicaTricipite() {
-		return plicaTricipite;
-	}
-	public void setPlicaTricipite(Double plicaTricipite) {
-		this.plicaTricipite = plicaTricipite;
-	}
-	public Double getPlicaSottoscapolare() {
-		return plicaSottoscapolare;
-	}
-	public void setPlicaSottoscapolare(Double plicaSottoscapolare) {
-		this.plicaSottoscapolare = plicaSottoscapolare;
-	}
-	public Double getPlicaPettorale() {
-		return plicaPettorale;
-	}
-	public void setPlicaPettorale(Double plicaPettorale) {
-		this.plicaPettorale = plicaPettorale;
-	}
-	public Double getPlicaAscellareMedia() {
-		return plicaAscellareMedia;
-	}
-	public void setPlicaAscellareMedia(Double plicaAscellareMedia) {
-		this.plicaAscellareMedia = plicaAscellareMedia;
-	}
-	public Double getPlicaSovrailiaca() {
-		return plicaSovrailiaca;
-	}
-	public void setPlicaSovrailiaca(Double plicaSovrailiaca) {
-		this.plicaSovrailiaca = plicaSovrailiaca;
-	}
-	public Double getPlicaAddominale() {
-		return plicaAddominale;
-	}
-	public void setPlicaAddominale(Double plicaAddominale) {
-		this.plicaAddominale = plicaAddominale;
-	}
-	public Double getPlicaCoscia() {
-		return plicaCoscia;
-	}
-	public void setPlicaCoscia(Double plicaCoscia) {
-		this.plicaCoscia = plicaCoscia;
-	}
+	
 	public Metodo getMetodo() {
 		return metodo;
 	}
 	public void setMetodo(Metodo metodo) {
 		this.metodo = metodo;
 	}
-	public Instant getCreatedAt() {
-		return createdAt;
+	public ClienteDto getCliente() {
+		return cliente;
 	}
-	public void setCreatedAt(Instant createdAt) {
-		this.createdAt = createdAt;
+	public void setCliente(ClienteDto cliente) {
+		this.cliente = cliente;
 	}
-	public Instant getUpdatedAt() {
-		return updatedAt;
-	}
-	public void setUpdatedAt(Instant updatedAt) {
-		this.updatedAt = updatedAt;
-	}
+
+	
 	
 	
 }

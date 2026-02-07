@@ -22,6 +22,8 @@ import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaFormDto;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
+import it.nutrizionista.restnutrizionista.dto.PlicometriaDto;
+import it.nutrizionista.restnutrizionista.dto.PlicometriaFormDto;
 import it.nutrizionista.restnutrizionista.dto.RuoloDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
@@ -39,6 +41,7 @@ import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
+import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.RuoloPermesso;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
@@ -59,8 +62,8 @@ public class DtoMapper {
         dto.setId(g.getId());
         dto.setNome(g.getNome());
         dto.setAlias(g.getAlias());
-        dto.setCreatedAt(g.getCreatedAt());
-        dto.setUpdatedAt(g.getUpdatedAt());
+
+
         return dto;
     }
 
@@ -87,8 +90,8 @@ public class DtoMapper {
         dto.setNome(p.getNome());
         dto.setAlias(p.getAlias());
         dto.setGruppo(toGruppoDtoLight(p.getGruppo())); // gruppo light
-        dto.setCreatedAt(p.getCreatedAt());
-        dto.setUpdatedAt(p.getUpdatedAt());
+
+
         return dto;
     }
 
@@ -267,10 +270,17 @@ public class DtoMapper {
 
         if (c.getMisurazioni() != null) {
             dto.setMisurazioni(c.getMisurazioni().stream()
-                .map(DtoMapper::toMisurazioneDto) 
+                .map(DtoMapper::toMisurazioneDtoLight) 
                 .collect(Collectors.toList()));
         } else {
             dto.setMisurazioni(new ArrayList<>());
+        }
+        if (c.getPlicometrie() != null) {
+            dto.setPlicometrie(c.getPlicometrie().stream()
+                .map(DtoMapper::toPlicometriaDtoLight) 
+                .collect(Collectors.toList()));
+        } else {
+            dto.setPlicometrie(new ArrayList<>());
         }
 
         return dto;
@@ -408,7 +418,7 @@ public class DtoMapper {
 		AlimentoBaseDto dto = new AlimentoBaseDto();
 		dto.setId(a.getId());
 		dto.setNome(a.getNome());
-		dto.setMacroNutrienti(toMacroDto(a.getMacronutrienti()));
+		dto.setMacroNutrienti(toMacroDtoLight(a.getMacronutrienti()));
 		dto.setMicronutrienti(toValoreMicroDto(a.getMicronutrienti()));
 		dto.setMisuraInGrammi(a.getMisuraInGrammi());
 
@@ -422,7 +432,7 @@ public class DtoMapper {
 		AlimentoBaseDto dto = new AlimentoBaseDto();
 		dto.setId(a.getId());
 		dto.setNome(a.getNome());
-		dto.setMacroNutrienti(toMacroDto(a.getMacronutrienti()));
+		dto.setMacroNutrienti(toMacroDtoLight(a.getMacronutrienti()));
 		dto.setMisuraInGrammi(a.getMisuraInGrammi());
 		return dto;
 	}
@@ -434,10 +444,23 @@ public class DtoMapper {
 		AlimentoBaseDto dto = new AlimentoBaseDto();
 		dto.setId(a.getId());
 		dto.setNome(a.getNome());
-		dto.setMisuraInGrammi(a.getMisuraInGrammi()); //asseconda del front decideremo cosa lasciare tipo questo <--
+		dto.setMisuraInGrammi(a.getMisuraInGrammi());
+		dto.setMacroNutrienti(toMacroDtoLight(a.getMacronutrienti())); // Fix: include macronutrienti
 		return dto;
 	}
 	
+	// Mapper Minimal: Solo info base, NIENTE macro/micro per evitare loop
+	public static AlimentoBaseDto toAlimentoBaseDtoMinimal(AlimentoBase a) {
+	    if (a == null) {
+	        return null;
+	    }
+	    AlimentoBaseDto dto = new AlimentoBaseDto();
+	    dto.setId(a.getId());
+	    dto.setNome(a.getNome());
+	    dto.setMisuraInGrammi(a.getMisuraInGrammi());
+	    // NON settiamo Macro né Micro qui!
+	    return dto;
+	}
 	//Mapper per l'entità AlimentoDaEvitare
 	
 	public static AlimentoDaEvitareDto toAlimentoDaEvitareDtoLight(AlimentoDaEvitare a) {
@@ -446,7 +469,7 @@ public class DtoMapper {
 	    }
 		AlimentoDaEvitareDto dto = new AlimentoDaEvitareDto();
 		dto.setId(a.getId());
-		dto.setAlimento(toAlimentoBaseDto(a.getAlimento()));
+		dto.setAlimento(toAlimentoBaseDtoMinimal(a.getAlimento()));
 		return dto;
 	}
 	
@@ -456,7 +479,7 @@ public class DtoMapper {
 	    }
 		AlimentoDaEvitareDto dto = new AlimentoDaEvitareDto();
 		dto.setId(a.getId());
-		dto.setAlimento(toAlimentoBaseDto(a.getAlimento()));
+		dto.setAlimento(toAlimentoBaseDtoMinimal(a.getAlimento()));
 		dto.setCliente(toClienteDtoLight(a.getCliente()));
 		return dto;
 	}
@@ -469,7 +492,19 @@ public class DtoMapper {
 	    }
 		MacroDto dto = new MacroDto();
 		dto.setId(m.getId());
-		dto.setAlimento(toAlimentoBaseDto(m.getAlimento()));
+		dto.setAlimento(toAlimentoBaseDtoMinimal(m.getAlimento()));
+		dto.setCalorie(m.getCalorie());
+		dto.setGrassi(m.getGrassi());
+		dto.setProteine(m.getProteine());
+		dto.setCarboidrati(m.getCarboidrati());
+		return dto;
+	}
+	public static MacroDto toMacroDtoLight(Macro m) {
+		if (m == null) {
+	        return null;
+	    }
+		MacroDto dto = new MacroDto();
+		dto.setId(m.getId());
 		dto.setCalorie(m.getCalorie());
 		dto.setGrassi(m.getGrassi());
 		dto.setProteine(m.getProteine());
@@ -540,8 +575,6 @@ public class DtoMapper {
 		dto.setScheda(toSchedaDto(p.getScheda()));
 		dto.setOrarioFine(p.getOrarioFine());
 		dto.setOrarioInizio(p.getOrarioInizio());
-		dto.setCreatedAt(p.getCreatedAt());
-		dto.setUpdatedAt(p.getUpdatedAt());
 		return dto;
 	}
 	public static PastoDto toPastoDtoLight(Pasto p) { //senza la Scheda
@@ -553,8 +586,6 @@ public class DtoMapper {
 		dto.setNome(p.getNome());
 		dto.setOrarioFine(p.getOrarioFine());
 		dto.setOrarioInizio(p.getOrarioInizio());
-		dto.setCreatedAt(p.getCreatedAt());
-		dto.setUpdatedAt(p.getUpdatedAt());
 		return dto;
 	}
 	
@@ -564,7 +595,7 @@ public class DtoMapper {
         if (p.getAlimentiPasto() != null) {
             dto.setAlimentiPasto(
                 p.getAlimentiPasto().stream()
-                  .map(DtoMapper::toAlimentoPastoDtoSafe) // safe: nested light
+                  .map(DtoMapper::toAlimentoPastoDtoChild) // safe: nested light
                   .collect(Collectors.toList())
             );
         }
@@ -573,27 +604,36 @@ public class DtoMapper {
 
     //Mapper AlimentoPasto
     
-    public static AlimentoPastoDto toAlimentoPastoDtoSafe(AlimentoPasto ap) {
-        if (ap == null) return null;
+ // Mapper AlimentoPasto
 
-        AlimentoPastoDto dto = new AlimentoPastoDto();
-        dto.setId(ap.getId());
+ // Usa questo quando mostri l'alimento dentro la lista del pasto
+ public static AlimentoPastoDto toAlimentoPastoDtoChild(AlimentoPasto ap) {
+     if (ap == null) return null;
 
-        // Ruolo light
-        Pasto pasto = ap.getPasto();
-        if (pasto != null) {
-            dto.setPasto(toPastoDtoLight(pasto));
-        }
+     AlimentoPastoDto dto = new AlimentoPastoDto();
+     dto.setId(ap.getId());
+     dto.setQuantita(ap.getQuantita());
 
-        // Permesso light
-        AlimentoBase alim = ap.getAlimento();
-        if (alim != null) {
-            dto.setAlimento(toAlimentoBaseDtoLight(alim));
-        }
+     // Mappiamo l'alimento (fondamentale)
+     AlimentoBase alim = ap.getAlimento();
+     if (alim != null) {
+         dto.setAlimento(toAlimentoBaseDtoMacro(alim));
+     }
 
-        return dto;
-    }
-	
+     // IMPORTANTE: NON mappiamo dto.setPasto(...) qui!
+     // Evitiamo la ridondanza perché siamo già dentro l'oggetto Pasto.
+
+     return dto;
+ }
+
+ // Mantieni il "Safe" o "Full" solo se ti serve mappare un AlimentoPasto preso singolarmente
+ public static AlimentoPastoDto toAlimentoPastoDtoFull(AlimentoPasto ap) {
+     AlimentoPastoDto dto = toAlimentoPastoDtoChild(ap); // Riutilizza la logica base
+     if (ap != null && ap.getPasto() != null) {
+         dto.setPasto(toPastoDtoLight(ap.getPasto())); // Qui aggiungi il padre se serve
+     }
+     return dto;
+ }
 	
 	//Mapper per l'entità scheda
 	
@@ -607,8 +647,6 @@ public class DtoMapper {
 		dto.setCliente(toClienteDtoLight(s.getCliente()));
 		dto.setDataCreazione(s.getDataCreazione());
 		dto.setNome(s.getNome());
-		dto.setCreatedAt(s.getCreatedAt());
-		dto.setUpdatedAt(s.getUpdatedAt());
 		return dto;
 	}
 	
@@ -620,24 +658,43 @@ public class DtoMapper {
 	}
     
     public static SchedaDto toSchedaDto(Scheda s) {
-    		if (s == null) {
-	        return null;
-	    }
-    		
-    		SchedaDto dto = new SchedaDto();
-    		dto.setId(s.getId());
-    		dto.setAttiva(s.getAttiva());
-    		dto.setCliente(toClienteDtoLight(s.getCliente()));
-    		dto.setDataCreazione(s.getDataCreazione());
-    		dto.setNome(s.getNome());
-    		dto.setPasti(
-                    s.getPasti().stream()
-                      .map(DtoMapper::toPastoDtoWithAssoc) 
-                      .collect(Collectors.toList())
-                );
-    		return dto;
+		if (s == null) {
+        return null;
     }
-   
+		
+		SchedaDto dto = new SchedaDto();
+		dto.setId(s.getId());
+		dto.setAttiva(s.getAttiva());
+		dto.setCliente(toClienteDtoLight(s.getCliente()));
+		dto.setDataCreazione(s.getDataCreazione());
+		dto.setNome(s.getNome());
+		dto.setPasti(
+                s.getPasti().stream()
+                  .map(DtoMapper::toPastoDtoWithAssoc) 
+                  .collect(Collectors.toList())
+            );
+		return dto;
+}
+
+    public static SchedaDto toSchedaDtoLista(Scheda s) {
+		if (s == null) {
+        return null;
+    }
+		
+		SchedaDto dto = new SchedaDto();
+		dto.setId(s.getId());
+		dto.setAttiva(s.getAttiva());
+		dto.setCliente(toClienteDtoLight(s.getCliente()));
+		dto.setDataCreazione(s.getDataCreazione());
+		dto.setNome(s.getNome());
+		dto.setPasti(
+                s.getPasti().stream()
+                  .map(DtoMapper::toPastoDtoLight) 
+                  .collect(Collectors.toList())
+            );
+		return dto;
+}
+
     
 
 	//mapper per l' entità misurazioneAntrometrica
@@ -651,8 +708,6 @@ public class DtoMapper {
 		dto.setBicipiteD(m.getBicipiteD());
 		dto.setBicipiteS(m.getBicipiteS());
 		dto.setCliente(toClienteDtoLight(m.getCliente()));
-		dto.setCreatedAt(m.getCreatedAt());
-		dto.setUpdatedAt(m.getUpdatedAt());
 		dto.setDataMisurazione(m.getDataMisurazione());
 		dto.setFianchi(m.getFianchi());
 		dto.setGambaD(m.getGambaD());
@@ -671,8 +726,6 @@ public class DtoMapper {
 		dto.setId(m.getId());
 		dto.setBicipiteD(m.getBicipiteD());
 		dto.setBicipiteS(m.getBicipiteS());
-		dto.setCreatedAt(m.getCreatedAt());
-		dto.setUpdatedAt(m.getUpdatedAt());
 		dto.setDataMisurazione(m.getDataMisurazione());
 		dto.setFianchi(m.getFianchi());
 		dto.setGambaD(m.getGambaD());
@@ -718,6 +771,114 @@ public class DtoMapper {
 	    m.setVita(form.getVita());
 	}
 	
+	//mapper per le plicometrie
+	
+	// --- MAPPER PLICOMETRIA ---
+
+    public static PlicometriaDto toPlicometriaDto(Plicometria p) {
+        if (p == null) {
+            return null;
+        }
+        PlicometriaDto dto = new PlicometriaDto();
+        dto.setId(p.getId());
+        dto.setCliente(toClienteDtoLight(p.getCliente())); // Include il cliente light
+        dto.setDataMisurazione(p.getDataMisurazione());
+        dto.setMetodo(p.getMetodo());
+        
+        // Pliche
+        dto.setTricipite(p.getTricipite());
+        dto.setBicipite(p.getBicipite());
+        dto.setSottoscapolare(p.getSottoscapolare());
+        dto.setSovrailiaca(p.getSovrailiaca());
+        dto.setAddominale(p.getAddominale());
+        dto.setCoscia(p.getCoscia());
+        dto.setPettorale(p.getPettorale());
+        dto.setAscellare(p.getAscellare());
+        dto.setPolpaccio(p.getPolpaccio());
+        
+        // Risultati e Note
+        dto.setPercentualeMassaGrassa(p.getPercentualeMassaGrassa());
+        dto.setNote(p.getNote());
+        
+        return dto;
+    }
+
+    public static PlicometriaDto toPlicometriaDtoLight(Plicometria p) { // Senza cliente (utile per le liste dentro ClienteDto)
+        if (p == null) {
+            return null;
+        }
+        PlicometriaDto dto = new PlicometriaDto();
+        dto.setId(p.getId());
+        // dto.setCliente(...) -> ESCLUSO
+        dto.setDataMisurazione(p.getDataMisurazione());
+        dto.setMetodo(p.getMetodo());
+        
+        // Pliche
+        dto.setTricipite(p.getTricipite());
+        dto.setBicipite(p.getBicipite());
+        dto.setSottoscapolare(p.getSottoscapolare());
+        dto.setSovrailiaca(p.getSovrailiaca());
+        dto.setAddominale(p.getAddominale());
+        dto.setCoscia(p.getCoscia());
+        dto.setPettorale(p.getPettorale());
+        dto.setAscellare(p.getAscellare());
+        dto.setPolpaccio(p.getPolpaccio());
+        
+        // Risultati e Note
+        dto.setPercentualeMassaGrassa(p.getPercentualeMassaGrassa());
+        dto.setNote(p.getNote());
+        
+        return dto;
+    }
+
+    public static Plicometria toPlicometria(PlicometriaFormDto form) {
+        if (form == null) return null;
+
+        Plicometria p = new Plicometria();
+        p.setId(form.getId());
+        p.setDataMisurazione(form.getDataMisurazione());
+        p.setMetodo(form.getMetodo());
+        
+        // Pliche
+        p.setTricipite(form.getTricipite());
+        p.setBicipite(form.getBicipite());
+        p.setSottoscapolare(form.getSottoscapolare());
+        p.setSovrailiaca(form.getSovrailiaca());
+        p.setAddominale(form.getAddominale());
+        p.setCoscia(form.getCoscia());
+        p.setPettorale(form.getPettorale());
+        p.setAscellare(form.getAscellare());
+        p.setPolpaccio(form.getPolpaccio());
+        
+        p.setNote(form.getNote());
+        
+        // La percentuale di massa grassa viene calcolata solitamente nel Service, 
+        // ma se arriva dal form (es. calcolata dal frontend), puoi settarla qui:
+        // p.setPercentualeMassaGrassa(form.getPercentualeMassaGrassa());
+
+        return p;
+    }
+
+    public static void updatePlicometriaFromForm(Plicometria p, PlicometriaFormDto form) {
+        if (p == null || form == null) return;
+
+        p.setDataMisurazione(form.getDataMisurazione());
+        p.setMetodo(form.getMetodo());
+        
+        // Aggiorna Pliche
+        p.setTricipite(form.getTricipite());
+        p.setBicipite(form.getBicipite());
+        p.setSottoscapolare(form.getSottoscapolare());
+        p.setSovrailiaca(form.getSovrailiaca());
+        p.setAddominale(form.getAddominale());
+        p.setCoscia(form.getCoscia());
+        p.setPettorale(form.getPettorale());
+        p.setAscellare(form.getAscellare());
+        p.setPolpaccio(form.getPolpaccio());
+        
+        p.setNote(form.getNote());
+    }
+	
 	//mapper per l'entità appuntamento
 
 	 public static AppuntamentoDto toAppuntamentoDto(Appuntamento appuntamento) {
@@ -755,9 +916,6 @@ public class DtoMapper {
 	        dto.setStato(appuntamento.getStato());
 	        dto.setLuogo(appuntamento.getLuogo());
 	        dto.setEmailCliente(appuntamento.getEmailCliente());
-	        dto.setCreatedAt(appuntamento.getCreatedAt());
-	        dto.setUpdatedAt(appuntamento.getUpdatedAt());
-
 	        return dto;
 	    }
 
