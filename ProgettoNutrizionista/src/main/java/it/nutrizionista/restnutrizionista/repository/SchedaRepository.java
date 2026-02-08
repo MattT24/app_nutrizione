@@ -19,6 +19,5 @@ public interface SchedaRepository extends JpaRepository<Scheda, Long> {
     @Query("SELECT s FROM Scheda s WHERE s.id = :id")
     Optional<Scheda> findByIdWithPastiAndAlimenti(Long id);
 	List<Scheda> findByCliente_Id(Long id);
-	Page<Scheda> findByCliente_IdOrderByDataCreazioneDesc(Long clienteId, Pageable pageable);
-	
+	Page<Scheda> findByCliente_IdOrderByDataCreazioneDescIdDesc(Long clienteId, Pageable pageable);	
 }
