@@ -77,8 +77,8 @@ public class AlimentoBaseService {
 	// Aggiungi questo metodo nel Service
 	@Transactional(readOnly = true)
 	public List<AlimentoBaseDto> search(String query) {
-	    // Cerca alimenti che contengono la stringa (case insensitive)
-	    List<AlimentoBase> list = repo.findByNomeContainingIgnoreCase(query);
+	    String normalizedQuery = query == null ? "" : query.trim();
+	    List<AlimentoBase> list = repo.searchByNomeRanked(normalizedQuery);
 	    // Ritorna la lista mappata (Light va bene per le select)
 	    return list.stream()
 	               .map(DtoMapper::toAlimentoBaseDtoLight)

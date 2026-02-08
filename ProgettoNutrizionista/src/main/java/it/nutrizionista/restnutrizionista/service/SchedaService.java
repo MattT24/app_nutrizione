@@ -112,7 +112,7 @@ public class SchedaService {
         Cliente c = repoCliente.findById(clienteId)
                 .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
         checkClienteOwnership(c, me);
-	    Page<Scheda> page = repo.findByCliente_IdOrderByDataCreazioneDesc(clienteId, pageable);
+	    Page<Scheda> page = repo.findByCliente_IdOrderByDataCreazioneDescIdDesc(clienteId, pageable);
 	    Page<SchedaDto> dtoPage = page.map(DtoMapper::toSchedaDtoLista);
 	    return PageResponse.from(dtoPage);
 	}
