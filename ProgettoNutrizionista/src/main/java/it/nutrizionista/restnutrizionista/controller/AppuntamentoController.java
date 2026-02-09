@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
 import it.nutrizionista.restnutrizionista.dto.CalendarEventDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteDropdownDto;
 import it.nutrizionista.restnutrizionista.service.AppuntamentoService;
 import jakarta.validation.Valid;
 
@@ -71,5 +72,12 @@ public class AppuntamentoController {
     ) {
         return ResponseEntity.ok(service.moveResize(id, start, end));
     }
+    
+    @GetMapping("/me/clienti/dropdown")
+    @PreAuthorize("hasAuthority('APPUNTAMENTO_READ')")
+    public List<ClienteDropdownDto> dropdownClienti(@RequestParam String q) {
+        return service.searchMyClientsForDropdown(q);
+    }
+
 }
 

@@ -12,9 +12,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -27,31 +30,23 @@ public class Plicometria {
 	
 	@Column(name = "data_misurazione")
 	private LocalDate dataMisurazione;
-	
-    // Plicometria Jackson & Pollock
-	@Column(name = "plica_tricipite")
-    private Double plicaTricipite;
-	
-	@Column(name = "plica_sottoscapolare")
-    private Double plicaSottoscapolare;
-	
-	@Column(name = "plica_pettorale")
-    private Double plicaPettorale;
-	
-	@Column(name = "plica_ascellare_media")
-    private Double plicaAscellareMedia;
-	
-	@Column(name = "plica_sovrailiaca")
-    private Double plicaSovrailiaca;
-	
-	@Column(name = "plica_addominale")
-    private Double plicaAddominale;
-	
-	@Column(name = "plica_coscia")
-    private Double plicaCoscia;
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cliente_id", nullable = false)
+	private Cliente cliente;
+	private Double tricipite;
+    private Double bicipite;      // Nuovo (usato in Durnin)
+    private Double sottoscapolare;
+    private Double sovrailiaca;
+    private Double addominale;
+    private Double coscia;
+    private Double pettorale;     // Nuovo (usato in JP3 Uomo)
+    private Double ascellare;     // Nuovo (usato in JP7)
+    private Double polpaccio;     // Nuovo (usato in altri metodi)
 
-    // Metodo usato , farei un enum perchè sono solo 3: 3, 4 o 7 pliche
+    private Double percentualeMassaGrassa;
+    private String note;
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Metodo metodo;
 
     /*
@@ -80,49 +75,73 @@ public class Plicometria {
 	public void setDataMisurazione(LocalDate dataMisurazione) {
 		this.dataMisurazione = dataMisurazione;
 	}
-	public Double getPlicaTricipite() {
-		return plicaTricipite;
-	}
-	public void setPlicaTricipite(Double plicaTricipite) {
-		this.plicaTricipite = plicaTricipite;
-	}
-	public Double getPlicaSottoscapolare() {
-		return plicaSottoscapolare;
-	}
-	public void setPlicaSottoscapolare(Double plicaSottoscapolare) {
-		this.plicaSottoscapolare = plicaSottoscapolare;
-	}
-	public Double getPlicaPettorale() {
-		return plicaPettorale;
-	}
-	public void setPlicaPettorale(Double plicaPettorale) {
-		this.plicaPettorale = plicaPettorale;
-	}
-	public Double getPlicaAscellareMedia() {
-		return plicaAscellareMedia;
-	}
-	public void setPlicaAscellareMedia(Double plicaAscellareMedia) {
-		this.plicaAscellareMedia = plicaAscellareMedia;
-	}
-	public Double getPlicaSovrailiaca() {
-		return plicaSovrailiaca;
-	}
-	public void setPlicaSovrailiaca(Double plicaSovrailiaca) {
-		this.plicaSovrailiaca = plicaSovrailiaca;
-	}
-	public Double getPlicaAddominale() {
-		return plicaAddominale;
-	}
-	public void setPlicaAddominale(Double plicaAddominale) {
-		this.plicaAddominale = plicaAddominale;
-	}
-	public Double getPlicaCoscia() {
-		return plicaCoscia;
-	}
-	public void setPlicaCoscia(Double plicaCoscia) {
-		this.plicaCoscia = plicaCoscia;
-	}
 
+	public Double getTricipite() {
+		return tricipite;
+	}
+	public void setTricipite(Double tricipite) {
+		this.tricipite = tricipite;
+	}
+	public Double getBicipite() {
+		return bicipite;
+	}
+	public void setBicipite(Double bicipite) {
+		this.bicipite = bicipite;
+	}
+	public Double getSottoscapolare() {
+		return sottoscapolare;
+	}
+	public void setSottoscapolare(Double sottoscapolare) {
+		this.sottoscapolare = sottoscapolare;
+	}
+	public Double getSovrailiaca() {
+		return sovrailiaca;
+	}
+	public void setSovrailiaca(Double sovrailiaca) {
+		this.sovrailiaca = sovrailiaca;
+	}
+	public Double getAddominale() {
+		return addominale;
+	}
+	public void setAddominale(Double addominale) {
+		this.addominale = addominale;
+	}
+	public Double getCoscia() {
+		return coscia;
+	}
+	public void setCoscia(Double coscia) {
+		this.coscia = coscia;
+	}
+	public Double getPettorale() {
+		return pettorale;
+	}
+	public void setPettorale(Double pettorale) {
+		this.pettorale = pettorale;
+	}
+	public Double getAscellare() {
+		return ascellare;
+	}
+	public void setAscellare(Double ascellare) {
+		this.ascellare = ascellare;
+	}
+	public Double getPolpaccio() {
+		return polpaccio;
+	}
+	public void setPolpaccio(Double polpaccio) {
+		this.polpaccio = polpaccio;
+	}
+	public Double getPercentualeMassaGrassa() {
+		return percentualeMassaGrassa;
+	}
+	public void setPercentualeMassaGrassa(Double percentualeMassaGrassa) {
+		this.percentualeMassaGrassa = percentualeMassaGrassa;
+	}
+	public String getNote() {
+		return note;
+	}
+	public void setNote(String note) {
+		this.note = note;
+	}
 	public Metodo getMetodo() {
 		return metodo;
 	}
@@ -140,6 +159,12 @@ public class Plicometria {
 	}
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+	public Cliente getCliente() {
+		return cliente;
+	}
+	public void setCliente(Cliente cliente) {
+		this.cliente = cliente;
 	}
 
     

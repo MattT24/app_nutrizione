@@ -72,12 +72,20 @@ public class AlimentoPastoService {
     
     @Transactional
     public PastoDto eliminaAssociazione(Long pastoId, Long alimentoId) {
-        repo.deleteByPasto_IdAndAlimento_Id(pastoId, alimentoId);
-        
-        // Ricarichiamo il pasto per restituirlo aggiornato (senza l'alimento cancellato)
+        // Carica il pasto con la sua collection
         Pasto p = repoPasto.findById(pastoId)
                 .orElseThrow(() -> new RuntimeException("Pasto non trovato"));
-                
+        
+        // Rimuovi l'alimento dalla collection - orphanRemoval=true lo cancellerà dal DB
+        if (p.getAlimentiPasto() != null) {
+            p.getAlimentiPasto().removeIf(ap -> 
+                ap.getAlimento() != null && ap.getAlimento().getId().equals(alimentoId)
+            );
+        }
+        
+        // Salva per forzare il flush al DB
+        repoPasto.save(p);
+        
         return DtoMapper.toPastoDtoWithAssoc(p);
     }
     

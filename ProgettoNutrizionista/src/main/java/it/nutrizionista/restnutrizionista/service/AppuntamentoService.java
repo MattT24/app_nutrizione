@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
 import it.nutrizionista.restnutrizionista.dto.CalendarEventDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteDropdownDto;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
@@ -148,9 +149,10 @@ public class AppuntamentoService {
 
     private Cliente resolveCliente(AppuntamentoFormDto form) {
         if (form.getClienteId() != null) {
-            return repoCliente.findById(form.getClienteId())
-                    .orElseThrow(() -> new RuntimeException("Cliente non trovato con id: " + form.getClienteId()));
-        }
+        	Cliente c = repoCliente.findMineById(form.getClienteId(), getMe().getId());
+        	if (c == null) throw new RuntimeException("Cliente non trovato o non autorizzato");
+        	return c;
+        	}
 
         // cliente non registrato: obbligatori
         if (isBlank(form.getClienteNome())) throw new RuntimeException("Il nome del cliente è obbligatorio");
@@ -215,4 +217,26 @@ public class AppuntamentoService {
     private boolean isBlank(String s) {
         return s == null || s.trim().isEmpty();
     }
+    
+    @Transactional(readOnly = true)
+    public List<ClienteDropdownDto> searchMyClientsForDropdown(String q) {
+        Utente me = getMe();
+
+        String query = (q == null) ? "" : q.trim();
+        if (query.isEmpty()) {
+            return List.of(); // evita di caricare tutti i clienti senza filtro
+        }
+
+        return repoCliente.searchMyClientsByName(me.getId(), query).stream()
+                .limit(10) // limita risultati per dropdown
+                .map(c -> new ClienteDropdownDto(
+                        c.getId(),
+                        c.getNome(),
+                        c.getCognome(),
+                        c.getDataNascita(),
+                        c.getEmail()
+                ))
+                .toList();
+    }
+
 }

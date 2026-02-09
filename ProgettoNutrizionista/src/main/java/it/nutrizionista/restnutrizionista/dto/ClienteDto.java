@@ -29,6 +29,7 @@ public class ClienteDto {
     private Boolean beveAlcol;
     private List<AlimentoDaEvitareDto> alimentiDaEvitare;
     private List<MisurazioneAntropometricaDto> misurazioni;
+    private List<PlicometriaDto> plicometrie;
     private UtenteDto nutrizionista;
     private List<SchedaDto> schede;
     private Instant createdAt;
@@ -175,6 +176,12 @@ public class ClienteDto {
 	}
 	public void setSesso(Sesso sesso) {
 		this.sesso = sesso;
+	}
+	public List<PlicometriaDto> getPlicometrie() {
+		return plicometrie;
+	}
+	public void setPlicometrie(List<PlicometriaDto> plicometrie) {
+		this.plicometrie = plicometrie;
 	}
 	
 	
