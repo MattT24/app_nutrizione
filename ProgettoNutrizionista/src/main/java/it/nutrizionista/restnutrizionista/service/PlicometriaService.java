@@ -20,6 +20,8 @@ import jakarta.validation.Valid;
 
 @Service
 public class PlicometriaService {
+	
+	@Autowired private PlicometriaCalcoliService calcoliService;
 
     @Autowired private PlicometriaRepository repo;
     @Autowired private ClienteRepository clienteRepo;
@@ -43,7 +45,15 @@ public class PlicometriaService {
         // Conversione DTO -> Entity
         Plicometria p = DtoMapper.toPlicometria(form);
         p.setCliente(cliente); // Associo la plicometria al cliente
-        
+        var res = calcoliService.calcola(p, cliente);
+
+        p.setPesoKgRiferimento(cliente.getPeso());
+        p.setSommaPliche(res.sommaPliche());
+        p.setDensitaCorporea(res.densitaCorporea());
+        p.setPercentualeMassaGrassa(res.percentualeMassaGrassa());
+        p.setMassaGrassaKg(res.massaGrassaKg());
+        p.setMassaMagraKg(res.massaMagraKg());
+
         // Nota: Il calcolo della % massa grassa potrebbe essere fatto qui se non arriva dal FE
         // es: p.setPercentualeMassaGrassa(CalcoliService.calcola(p));
 
@@ -68,6 +78,16 @@ public class PlicometriaService {
 
         // Aggiorno i campi usando il Mapper
         DtoMapper.updatePlicometriaFromForm(p, form);
+        
+        var res = calcoliService.calcola(p, p.getCliente());
+
+        p.setPesoKgRiferimento(p.getCliente().getPeso());
+        p.setSommaPliche(res.sommaPliche());
+        p.setDensitaCorporea(res.densitaCorporea());
+        p.setPercentualeMassaGrassa(res.percentualeMassaGrassa());
+        p.setMassaGrassaKg(res.massaGrassaKg());
+        p.setMassaMagraKg(res.massaMagraKg());
+
         
         return DtoMapper.toPlicometriaDto(repo.save(p));
     }

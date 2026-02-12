@@ -797,8 +797,14 @@ public class DtoMapper {
         dto.setPolpaccio(p.getPolpaccio());
         
         // Risultati e Note
+        dto.setPesoKgRiferimento(p.getPesoKgRiferimento());
+        dto.setSommaPliche(p.getSommaPliche());
+        dto.setDensitaCorporea(p.getDensitaCorporea());
         dto.setPercentualeMassaGrassa(p.getPercentualeMassaGrassa());
+        dto.setMassaGrassaKg(p.getMassaGrassaKg());
+        dto.setMassaMagraKg(p.getMassaMagraKg());
         dto.setNote(p.getNote());
+
         
         return dto;
     }
@@ -826,7 +832,10 @@ public class DtoMapper {
         
         // Risultati e Note
         dto.setPercentualeMassaGrassa(p.getPercentualeMassaGrassa());
+        dto.setMassaGrassaKg(p.getMassaGrassaKg());
+        dto.setMassaMagraKg(p.getMassaMagraKg());
         dto.setNote(p.getNote());
+
         
         return dto;
     }

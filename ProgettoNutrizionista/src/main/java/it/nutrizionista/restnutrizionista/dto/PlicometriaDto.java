@@ -21,8 +21,13 @@ public class PlicometriaDto {
     private Double pettorale;     // Nuovo (usato in JP3 Uomo)
     private Double ascellare;     // Nuovo (usato in JP7)
     private Double polpaccio;     // Nuovo (usato in altri metodi)
-
     private Double percentualeMassaGrassa;
+
+    private Double pesoKgRiferimento;
+    private Double sommaPliche;
+    private Double densitaCorporea;
+    private Double massaGrassaKg;
+    private Double massaMagraKg;
     private String note;
     private Metodo metodo;
 	
@@ -83,12 +88,6 @@ public class PlicometriaDto {
 	public void setPolpaccio(Double polpaccio) {
 		this.polpaccio = polpaccio;
 	}
-	public Double getPercentualeMassaGrassa() {
-		return percentualeMassaGrassa;
-	}
-	public void setPercentualeMassaGrassa(Double percentualeMassaGrassa) {
-		this.percentualeMassaGrassa = percentualeMassaGrassa;
-	}
 	public String getNote() {
 		return note;
 	}
@@ -117,6 +116,43 @@ public class PlicometriaDto {
 	public void setCliente(ClienteDto cliente) {
 		this.cliente = cliente;
 	}
+	public Double getPesoKgRiferimento() {
+		return pesoKgRiferimento;
+	}
+	public void setPesoKgRiferimento(Double pesoKgRiferimento) {
+		this.pesoKgRiferimento = pesoKgRiferimento;
+	}
+	public Double getSommaPliche() {
+		return sommaPliche;
+	}
+	public void setSommaPliche(Double sommaPliche) {
+		this.sommaPliche = sommaPliche;
+	}
+	public Double getDensitaCorporea() {
+		return densitaCorporea;
+	}
+	public void setDensitaCorporea(Double densitaCorporea) {
+		this.densitaCorporea = densitaCorporea;
+	}
+	public Double getMassaGrassaKg() {
+		return massaGrassaKg;
+	}
+	public void setMassaGrassaKg(Double massaGrassaKg) {
+		this.massaGrassaKg = massaGrassaKg;
+	}
+	public Double getMassaMagraKg() {
+		return massaMagraKg;
+	}
+	public void setMassaMagraKg(Double massaMagraKg) {
+		this.massaMagraKg = massaMagraKg;
+	}
+	public Double getPercentualeMassaGrassa() {
+		return percentualeMassaGrassa;
+	}
+	public void setPercentualeMassaGrassa(Double percentualeMassaGrassa) {
+		this.percentualeMassaGrassa = percentualeMassaGrassa;
+	}
+	
 
 	
 	
