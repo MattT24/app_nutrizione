@@ -18,6 +18,8 @@ public class AlimentoBaseFormDto {
     @NotBlank(message = "La misura è obbligatoria")
     private Double misuraInGrammi;
     private List<ValoreMicroFormDto> microNutrienti;
+	private String categoria;
+	
 
     
 	public Long getId() {
@@ -51,6 +53,10 @@ public class AlimentoBaseFormDto {
 	public void setMicroNutrienti(List<ValoreMicroFormDto> microNutrienti) {
 		this.microNutrienti = microNutrienti;
 	}
-    
-    
+    public String getCategoria() {
+        return categoria;
+    }
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
 }

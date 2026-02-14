@@ -46,7 +46,9 @@ public class AlimentoBase {
 
     @OneToMany(mappedBy = "alimento", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<ValoreMicro> micronutrienti = new HashSet<>();
- 
+
+    @Column(name = "categoria", length = 50)
+    private String categoria;
     
     @CreatedDate
     @Column(nullable = false) 
@@ -122,9 +124,12 @@ public class AlimentoBase {
 		this.micronutrienti = micronutrienti;
 	}
 	
-	
- 
-    
+	public String getCategoria() {
+		return categoria;
+	}
+	public void setCategoria(String categoria) {
+		this.categoria = categoria;
+	}
 }
 
 

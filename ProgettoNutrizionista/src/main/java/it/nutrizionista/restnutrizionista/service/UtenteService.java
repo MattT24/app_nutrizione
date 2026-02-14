@@ -2,7 +2,6 @@ package it.nutrizionista.restnutrizionista.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +34,7 @@ public class UtenteService {
     @Autowired private UtenteRepository repo;
     @Autowired private RuoloRepository ruoloRepo;
     @Autowired private PasswordEncoder encoder;
+    @Autowired private CurrentUserService currentUserService;
 
     /*lolo*/
 
@@ -69,9 +69,7 @@ public class UtenteService {
     public void delete(Long id) { repo.deleteById(id); }
     
     public void deleteMyProfile() {
-	    	String email = SecurityContextHolder.getContext().getAuthentication().getName();
-	    	Utente u = repo.findByEmail(email)
-	    			.orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+	    	Utente u = currentUserService.getMe();
 	    	repo.delete(u);
     }
     
@@ -100,9 +98,7 @@ public class UtenteService {
     /** Profilo utente corrente (ricavato dal JWT). */
     @Transactional(readOnly = true)
     public UtenteDto getProfile() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Utente u = repo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+        Utente u = currentUserService.getMe();
         return DtoMapper.toUtenteDto(u);
     }
     /** Copia campi dal form, gestendo password e ruolo. */
@@ -124,9 +120,7 @@ public class UtenteService {
     }
     
     public UtenteDto updateMyProfile(UtenteProfileUpdateDto form) {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Utente u = repo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+        Utente u = currentUserService.getMe();
 
         u.setNome(form.getNome());
         u.setCognome(form.getCognome());
@@ -140,9 +134,7 @@ public class UtenteService {
 
     
     public UtenteDto updateMyPassword(ResetPasswordDto dto) {    	
-		String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Utente utente = repo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utente non trovato con email: "));
+        Utente utente = currentUserService.getMe();
        
         if (!dto.getPassword().equals(dto.getConfermaPassword())) {
             throw new RuntimeException("Le password inserite non coincidono");
@@ -154,9 +146,7 @@ public class UtenteService {
     }
     
     public UtenteDto updateLogo (LogoRequestDto logo) throws IOException {
-    	String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        Utente utente = repo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utente non trovato con email: " + email));
+        Utente utente = currentUserService.getMe();
         
         if (utente.getId() != logo.getUtenteId()) throw new RuntimeException("L'utente non corrisponde");
         

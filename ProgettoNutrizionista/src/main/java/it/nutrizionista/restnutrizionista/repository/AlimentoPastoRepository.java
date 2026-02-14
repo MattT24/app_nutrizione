@@ -17,4 +17,6 @@ public interface AlimentoPastoRepository extends JpaRepository<AlimentoPasto, Lo
 
 	Optional<AlimentoPasto> findByPasto_IdAndAlimento_Id(Long id, Long id2);
 
+	Optional<AlimentoPasto> findByIdAndPasto_Scheda_Cliente_Nutrizionista_Id(Long alimentoPastoId, Long nutrizionistaId);
+
 }
