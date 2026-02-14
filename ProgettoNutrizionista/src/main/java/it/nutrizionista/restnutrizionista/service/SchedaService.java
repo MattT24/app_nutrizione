@@ -8,7 +8,6 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,36 +24,24 @@ import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoDaEvitareRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
-import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import jakarta.validation.Valid;
 
 @Service
 public class SchedaService {
 
 	@Autowired private SchedaRepository repo;
-	@Autowired private UtenteRepository repoUtente;
 	@Autowired private ClienteRepository repoCliente;
 	@Autowired private AlimentoDaEvitareRepository repoRestrizioni;
+	@Autowired private CurrentUserService currentUserService;
+	@Autowired private OwnershipValidator ownershipValidator;
 	
-	private Utente getMe() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return repoUtente.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
-    }
-	
-	private void checkClienteOwnership(Cliente cliente, Utente nutrizionista) {
-        if (!cliente.getNutrizionista().getId().equals(nutrizionista.getId())) {
-            throw new SecurityException("NON AUTORIZZATO: Il cliente selezionato non è gestito da te.");
-        }
-    }
+	private Utente getMe() { return currentUserService.getMe(); }
 
 	@Transactional
 	public SchedaDto create(@Valid SchedaFormDto form) {
 		Utente me = getMe();
 		if (form.getId() != null) throw new RuntimeException("Id non richiesto per create");
-		Cliente cliente = repoCliente.findById(form.getCliente().getId())
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
-		checkClienteOwnership(cliente, me);
+		Cliente cliente = ownershipValidator.getOwnedCliente(form.getCliente().getId());
 		
 		// Determina se la nuova scheda sarà attiva (default true se null)
 		boolean nuovaSchedaAttiva = form.getAttiva() == null || Boolean.TRUE.equals(form.getAttiva());
@@ -78,61 +65,36 @@ public class SchedaService {
 
 	@Transactional
 	public SchedaDto update(SchedaFormDto form) {
-		Utente u =getMe();
 		if (form.getId() == null) throw new RuntimeException("Id scheda obbligatorio per update");
-		Scheda s = repo.findById(form.getId())
-				.orElseThrow(() -> new RuntimeException("Scheda non trovata"));
-		checkOwnership(s, u);
+		Scheda s = ownershipValidator.getOwnedScheda(form.getId());
 		DtoMapper.updateSchedaFromForm(s, form);
 		return DtoMapper.toSchedaDtoLight(repo.save(s));
 	}
 
 	@Transactional
 	public void delete(Long id) {
-		Utente u = getMe();
 		if (id == null) throw new RuntimeException("Id scheda obbligatorio per il delete");
-		Scheda s = repo.findById(id)
-				.orElseThrow(() -> new RuntimeException("Scheda non trovata"));
-		checkOwnership(s, u);
-		repo.deleteById(id);
+		Scheda s = ownershipValidator.getOwnedScheda(id);
+		repo.delete(s);
 	}
 
 	@Transactional(readOnly = true)
 	public SchedaDto getById(Long id) {
-		Utente u = getMe();
-		Scheda s = repo.findById(id)
-				.orElseThrow(() -> new RuntimeException("Scheda non trovata"));
-		checkOwnership(s, u);
+		Scheda s = ownershipValidator.getOwnedScheda(id);
 		return DtoMapper.toSchedaDto(s);
 	}
 
 	@Transactional(readOnly = true)
 	public PageResponse<SchedaDto> schedeByCliente(Long clienteId, Pageable pageable) {
-		Utente me = getMe();
-        Cliente c = repoCliente.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
-        checkClienteOwnership(c, me);
+        ownershipValidator.getOwnedCliente(clienteId);
 	    Page<Scheda> page = repo.findByCliente_IdOrderByDataCreazioneDescIdDesc(clienteId, pageable);
 	    Page<SchedaDto> dtoPage = page.map(DtoMapper::toSchedaDtoLista);
 	    return PageResponse.from(dtoPage);
 	}
 
-	// Metodo helper privato
-	private void checkOwnership(Scheda scheda, Utente nutrizionista) {
-	    if (!scheda.getCliente().getNutrizionista().getId().equals(nutrizionista.getId())) {
-	        throw new SecurityException("NON AUTORIZZATO: Questa scheda appartiene al cliente di un altro professionista.");
-	    }
-	}
-
-
 	@Transactional
 	public SchedaDto duplicateScheda(Long schedaId) {
-		Utente me = getMe();
-		//  Carica la scheda originale
-		Scheda originale = repo.findByIdWithPastiAndAlimenti(schedaId)
-				.orElseThrow(() -> new RuntimeException("Scheda originale non trovata"));
-
-	    checkOwnership(originale, me);
+		Scheda originale = ownershipValidator.getOwnedSchedaWithPastiAndAlimenti(schedaId);
 
 		// Crea il guscio della nuova scheda
 		Scheda clone = new Scheda();
@@ -148,14 +110,8 @@ public class SchedaService {
 	@Transactional
     public SchedaDto duplicateFromCliente(Long schedaId, Long targetClienteId) {
         
-		Utente me = getMe();
-		//  Carica la scheda originale
-		Scheda originale = repo.findByIdWithPastiAndAlimenti(schedaId)
-				.orElseThrow(() -> new RuntimeException("Scheda originale non trovata"));
-
-	    checkOwnership(originale, me);
-        Cliente targetCliente = repoCliente.findById(targetClienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente destinazione non trovato"));
+		Scheda originale = ownershipValidator.getOwnedSchedaWithPastiAndAlimenti(schedaId);
+        Cliente targetCliente = ownershipValidator.getOwnedCliente(targetClienteId);
 
         // 2. CONTROLLO SICUREZZA (Solo qui!)
         checkSafetyRestrictions(originale, targetClienteId);
@@ -222,13 +178,7 @@ public class SchedaService {
     }
     @Transactional
     public SchedaDto activateScheda(Long schedaId) {
-        // 1. Recupera la scheda e l'utente loggato
-        Utente me = getMe(); 
-        Scheda scheda = repo.findById(schedaId)
-                .orElseThrow(() -> new RuntimeException("Scheda non trovata"));
-
-        // 2. Controllo sicurezza (vedi punto 2 sotto)
-        checkOwnership(scheda, me);
+        Scheda scheda = ownershipValidator.getOwnedScheda(schedaId);
 
         // 3. Disattiva TUTTE le schede di quel cliente
         List<Scheda> schedeCliente = repo.findByCliente_Id(scheda.getCliente().getId());

@@ -18,6 +18,12 @@ public interface SchedaRepository extends JpaRepository<Scheda, Long> {
 	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto"})
     @Query("SELECT s FROM Scheda s WHERE s.id = :id")
     Optional<Scheda> findByIdWithPastiAndAlimenti(Long id);
+	
+	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto"})
+    @Query("SELECT s FROM Scheda s WHERE s.id = :id AND s.cliente.nutrizionista.id = :nutrizionistaId")
+    Optional<Scheda> findByIdWithPastiAndAlimentiMine(Long id, Long nutrizionistaId);
+	
+	Optional<Scheda> findByIdAndCliente_Nutrizionista_Id(Long id, Long nutrizionistaId);
 	List<Scheda> findByCliente_Id(Long id);
 	Page<Scheda> findByCliente_IdOrderByDataCreazioneDescIdDesc(Long clienteId, Pageable pageable);	
 }

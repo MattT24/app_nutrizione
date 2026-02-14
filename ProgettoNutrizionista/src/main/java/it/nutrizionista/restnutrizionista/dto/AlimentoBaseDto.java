@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 public class AlimentoBaseDto {
-
+	
     private Long id;
 	private String nome;
     private List<AlimentoPastoDto> alimentiScelti;
@@ -12,6 +12,7 @@ public class AlimentoBaseDto {
     private MacroDto macroNutrienti;
     private List<ValoreMicroDto> micronutrienti;
     private Double misuraInGrammi;
+	private String categoria;
     private Instant createdAt;
     private Instant updatedAt;
 	public Long getId() {
@@ -70,5 +71,10 @@ public class AlimentoBaseDto {
 	}
 
     
-    
+    public String getCategoria() {
+        return categoria;
+    }
+    public void setCategoria(String categoria) {
+        this.categoria = categoria;
+    }
 }
