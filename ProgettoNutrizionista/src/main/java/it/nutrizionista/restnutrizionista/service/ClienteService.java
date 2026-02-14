@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,25 +15,18 @@ import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
-import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import jakarta.validation.Valid;
 
 @Service
 public class ClienteService {
 
 	@Autowired private ClienteRepository repo;
-	@Autowired private UtenteRepository repoUtente;
+	@Autowired private CurrentUserService currentUserService;
+	@Autowired private OwnershipValidator ownershipValidator;
 
-	
-	private Utente getMe() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return repoUtente.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
-    }
-	
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
-		Utente u = getMe();
+		Utente u = currentUserService.getMe();
 		//controllo se è già presente un cliente con quel CF
 		if(repo.existsByCodiceFiscale(form.getCodiceFiscale())) {
             throw new RuntimeException("Cliente già esistente (CF duplicato)");
@@ -47,25 +39,21 @@ public class ClienteService {
 
 	@Transactional
 	public ClienteDto update(@Valid ClienteFormDto form) {
-	    Utente u = getMe();
 		if (form.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
-		Cliente c = repo.findByIdAndNutrizionista_Id(form.getId(), u.getId())
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato o non autorizzato"));
+		Cliente c = ownershipValidator.getOwnedCliente(form.getId());
 		DtoMapper.updateClienteFromForm(c, form);
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
 
 	public void deleteMyCliente(Long id) {
-	    Utente me = getMe();
 	    if (id == null) throw new RuntimeException("Id cliente obbligatorio per il delete");
-        Cliente c = repo.findByIdAndNutrizionista_Id(id, me.getId())
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato o non autorizzato"));
+        Cliente c = ownershipValidator.getOwnedCliente(id);
 		repo.delete(c);
 	}
 
 	@Transactional(readOnly = true)
 	public PageResponse<ClienteDto> allMyClienti( Pageable pageable) {
-		Utente u = getMe();
+		Utente u = currentUserService.getMe();
 	    int maxSize = 12;
 	    if (pageable.getPageSize() > maxSize) {
 	        pageable = PageRequest.of(pageable.getPageNumber(), maxSize, pageable.getSort());
@@ -75,32 +63,27 @@ public class ClienteService {
 
 	@Transactional(readOnly = true)
     public ClienteDto getById(Long id) {
-        Utente me = getMe();
-        return repo.findByIdAndNutrizionista_Id(id, me.getId())
-                .map(DtoMapper::toClienteDtoLight)
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato o non autorizzato"));
+        Cliente c = ownershipValidator.getOwnedCliente(id);
+        return DtoMapper.toClienteDtoLight(c);
     }
 	
 	@Transactional(readOnly = true)
     public List<ClienteDto> findByNome(String nome) {
-        Utente me = getMe();
+        Utente me = currentUserService.getMe();
         return repo.findByNutrizionista_IdAndNomeContainingIgnoreCase(me.getId(), nome)
                 .stream().map(DtoMapper::toClienteDtoLight).toList();
     }
 	@Transactional(readOnly = true)
 	public List<ClienteDto> findByCognome(@Valid String cognome) {
-        Utente me = getMe();
+        Utente me = currentUserService.getMe();
         return repo.findByNutrizionista_IdAndCognomeContainingIgnoreCase(me.getId(), cognome)
                 .stream().map(DtoMapper::toClienteDtoLight).toList();
 	}
 	
 	@Transactional(readOnly = true)
     public ClienteDto dettaglio(Long id) {
-        Utente me = getMe();
-        // Qui usi il mapper completo (con misurazioni ecc)
-        return repo.findByIdAndNutrizionista_Id(id, me.getId())
-                .map(DtoMapper::toClienteDto) 
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato o non autorizzato"));
+        Cliente c = ownershipValidator.getOwnedCliente(id);
+        return DtoMapper.toClienteDto(c);
     }
 	//manca cliente Fabbisogno, da studiare un attimo
 }

@@ -7,7 +7,7 @@ import java.time.LocalTime;
 import java.util.HashMap;
 import java.util.List;
 
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,21 +29,18 @@ import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 public class AppuntamentoService {
 
     private final AppuntamentoRepository repo;
-    private final UtenteRepository repoUtente;
     private final ClienteRepository repoCliente;
     private final OrariStudioRepository repoOrari;
 
 
     public AppuntamentoService(AppuntamentoRepository repo, UtenteRepository repoUtente, ClienteRepository repoCliente, OrariStudioRepository repoOrari) {
         this.repo = repo;
-        this.repoUtente = repoUtente;
         this.repoCliente = repoCliente;
         this.repoOrari = repoOrari;
     }
 
     private Utente getMe() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        return repoUtente.findByEmail(email).orElseThrow(() -> new RuntimeException("Utente corrente non trovato"));
+        return currentUserService.getMe();
     }
 
     // ============ CRUD ============
@@ -64,9 +61,7 @@ public class AppuntamentoService {
     @Transactional
     public AppuntamentoDto update(Long id, AppuntamentoFormDto form) {
         Utente me = getMe();
-
-        Appuntamento a = repo.findByIdAndNutrizionista_Id(id, me.getId())
-                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato o non autorizzato"));
+        Appuntamento a = ownershipValidator.getOwnedAppuntamento(id);
 
         Cliente cliente = resolveCliente(form);
 
@@ -86,17 +81,13 @@ public class AppuntamentoService {
 
     @Transactional(readOnly = true)
     public AppuntamentoDto getById(Long id) {
-        Utente me = getMe();
-        Appuntamento a = repo.findByIdAndNutrizionista_Id(id, me.getId())
-                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato o non autorizzato"));
+        Appuntamento a = ownershipValidator.getOwnedAppuntamento(id);
         return DtoMapper.toAppuntamentoDto(a);
     }
 
     @Transactional
     public void delete(Long id) {
-        Utente me = getMe();
-        Appuntamento a = repo.findByIdAndNutrizionista_Id(id, me.getId())
-                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato o non autorizzato"));
+        Appuntamento a = ownershipValidator.getOwnedAppuntamento(id);
 
         // regola opzionale: non cancellare confermati
         if (a.getStato() == Appuntamento.StatoAppuntamento.CONFERMATO) {
@@ -122,9 +113,7 @@ public class AppuntamentoService {
     @Transactional
     public AppuntamentoDto moveResize(Long id, LocalDateTime newStart, LocalDateTime newEnd) {
         Utente me = getMe();
-
-        Appuntamento a = repo.findByIdAndNutrizionista_Id(id, me.getId())
-                .orElseThrow(() -> new RuntimeException("Appuntamento non trovato o non autorizzato"));
+        Appuntamento a = ownershipValidator.getOwnedAppuntamento(id);
 
         // per ora usiamo solo start -> data/ora
         AppuntamentoFormDto form = new AppuntamentoFormDto();
@@ -155,10 +144,8 @@ public class AppuntamentoService {
 
     private Cliente resolveCliente(AppuntamentoFormDto form) {
         if (form.getClienteId() != null) {
-        	Cliente c = repoCliente.findMineById(form.getClienteId(), getMe().getId());
-        	if (c == null) throw new RuntimeException("Cliente non trovato o non autorizzato");
-        	return c;
-        	}
+        	return ownershipValidator.getOwnedCliente(form.getClienteId());
+        }
 
         // cliente non registrato: obbligatori
         if (isBlank(form.getClienteNome())) throw new RuntimeException("Il nome del cliente è obbligatorio");

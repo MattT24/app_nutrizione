@@ -28,6 +28,7 @@ public class AlimentoPastoService {
     @Autowired private PastoRepository repoPasto;
     @Autowired private AlimentoBaseRepository repoAlimento;
     @Autowired private AlimentoDaEvitareRepository repoDaEvitare;
+    @Autowired private AlimentoAlternativoService alimentoAlternativoService;
 
     @Transactional
     public PastoDto associaAlimento(AlimentoPastoRequest req) {
@@ -113,6 +114,8 @@ public class AlimentoPastoService {
         // Aggiorna quantità
         ap.setQuantita(req.getQuantita());
         repo.save(ap);
+
+        alimentoAlternativoService.recomputeAutoAlternativesForAlimentoPasto(ap);
         
         // Restituisci il pasto padre (che è già collegato all'associazione)
         return DtoMapper.toPastoDtoWithAssoc(ap.getPasto());
