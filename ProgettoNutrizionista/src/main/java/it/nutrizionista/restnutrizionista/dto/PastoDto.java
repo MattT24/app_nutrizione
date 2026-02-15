@@ -4,13 +4,15 @@ import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
 
-import it.nutrizionista.restnutrizionista.entity.NomePasto;
-
 
 public class PastoDto {
 
 	    private Long id;
-	    private NomePasto nome;
+	    private String nome;
+	    private String defaultCode;
+	    private String descrizione;
+	    private Integer ordineVisualizzazione;
+	    private Boolean eliminabile;
 	    private SchedaDto scheda;
 	    private List<AlimentoPastoDto> alimentiPasto;
 	    private LocalTime orarioInizio;
@@ -24,11 +26,35 @@ public class PastoDto {
 		public void setId(Long id) {
 			this.id = id;
 		}
-		public NomePasto getNome() {
+		public String getNome() {
 			return nome;
 		}
-		public void setNome(NomePasto nome) {
+		public void setNome(String nome) {
 			this.nome = nome;
+		}
+		public String getDefaultCode() {
+			return defaultCode;
+		}
+		public void setDefaultCode(String defaultCode) {
+			this.defaultCode = defaultCode;
+		}
+		public String getDescrizione() {
+			return descrizione;
+		}
+		public void setDescrizione(String descrizione) {
+			this.descrizione = descrizione;
+		}
+		public Integer getOrdineVisualizzazione() {
+			return ordineVisualizzazione;
+		}
+		public void setOrdineVisualizzazione(Integer ordineVisualizzazione) {
+			this.ordineVisualizzazione = ordineVisualizzazione;
+		}
+		public Boolean getEliminabile() {
+			return eliminabile;
+		}
+		public void setEliminabile(Boolean eliminabile) {
+			this.eliminabile = eliminabile;
 		}
 		public SchedaDto getScheda() {
 			return scheda;

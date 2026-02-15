@@ -19,6 +19,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
  
 @Entity
@@ -45,6 +46,9 @@ public class AlimentoPasto {
      */
     @OneToMany(mappedBy = "alimentoPasto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<AlimentoAlternativo> alternative = new ArrayList<>();
+
+    @OneToOne(mappedBy = "alimentoPasto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private AlimentoPastoNomeOverride nomeOverride;
     
     @CreatedDate
     @Column(nullable = false) 
@@ -106,5 +110,11 @@ public class AlimentoPasto {
 	}
 	public void setAlternative(List<AlimentoAlternativo> alternative) {
 		this.alternative = alternative;
+	}
+	public AlimentoPastoNomeOverride getNomeOverride() {
+		return nomeOverride;
+	}
+	public void setNomeOverride(AlimentoPastoNomeOverride nomeOverride) {
+		this.nomeOverride = nomeOverride;
 	}
 }

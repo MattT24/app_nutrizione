@@ -3,6 +3,7 @@ package it.nutrizionista.restnutrizionista.service;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -41,7 +42,7 @@ public class AuthService {
 
         // 2) Recupera utente con ruolo e permessi già inizializzati
         Utente u = utenteRepository.findByEmail(req.getEmail())
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new BadCredentialsException("Credenziali non valide"));
 
         // 3) Estrai i permessi (authorities) dal ruolo
         List<String> authorities = u.getRuolo() != null

@@ -12,8 +12,6 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -32,8 +30,19 @@ public class Pasto {
     private Long id;
  
     @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private NomePasto nome;
+    private String nome;
+    
+    @Column(name = "default_code")
+    private String defaultCode;
+    
+    @Column(columnDefinition = "TEXT")
+    private String descrizione;
+    
+    @Column(name = "ordine_visualizzazione", nullable = false)
+    private Integer ordineVisualizzazione = 0;
+    
+    @Column(nullable = false)
+    private Boolean eliminabile = true;
     
     @ManyToOne
     @JoinColumn(name = "scheda_id")
@@ -62,11 +71,35 @@ public class Pasto {
 	public void setId(Long id) {
 		this.id = id;
 	}
-	public NomePasto getNome() {
+	public String getNome() {
 		return nome;
 	}
-	public void setNome(NomePasto nome) {
+	public void setNome(String nome) {
 		this.nome = nome;
+	}
+	public String getDefaultCode() {
+		return defaultCode;
+	}
+	public void setDefaultCode(String defaultCode) {
+		this.defaultCode = defaultCode;
+	}
+	public String getDescrizione() {
+		return descrizione;
+	}
+	public void setDescrizione(String descrizione) {
+		this.descrizione = descrizione;
+	}
+	public Integer getOrdineVisualizzazione() {
+		return ordineVisualizzazione;
+	}
+	public void setOrdineVisualizzazione(Integer ordineVisualizzazione) {
+		this.ordineVisualizzazione = ordineVisualizzazione;
+	}
+	public Boolean getEliminabile() {
+		return eliminabile;
+	}
+	public void setEliminabile(Boolean eliminabile) {
+		this.eliminabile = eliminabile;
 	}
 	public List<AlimentoPasto> getAlimentiPasto() {
 		return alimentiPasto;

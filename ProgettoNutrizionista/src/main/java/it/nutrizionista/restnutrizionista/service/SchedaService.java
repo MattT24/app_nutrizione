@@ -23,6 +23,7 @@ import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoDaEvitareRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
+import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 import jakarta.validation.Valid;
 
@@ -32,8 +33,10 @@ public class SchedaService {
 	@Autowired private SchedaRepository repo;
 	@Autowired private ClienteRepository repoCliente;
 	@Autowired private AlimentoDaEvitareRepository repoRestrizioni;
+	@Autowired private PastoRepository repoPasto;
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private DefaultMealTimesService defaultMealTimesService;
 	
 	private Utente getMe() { return currentUserService.getMe(); }
 
@@ -60,7 +63,32 @@ public class SchedaService {
         s.setDataCreazione(LocalDate.now());
 		s.setAttiva(nuovaSchedaAttiva);	
 		s.setCliente(cliente);
-		return DtoMapper.toSchedaDtoLight(repo.save(s));
+		Scheda saved = repo.save(s);
+		ensureDefaultMeals(saved);
+		SchedaDto dto = DtoMapper.toSchedaDtoLight(saved);
+		dto.setPasti(repoPasto.findByScheda_IdOrderByOrdineVisualizzazioneAscIdAsc(saved.getId()).stream()
+				.map(DtoMapper::toPastoDtoLight)
+				.collect(Collectors.toList()));
+		return dto;
+	}
+
+	private void ensureDefaultMeals(Scheda scheda) {
+		String[] defaults = new String[] { "Colazione", "Pranzo", "Merenda", "Cena" };
+		for (String nome : defaults) {
+			if (repoPasto.existsByScheda_IdAndDefaultCodeIgnoreCase(scheda.getId(), nome)) continue;
+			Pasto p = new Pasto();
+			p.setScheda(scheda);
+			p.setNome(nome);
+			p.setDefaultCode(nome);
+			p.setEliminabile(false);
+			if ("Colazione".equalsIgnoreCase(nome)) p.setOrdineVisualizzazione(1);
+			else if ("Pranzo".equalsIgnoreCase(nome)) p.setOrdineVisualizzazione(2);
+			else if ("Merenda".equalsIgnoreCase(nome)) p.setOrdineVisualizzazione(3);
+			else if ("Cena".equalsIgnoreCase(nome)) p.setOrdineVisualizzazione(4);
+			else p.setOrdineVisualizzazione(999);
+			defaultMealTimesService.applyDefaultTimesIfMissing(p);
+			repoPasto.save(p);
+		}
 	}
 
 	@Transactional
@@ -135,6 +163,10 @@ public class SchedaService {
         return sourcePasti.stream().map(pastoOriginale -> {
             Pasto nuovoPasto = new Pasto();
             nuovoPasto.setNome(pastoOriginale.getNome());
+            nuovoPasto.setDefaultCode(pastoOriginale.getDefaultCode());
+            nuovoPasto.setDescrizione(pastoOriginale.getDescrizione());
+            nuovoPasto.setOrdineVisualizzazione(pastoOriginale.getOrdineVisualizzazione());
+            nuovoPasto.setEliminabile(pastoOriginale.getEliminabile());
             nuovoPasto.setOrarioInizio(pastoOriginale.getOrarioInizio());
             nuovoPasto.setOrarioFine(pastoOriginale.getOrarioFine());
             nuovoPasto.setScheda(targetScheda); // Collega alla nuova scheda

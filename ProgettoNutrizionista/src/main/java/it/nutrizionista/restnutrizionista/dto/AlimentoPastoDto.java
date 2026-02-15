@@ -10,6 +10,8 @@ public class AlimentoPastoDto {
     private AlimentoBaseDto alimento;
     private PastoDto pasto;
     private int quantita;
+    private String nomeCustom;
+    private String nomeVisualizzato;
     private Instant createdAt;
     private Instant updatedAt;
     
@@ -36,6 +38,18 @@ public class AlimentoPastoDto {
 	}
 	public void setQuantita(int quantita) {
 		this.quantita = quantita;
+	}
+	public String getNomeCustom() {
+		return nomeCustom;
+	}
+	public void setNomeCustom(String nomeCustom) {
+		this.nomeCustom = nomeCustom;
+	}
+	public String getNomeVisualizzato() {
+		return nomeVisualizzato;
+	}
+	public void setNomeVisualizzato(String nomeVisualizzato) {
+		this.nomeVisualizzato = nomeVisualizzato;
 	}
 	public Instant getCreatedAt() {
 		return createdAt;

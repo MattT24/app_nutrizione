@@ -6,7 +6,9 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,7 +53,15 @@ public class AlimentoBaseService {
 
 	@Transactional(readOnly = true)
 	public PageResponse<AlimentoBaseDto> listAll(Pageable pageable) {
-		return PageResponse.from(repo.findAll(pageable).map(DtoMapper::toAlimentoBaseDtoLight));
+		Pageable effective = pageable;
+		if (pageable.getSort().isUnsorted()) {
+			effective = PageRequest.of(
+				pageable.getPageNumber(),
+				pageable.getPageSize(),
+				Sort.by(Sort.Order.asc("nome").ignoreCase())
+			);
+		}
+		return PageResponse.from(repo.findAll(effective).map(DtoMapper::toAlimentoBaseDtoLight));
 	}
 
 	@Transactional(readOnly = true)
