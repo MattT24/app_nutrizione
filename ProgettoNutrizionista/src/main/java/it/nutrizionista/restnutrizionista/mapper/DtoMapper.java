@@ -371,6 +371,8 @@ public class DtoMapper {
 		a.setNome(dto.getNome());
 		a.setMisuraInGrammi(dto.getMisuraInGrammi());
 		a.setCategoria(dto.getCategoria());
+		a.setUrlImmagine(dto.getUrlImmagine());
+		a.setTracce(dto.getTracce());
 
 		// Macro
 		Macro macro = toMacro(dto.getMacroNutrienti());
@@ -393,6 +395,8 @@ public class DtoMapper {
 		a.setNome(form.getNome());
 		a.setMisuraInGrammi(form.getMisuraInGrammi());
 		a.setCategoria(form.getCategoria());
+		a.setUrlImmagine(form.getUrlImmagine());
+		a.setTracce(form.getTracce());
 
 		// Macro
 		a.setMacronutrienti(toMacro(form.getMacroNutrienti()));
@@ -435,6 +439,8 @@ public class DtoMapper {
 		dto.setMicronutrienti(toValoreMicroDto(a.getMicronutrienti()));
 		dto.setMisuraInGrammi(a.getMisuraInGrammi());
 		dto.setCategoria(a.getCategoria());
+		dto.setUrlImmagine(a.getUrlImmagine());
+		dto.setTracce(a.getTracce());
 
 		return dto;
 	}
@@ -514,6 +520,13 @@ public class DtoMapper {
 		dto.setGrassi(m.getGrassi());
 		dto.setProteine(m.getProteine());
 		dto.setCarboidrati(m.getCarboidrati());
+		dto.setFibre(m.getFibre());
+		dto.setZuccheri(m.getZuccheri());
+		dto.setGrassiSaturi(m.getGrassiSaturi());
+		dto.setSodio(m.getSodio());
+		dto.setAlcol(m.getAlcol());
+		dto.setAcqua(m.getAcqua());
+		dto.setSale(m.getSale());
 		return dto;
 	}
 
@@ -527,6 +540,13 @@ public class DtoMapper {
 		dto.setGrassi(m.getGrassi());
 		dto.setProteine(m.getProteine());
 		dto.setCarboidrati(m.getCarboidrati());
+		dto.setFibre(m.getFibre());
+		dto.setZuccheri(m.getZuccheri());
+		dto.setGrassiSaturi(m.getGrassiSaturi());
+		dto.setSodio(m.getSodio());
+		dto.setAlcol(m.getAlcol());
+		dto.setAcqua(m.getAcqua());
+		dto.setSale(m.getSale());
 		return dto;
 	}
 
@@ -541,6 +561,12 @@ public class DtoMapper {
 		m.setGrassi(dto.getGrassi());
 		m.setProteine(dto.getProteine());
 		m.setCarboidrati(dto.getCarboidrati());
+		m.setFibre(dto.getFibre());
+		m.setZuccheri(dto.getZuccheri());
+		m.setGrassiSaturi(dto.getGrassiSaturi());
+		m.setSodio(dto.getSodio());
+		m.setAlcol(dto.getAlcol());
+		m.setAcqua(dto.getAcqua());
 
 		return m;
 	}

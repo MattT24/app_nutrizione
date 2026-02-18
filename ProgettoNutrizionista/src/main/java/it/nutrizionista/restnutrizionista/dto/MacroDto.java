@@ -9,6 +9,13 @@ public class MacroDto {
 	    private Double grassi;
 	    private Double proteine;
 	    private Double carboidrati;
+	    private Double fibre;
+	    private Double zuccheri;
+	    private Double grassiSaturi;
+	    private Double sodio;
+	    private Double alcol;
+	    private Double acqua;
+	    private Double sale;
 
 	    
 		public Long getId() {
@@ -48,6 +55,47 @@ public class MacroDto {
 		public void setCarboidrati(Double carboidrati) {
 			this.carboidrati = carboidrati;
 		}
-	    
+		public Double getFibre() {
+			return fibre;
+		}
+		public void setFibre(Double fibre) {
+			this.fibre = fibre;
+		}
+		public Double getZuccheri() {
+			return zuccheri;
+		}
+		public void setZuccheri(Double zuccheri) {
+			this.zuccheri = zuccheri;
+		}
+		public Double getGrassiSaturi() {
+			return grassiSaturi;
+		}
+		public void setGrassiSaturi(Double grassiSaturi) {
+			this.grassiSaturi = grassiSaturi;
+		}
+		public Double getSodio() {
+			return sodio;
+		}
+		public void setSodio(Double sodio) {
+			this.sodio = sodio;
+		}
+		public Double getAlcol() {
+			return alcol;
+		}
+		public void setAlcol(Double alcol) {
+			this.alcol = alcol;
+		}
+		public Double getAcqua() {
+			return acqua;
+		}
+		public void setAcqua(Double acqua) {
+			this.acqua = acqua;
+		}
+		public Double getSale() {
+			return sale;
+		}
+		public void setSale(Double sale) {
+			this.sale = sale;
+		}
 	    
 }
