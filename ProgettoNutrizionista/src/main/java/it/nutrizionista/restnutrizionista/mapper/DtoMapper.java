@@ -20,6 +20,8 @@ import it.nutrizionista.restnutrizionista.dto.MacroDto;
 import it.nutrizionista.restnutrizionista.dto.MicroDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaFormDto;
+import it.nutrizionista.restnutrizionista.dto.OrariStudioDto;
+import it.nutrizionista.restnutrizionista.dto.OrariStudioFormDto;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
@@ -41,6 +43,7 @@ import it.nutrizionista.restnutrizionista.entity.Gruppo;
 import it.nutrizionista.restnutrizionista.entity.Macro;
 import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
+import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
@@ -881,221 +884,119 @@ public class DtoMapper {
 
 		p.setNote(form.getNote());
 
-		// La percentuale di massa grassa viene calcolata solitamente nel Service,
-		// ma se arriva dal form (es. calcolata dal frontend), puoi settarla qui:
-		// p.setPercentualeMassaGrassa(form.getPercentualeMassaGrassa());
+	        return appuntamento;
+	    }
+	    
+	    public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDto) {
+	        
+	        // Aggiorna data
+	        if (formDto.getData() != null) {
+	            appuntamento.setData(formDto.getData());
+	        }
+	        
+	        // Aggiorna ora
+	        if (formDto.getOra() != null) {
+	            appuntamento.setOra(formDto.getOra());
+	        }
+	        
+	        // Aggiorna descrizione appuntamento
+	        if (formDto.getDescrizioneAppuntamento() != null) {
+	            appuntamento.setDescrizioneAppuntamento(formDto.getDescrizioneAppuntamento());
+	        }
+	        
+	        // Aggiorna modalità (ONLINE/IN_PRESENZA)
+	        if (formDto.getModalita() != null) {
+	            appuntamento.setModalita(formDto.getModalita());
+	        }
+	        
+	        // Aggiorna stato (PROGRAMMATO/CONFERMATO/ANNULLATO)
+	        if (formDto.getStato() != null) {
+	            appuntamento.setStato(formDto.getStato());
+	        }
+	        
+	        // Aggiorna luogo
+	        if (formDto.getLuogo() != null) {
+	            appuntamento.setLuogo(formDto.getLuogo());
+	        }
+	        
+	        // Aggiorna email cliente
+	        if (formDto.getEmailCliente() != null) {
+	            appuntamento.setEmailCliente(formDto.getEmailCliente());
+	        }
+	        
+	        // Aggiorna dati cliente temporaneo (se non è un cliente registrato)
+	        if (formDto.getClienteId() == null) {
+	            // Cliente non registrato - aggiorna i campi temporanei
+	            appuntamento.setClienteNomeTemp(formDto.getClienteNome());
+	            appuntamento.setClienteCognomeTemp(formDto.getClienteCognome());
+	        }
+	    }
+	    
+	    
+	    
+	    public static OrariStudioDto toOrariStudioDto(OrariStudio orari) {
+	        if (orari == null) {
+	            return null;
+	        }
 
-		return p;
-	}
+	        OrariStudioDto dto = new OrariStudioDto();
+	        dto.setId(orari.getId());
 
-	public static void updatePlicometriaFromForm(Plicometria p, PlicometriaFormDto form) {
-		if (p == null || form == null)
-			return;
+	        if (orari.getNutrizionista() != null) {
+	            dto.setNutrizionistaId(orari.getNutrizionista().getId());
+	        }
 
-		p.setDataMisurazione(form.getDataMisurazione());
-		p.setMetodo(form.getMetodo());
+	        dto.setOraApertura(orari.getOraApertura());
+	        dto.setOraChiusura(orari.getOraChiusura());
 
-		// Aggiorna Pliche
-		p.setTricipite(form.getTricipite());
-		p.setBicipite(form.getBicipite());
-		p.setSottoscapolare(form.getSottoscapolare());
-		p.setSovrailiaca(form.getSovrailiaca());
-		p.setAddominale(form.getAddominale());
-		p.setCoscia(form.getCoscia());
-		p.setPettorale(form.getPettorale());
-		p.setAscellare(form.getAscellare());
-		p.setPolpaccio(form.getPolpaccio());
+	        dto.setPausaInizio(orari.getPausaInizio());
+	        dto.setPausaFine(orari.getPausaFine());
 
-		p.setNote(form.getNote());
-	}
+	        dto.setLavoraSabato(orari.isLavoraSabato());
 
-	// mapper per l'entità appuntamento
+	        dto.setCreatedAt(orari.getCreatedAt());
+	        dto.setUpdatedAt(orari.getUpdatedAt());
 
-	public static AppuntamentoDto toAppuntamentoDto(Appuntamento appuntamento) {
-		if (appuntamento == null) {
-			return null;
-		}
+	        return dto;
+	    }
 
-		AppuntamentoDto dto = new AppuntamentoDto();
-		dto.setId(appuntamento.getId());
+	    public static OrariStudio toOrariStudio(OrariStudioFormDto formDto, Utente nutrizionista) {
+	        if (formDto == null) {
+	            return null;
+	        }
 
-		// Dati nutrizionista
-		dto.setNutrizionistaId(appuntamento.getNutrizionista().getId());
-		dto.setNutrizionistaNome(appuntamento.getNutrizionista().getNome());
-		dto.setNutrizionistaCognome(appuntamento.getNutrizionista().getCognome());
+	        OrariStudio orari = new OrariStudio();
+	        orari.setNutrizionista(nutrizionista);
 
-		// Dati cliente - verifica se è registrato o meno
-		if (appuntamento.getCliente() != null) {
-			// Cliente registrato
-			dto.setClienteId(appuntamento.getCliente().getId());
-			dto.setClienteNome(appuntamento.getCliente().getNome());
-			dto.setClienteCognome(appuntamento.getCliente().getCognome());
-			dto.setClienteRegistrato(true);
-		} else {
-			// Cliente non registrato - usa i campi temporanei
-			dto.setClienteId(null);
-			dto.setClienteNome(appuntamento.getClienteNomeTemp());
-			dto.setClienteCognome(appuntamento.getClienteCognomeTemp());
-			dto.setClienteRegistrato(false);
-		}
+	        orari.setOraApertura(formDto.getOraApertura());
+	        orari.setOraChiusura(formDto.getOraChiusura());
 
-		dto.setDescrizioneAppuntamento(appuntamento.getDescrizioneAppuntamento());
-		dto.setData(appuntamento.getData());
-		dto.setOra(appuntamento.getOra());
-		dto.setModalita(appuntamento.getModalita());
-		dto.setStato(appuntamento.getStato());
-		dto.setLuogo(appuntamento.getLuogo());
-		dto.setEmailCliente(appuntamento.getEmailCliente());
-		return dto;
-	}
+	        orari.setPausaInizio(formDto.getPausaInizio());
+	        orari.setPausaFine(formDto.getPausaFine());
 
-	/**
-	 * Converte da AppuntamentoFormDto a Appuntamento entity
-	 * Gestisce sia clienti registrati (cliente != null) che non registrati (cliente
-	 * == null)
-	 */
-	public static Appuntamento toAppuntamento(AppuntamentoFormDto formDTO, Utente nutrizionista, Cliente cliente) {
-		if (formDTO == null) {
-			return null;
-		}
+	        orari.setLavoraSabato(formDto.isLavoraSabato());
 
-		Appuntamento appuntamento = new Appuntamento();
-		appuntamento.setNutrizionista(nutrizionista);
-		appuntamento.setCliente(cliente); // Può essere null per clienti non registrati
+	        return orari;
+	    }
 
-		// Se il cliente non è registrato, popola i campi temporanei
-		if (cliente == null) {
-			appuntamento.setClienteNomeTemp(formDTO.getClienteNome());
-			appuntamento.setClienteCognomeTemp(formDTO.getClienteCognome());
+	    public static void updateOrariStudioFromFormDto(OrariStudio orari, OrariStudioFormDto formDto) {
+	        if (orari == null || formDto == null) {
+	            return;
+	        }
 
-		}
+	        if (formDto.getOraApertura() != null) {
+	            orari.setOraApertura(formDto.getOraApertura());
+	        }
+	        if (formDto.getOraChiusura() != null) {
+	            orari.setOraChiusura(formDto.getOraChiusura());
+	        }
 
-		appuntamento.setDescrizioneAppuntamento(formDTO.getDescrizioneAppuntamento());
-		appuntamento.setData(formDTO.getData());
-		appuntamento.setOra(formDTO.getOra());
-		appuntamento.setModalita(formDTO.getModalita());
-		appuntamento
-				.setStato(formDTO.getStato() != null ? formDTO.getStato() : Appuntamento.StatoAppuntamento.PROGRAMMATO);
-		appuntamento.setLuogo(formDTO.getLuogo());
+	        // Pausa: permetto di svuotarla inviando null
+	        orari.setPausaInizio(formDto.getPausaInizio());
+	        orari.setPausaFine(formDto.getPausaFine());
 
-		// Gestione email cliente
-		String emailCliente;
-		if (formDTO.getEmailCliente() != null) {
-			emailCliente = formDTO.getEmailCliente();
-		} else if (cliente != null) {
-			emailCliente = cliente.getEmail();
-		} else {
-			emailCliente = null; // Verrà validato nel service
-		}
-		appuntamento.setEmailCliente(emailCliente);
-
-		return appuntamento;
-	}
-
-	public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDto) {
-
-		// Aggiorna data
-		if (formDto.getData() != null) {
-			appuntamento.setData(formDto.getData());
-		}
-
-		// Aggiorna ora
-		if (formDto.getOra() != null) {
-			appuntamento.setOra(formDto.getOra());
-		}
-
-		// Aggiorna descrizione appuntamento
-		if (formDto.getDescrizioneAppuntamento() != null) {
-			appuntamento.setDescrizioneAppuntamento(formDto.getDescrizioneAppuntamento());
-		}
-
-		// Aggiorna modalità (ONLINE/IN_PRESENZA)
-		if (formDto.getModalita() != null) {
-			appuntamento.setModalita(formDto.getModalita());
-		}
-
-		// Aggiorna stato (PROGRAMMATO/CONFERMATO/ANNULLATO)
-		if (formDto.getStato() != null) {
-			appuntamento.setStato(formDto.getStato());
-		}
-
-		// Aggiorna luogo
-		if (formDto.getLuogo() != null) {
-			appuntamento.setLuogo(formDto.getLuogo());
-		}
-
-		// Aggiorna email cliente
-		if (formDto.getEmailCliente() != null) {
-			appuntamento.setEmailCliente(formDto.getEmailCliente());
-		}
-
-		// Aggiorna dati cliente temporaneo (se non è un cliente registrato)
-		if (formDto.getClienteId() == null) {
-			// Cliente non registrato - aggiorna i campi temporanei
-			appuntamento.setClienteNomeTemp(formDto.getClienteNome());
-			appuntamento.setClienteCognomeTemp(formDto.getClienteCognome());
-		}
-	}
-
-	// ===================== ALIMENTO PASTO =====================
-
-	/**
-	 * Mappa AlimentoPasto -> AlimentoPastoDto in modo "safe" (senza Pasto nested
-	 * per evitare loop)
-	 */
-	public static AlimentoPastoDto toAlimentoPastoDtoSafe(AlimentoPasto ap) {
-		if (ap == null)
-			return null;
-
-		AlimentoPastoDto dto = new AlimentoPastoDto();
-		dto.setId(ap.getId());
-		dto.setAlimento(toAlimentoBaseDtoLight(ap.getAlimento()));
-		dto.setQuantita(ap.getQuantita());
-		// NON settiamo il Pasto per evitare riferimenti circolari
-		dto.setCreatedAt(ap.getCreatedAt());
-		dto.setUpdatedAt(ap.getUpdatedAt());
-		return dto;
-	}
-
-	// ===================== ALIMENTO ALTERNATIVO =====================
-
-	/**
-	 * Mappa AlimentoAlternativo -> AlimentoAlternativoDto
-	 * Include alimentoPasto (light senza scheda) e alimentoAlternativo (light)
-	 */
-	public static AlimentoAlternativoDto toAlimentoAlternativoDto(AlimentoAlternativo aa) {
-		if (aa == null)
-			return null;
-
-		AlimentoAlternativoDto dto = new AlimentoAlternativoDto();
-		dto.setId(aa.getId());
-		dto.setAlimentoPasto(toAlimentoPastoDtoSafe(aa.getAlimentoPasto()));
-		dto.setAlimentoAlternativo(toAlimentoBaseDtoLight(aa.getAlimentoAlternativo()));
-		dto.setQuantita(aa.getQuantita());
-		dto.setPriorita(aa.getPriorita());
-		dto.setMode(aa.getMode());
-		dto.setManual(aa.getManual());
-		dto.setNote(aa.getNote());
-		dto.setCreatedAt(aa.getCreatedAt());
-		dto.setUpdatedAt(aa.getUpdatedAt());
-		return dto;
-	}
-
-	/**
-	 * Versione light senza alimentoPasto nested (solo alimento alternativo)
-	 */
-	public static AlimentoAlternativoDto toAlimentoAlternativoDtoLight(AlimentoAlternativo aa) {
-		if (aa == null)
-			return null;
-
-		AlimentoAlternativoDto dto = new AlimentoAlternativoDto();
-		dto.setId(aa.getId());
-		dto.setAlimentoAlternativo(toAlimentoBaseDtoLight(aa.getAlimentoAlternativo()));
-		dto.setQuantita(aa.getQuantita());
-		dto.setPriorita(aa.getPriorita());
-		dto.setMode(aa.getMode());
-		dto.setManual(aa.getManual());
-		dto.setNote(aa.getNote());
-		return dto;
-	}
+	        orari.setLavoraSabato(formDto.isLavoraSabato());
+	    }
+	    
+	    
 }

@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -16,23 +17,26 @@ import it.nutrizionista.restnutrizionista.dto.CalendarEventDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteDropdownDto;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
+import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
+import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
+import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 
 @Service
 public class AppuntamentoService {
 
     private final AppuntamentoRepository repo;
     private final ClienteRepository repoCliente;
-    
-    @Autowired private CurrentUserService currentUserService;
-    @Autowired private OwnershipValidator ownershipValidator;
+    private final OrariStudioRepository repoOrari;
 
-    public AppuntamentoService(AppuntamentoRepository repo, ClienteRepository repoCliente) {
+
+    public AppuntamentoService(AppuntamentoRepository repo, UtenteRepository repoUtente, ClienteRepository repoCliente, OrariStudioRepository repoOrari) {
         this.repo = repo;
         this.repoCliente = repoCliente;
+        this.repoOrari = repoOrari;
     }
 
     private Utente getMe() {
@@ -157,11 +161,40 @@ public class AppuntamentoService {
         if (isBlank(form.getDescrizioneAppuntamento())) throw new RuntimeException("Descrizione obbligatoria");
         if (form.getModalita() == null) throw new RuntimeException("Modalità obbligatoria");
 
-        // slot lavorativo (come già fai) – qui lo tengo semplice
-        LocalTime apertura = LocalTime.of(8, 0);
-        LocalTime chiusura = LocalTime.of(20, 0);
-        if (form.getOra().isBefore(apertura) || form.getOra().isAfter(chiusura)) {
-            throw new RuntimeException("L'appuntamento deve essere tra le 8:00 e le 20:00");
+     // ========= Orari studio (dinamici) =========
+        OrariStudio orari = repoOrari.findByNutrizionista(getMe())
+                .orElseThrow(() -> new RuntimeException("Imposta prima gli orari dello studio"));
+
+        LocalDate data = form.getData();
+        LocalTime ora = form.getOra();
+
+        // Domenica NON lavorativa (domenica è sempre off)
+        DayOfWeek dow = data.getDayOfWeek();
+        if (dow == DayOfWeek.SUNDAY) {
+            throw new RuntimeException("La domenica non è prenotabile");
+        }
+
+        // Sabato solo se lavoraSabato=true
+        if (dow == DayOfWeek.SATURDAY && !orari.isLavoraSabato()) {
+            throw new RuntimeException("Il sabato non è prenotabile");
+        }
+
+        // Orario dentro apertura/chiusura
+        LocalTime apertura = orari.getOraApertura();
+        LocalTime chiusura = orari.getOraChiusura();
+
+        // Nota: di solito chiusura è esclusiva (non puoi prenotare esattamente all'ora di chiusura)
+        if (ora.isBefore(apertura) || !ora.isBefore(chiusura)) {
+            throw new RuntimeException("L'appuntamento deve essere tra " + apertura + " e " + chiusura);
+        }
+
+        // Pausa pranzo: se impostata, blocca le ore dentro la pausa
+        if (orari.getPausaInizio() != null && orari.getPausaFine() != null) {
+            boolean inPausa = !ora.isBefore(orari.getPausaInizio()) && ora.isBefore(orari.getPausaFine());
+            if (inPausa) {
+                throw new RuntimeException("La fascia " + orari.getPausaInizio() + " - " + orari.getPausaFine()
+                        + " non è prenotabile (pausa)");
+            }
         }
 
         // conflitto nutrizionista (update-safe)
