@@ -2,17 +2,19 @@ package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.LocalTime;
 
-import it.nutrizionista.restnutrizionista.entity.NomePasto;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 
 
 public class PastoFormDto {
 
     private Long id;
-    @NotNull(message = "Il nome è obbligatorio")
-    private NomePasto nome;
+    @NotBlank(message = "Il nome è obbligatorio")
+    private String nome;
     @NotNull(message = "La scheda è obbligatoria")
     private SchedaDto scheda;
+    private String descrizione;
+    private Integer ordineVisualizzazione;
     //secondo me gli orari sono opzionali
     private LocalTime orarioInizio;
     private LocalTime orarioFine;
@@ -23,10 +25,10 @@ public class PastoFormDto {
 	public void setId(Long id) {
 		this.id = id;
 	}
-	public NomePasto getNome() {
+	public String getNome() {
 		return nome;
 	}
-	public void setNome(NomePasto nome) {
+	public void setNome(String nome) {
 		this.nome = nome;
 	}
 	public SchedaDto getScheda() {
@@ -34,6 +36,18 @@ public class PastoFormDto {
 	}
 	public void setScheda(SchedaDto scheda) {
 		this.scheda = scheda;
+	}
+	public String getDescrizione() {
+		return descrizione;
+	}
+	public void setDescrizione(String descrizione) {
+		this.descrizione = descrizione;
+	}
+	public Integer getOrdineVisualizzazione() {
+		return ordineVisualizzazione;
+	}
+	public void setOrdineVisualizzazione(Integer ordineVisualizzazione) {
+		this.ordineVisualizzazione = ordineVisualizzazione;
 	}
 	public LocalTime getOrarioInizio() {
 		return orarioInizio;

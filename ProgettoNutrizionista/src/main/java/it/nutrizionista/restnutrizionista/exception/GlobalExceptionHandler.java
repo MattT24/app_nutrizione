@@ -3,6 +3,8 @@ package it.nutrizionista.restnutrizionista.exception;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 
 /**
  * Gestione centralizzata delle eccezioni comuni.
@@ -34,10 +36,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleSecurity(SecurityException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());
     }
+    
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ResponseEntity<String> handleAuthorizationDenied(AuthorizationDeniedException ex) {
+    	return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access Denied");
+    }
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntime(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+    
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<String> handleAuth(AuthenticationException ex) {
+    	return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Credenziali non valide");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)

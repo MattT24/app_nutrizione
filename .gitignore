@@ -1,2 +1,15 @@
 application.properties
 .classpath
+ProgettoNutrizionista/docs/migrations/001_permessi_plicometria.sql
+ProgettoNutrizionista/docs/migrations/003_permessi_meals.sql
+ProgettoNutrizionista/docs/ordinamento-alimenti.md
+ProgettoNutrizionista/docs/piano-azione-gestione-pasti-e-override-nomi.md
+ProgettoNutrizionista/docs/testing-sicuro.md
+ProgettoNutrizionista/docs/migrations/002_pasti_custom_e_override.sql
+ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/controller/AlimentoBaseSortingIntegrationTest.java
+ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/MealDefaultsIntegrationTest.java
+ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/ProgettoNutrizionistaApplicationTests.java
+ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/RouteProtectionIntegrationTest.java
+ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/support/SafeTestDatabaseBase.java
+ProgettoNutrizionista/src/test/resources/application-test.properties
+ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/PlicometriaMetodoPersistenceTest.java

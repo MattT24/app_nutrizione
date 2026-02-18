@@ -593,6 +593,10 @@ public class DtoMapper {
 		PastoDto dto = new PastoDto();
 		dto.setId(p.getId());
 		dto.setNome(p.getNome());
+		dto.setDefaultCode(p.getDefaultCode());
+		dto.setDescrizione(p.getDescrizione());
+		dto.setOrdineVisualizzazione(p.getOrdineVisualizzazione());
+		dto.setEliminabile(p.getEliminabile());
 		dto.setScheda(toSchedaDto(p.getScheda()));
 		dto.setOrarioFine(p.getOrarioFine());
 		dto.setOrarioInizio(p.getOrarioInizio());
@@ -606,6 +610,10 @@ public class DtoMapper {
 		PastoDto dto = new PastoDto();
 		dto.setId(p.getId());
 		dto.setNome(p.getNome());
+		dto.setDefaultCode(p.getDefaultCode());
+		dto.setDescrizione(p.getDescrizione());
+		dto.setOrdineVisualizzazione(p.getOrdineVisualizzazione());
+		dto.setEliminabile(p.getEliminabile());
 		dto.setOrarioFine(p.getOrarioFine());
 		dto.setOrarioInizio(p.getOrarioInizio());
 		return dto;
@@ -642,6 +650,10 @@ public class DtoMapper {
 		if (alim != null) {
 			dto.setAlimento(toAlimentoBaseDtoMacro(alim));
 		}
+
+		String nomeCustom = ap.getNomeOverride() != null ? ap.getNomeOverride().getNomeCustom() : null;
+		dto.setNomeCustom(nomeCustom);
+		dto.setNomeVisualizzato(nomeCustom != null ? nomeCustom : (alim != null ? alim.getNome() : null));
 
 		// IMPORTANTE: NON mappiamo dto.setPasto(...) qui!
 		// Evitiamo la ridondanza perché siamo già dentro l'oggetto Pasto.

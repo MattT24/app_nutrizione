@@ -10,7 +10,9 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import jakarta.persistence.CascadeType;
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.FetchType;
@@ -20,6 +22,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.JoinColumn;
 
 @Entity
 @Table(name = "alimenti_base")
@@ -49,6 +52,9 @@ public class AlimentoBase {
 
     @Column(name = "categoria", length = 50)
     private String categoria;
+
+	@Column(name = "url_immagine")
+    private String urlImmagine;
     
     @CreatedDate
     @Column(nullable = false) 
@@ -57,6 +63,29 @@ public class AlimentoBase {
     @Column(nullable = false) 
     private Instant updatedAt;
     
+	@ElementCollection
+    @CollectionTable(
+        name = "alimento_tracce", 
+        joinColumns = @JoinColumn(name = "alimento_id")
+    )
+    @Column(name = "nutriente")
+    private Set<String> tracce = new HashSet<>();
+
+    // Getter e Setter
+    public Set<String> getTracce() {
+        return tracce;
+    }
+
+    public void setTracce(Set<String> tracce) {
+        this.tracce = tracce;
+    }
+	public String getUrlImmagine() {
+		return urlImmagine;
+	}
+	public void setUrlImmagine(String urlImmagine) {
+		this.urlImmagine = urlImmagine;
+	}
+
 	public Long getId() {
 		return id;
 	}
