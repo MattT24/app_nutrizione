@@ -65,8 +65,8 @@ public class AlimentoAlternativo {
     /**
      * Modalità di calcolo suggerita (usata per ricalcoli automatici quando manual=false)
      */
+    @Column(nullable = false)
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
     private AlternativeMode mode = AlternativeMode.CALORIE;
 
     /**

@@ -12,3 +12,4 @@ ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/ProgettoN
 ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/RouteProtectionIntegrationTest.java
 ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/support/SafeTestDatabaseBase.java
 ProgettoNutrizionista/src/test/resources/application-test.properties
+ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/PlicometriaMetodoPersistenceTest.java

@@ -36,14 +36,81 @@ public class Macro {
     private Double proteine;
     @Column(nullable = false)
     private Double carboidrati;
+
+	@Column
+    private Double fibre;
+
+    @Column
+    private Double zuccheri;
+
+    @Column(name = "grassi_saturi")
+    private Double grassiSaturi;
+
+    @Column
+    private Double sodio;
+
+    @Column
+    private Double alcol;
+
+    @Column
+    private Double acqua;
+
     @CreatedDate
     @Column(nullable = false) 
     private Instant createdAt;
     @LastModifiedDate
     @Column(nullable = false) 
     private Instant updatedAt;
+
+	/**
+     * Campo calcolato virtuale per il Frontend.
+     * Non viene salvato nel DB, ma serve per visualizzare il Sale.
+     * Formula: Sale (g) = Sodio (mg) * 2.5 / 1000
+     */
+    public Double getSale() {
+        if (this.sodio == null) return 0.0;
+        // Arrotondamento a 2 decimali per pulizia
+        double sale = (this.sodio * 2.5) / 1000.0;
+        return Math.round(sale * 100.0) / 100.0;
+    }
     
-    
+    public Double getFibre() {
+		return fibre;
+	}
+	public void setFibre(Double fibre) {
+		this.fibre = fibre;
+	}
+	public Double getZuccheri() {
+		return zuccheri;
+	}
+	public void setZuccheri(Double zuccheri) {
+		this.zuccheri = zuccheri;
+	}
+	public Double getGrassiSaturi() {
+		return grassiSaturi;
+	}
+	public void setGrassiSaturi(Double grassiSaturi) {
+		this.grassiSaturi = grassiSaturi;
+	}
+	public Double getSodio() {
+		return sodio;
+	}
+	public void setSodio(Double sodio) {
+		this.sodio = sodio;
+	}
+	public Double getAlcol() {
+		return alcol;
+	}
+	public void setAlcol(Double alcol) {
+		this.alcol = alcol;
+	}
+	public Double getAcqua() {
+		return acqua;
+	}
+	public void setAcqua(Double acqua) {
+		this.acqua = acqua;
+	}
+
 	public Long getId() {
 		return id;
 	}
