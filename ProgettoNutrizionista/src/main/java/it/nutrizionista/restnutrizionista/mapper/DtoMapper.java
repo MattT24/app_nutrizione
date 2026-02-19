@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import it.nutrizionista.restnutrizionista.dto.ObiettivoNutrizionaleDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoAlternativoDto;
@@ -45,6 +46,7 @@ import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
+import it.nutrizionista.restnutrizionista.entity.ObiettivoNutrizionale;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
@@ -268,6 +270,7 @@ public class DtoMapper {
 		dto.setAssunzioneFarmaci(c.getAssunzioneFarmaci());
 		dto.setTelefono(c.getTelefono());
 		dto.setBeveAlcol(c.getBeveAlcol());
+		dto.setFuma(c.getFuma());
 		dto.setCodiceFiscale(c.getCodiceFiscale());
 		dto.setCognome(c.getCognome());
 		dto.setEmail(c.getEmail());
@@ -276,7 +279,7 @@ public class DtoMapper {
 		dto.setFunzioniIntestinali(c.getFunzioniIntestinali());
 		dto.setIntolleranze(c.getIntolleranze());
 		dto.setNome(c.getNome());
-		dto.setNumAllenamentiSett(c.getNumAllenamentiSett());
+		dto.setLivelloDiAttivita(c.getLivelloDiAttivita());
 		dto.setNutrizionista(toUtenteDto(c.getNutrizionista()));
 		dto.setPeso(c.getPeso());
 		dto.setQuantitaEQualitaDelSonno(c.getQuantitaEQualitaDelSonno());
@@ -313,13 +316,14 @@ public class DtoMapper {
 		c.setDataNascita(form.getDataNascita());
 		c.setPeso(form.getPeso());
 		c.setAltezza(form.getAltezza());
-		c.setNumAllenamentiSett(form.getNumAllenamentiSett());
+		c.setLivelloDiAttivita(form.getLivelloDiAttivita());
 		c.setIntolleranze(form.getIntolleranze());
 		c.setFunzioniIntestinali(form.getFunzioniIntestinali());
 		c.setProblematicheSalutari(form.getProblematicheSalutari());
 		c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno());
 		c.setAssunzioneFarmaci(form.getAssunzioneFarmaci());
-		c.setBeveAlcol(form.getBeveAlcol());
+		c.setBeveAlcol(form.getBeveAlcol() != null ? form.getBeveAlcol() : false);
+		c.setFuma(form.getFuma() != null ? form.getFuma() : false);
 
 		return c;
 	}
@@ -329,21 +333,22 @@ public class DtoMapper {
 			return;
 
 		c.setSesso(form.getSesso());
-		c.setNome(form.getNome());
-		c.setCognome(form.getCognome());
-		c.setCodiceFiscale(form.getCodiceFiscale());
-		c.setEmail(form.getEmail());
+		c.setNome(form.getNome() != null ? form.getNome() : "");
+		c.setCognome(form.getCognome() != null ? form.getCognome() : "");
+		c.setCodiceFiscale(form.getCodiceFiscale() != null ? form.getCodiceFiscale() : c.getCodiceFiscale());
+		c.setEmail(form.getEmail() != null ? form.getEmail() : c.getEmail());
 		c.setTelefono(form.getTelefono());
 		c.setDataNascita(form.getDataNascita());
 		c.setPeso(form.getPeso());
 		c.setAltezza(form.getAltezza());
-		c.setNumAllenamentiSett(form.getNumAllenamentiSett());
-		c.setIntolleranze(form.getIntolleranze());
-		c.setFunzioniIntestinali(form.getFunzioniIntestinali());
-		c.setProblematicheSalutari(form.getProblematicheSalutari());
-		c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno());
-		c.setAssunzioneFarmaci(form.getAssunzioneFarmaci());
-		c.setBeveAlcol(form.getBeveAlcol());
+		c.setLivelloDiAttivita(form.getLivelloDiAttivita());
+		c.setIntolleranze(form.getIntolleranze() != null ? form.getIntolleranze() : "");
+		c.setFunzioniIntestinali(form.getFunzioniIntestinali() != null ? form.getFunzioniIntestinali() : "");
+		c.setProblematicheSalutari(form.getProblematicheSalutari() != null ? form.getProblematicheSalutari() : "");
+		c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno() != null ? form.getQuantitaEQualitaDelSonno() : "");
+		c.setAssunzioneFarmaci(form.getAssunzioneFarmaci() != null ? form.getAssunzioneFarmaci() : "");
+		c.setBeveAlcol(form.getBeveAlcol() != null ? form.getBeveAlcol() : false);
+		c.setFuma(form.getFuma() != null ? form.getFuma() : false);
 	}
 
 	// mapper cliente con solo le cose essenziali, vedete se aggiungere info
@@ -359,6 +364,32 @@ public class DtoMapper {
 
 		return dto;
 
+	}
+
+	// ─── ObiettivoNutrizionale ──────────────────────────────────────────
+
+	public static ObiettivoNutrizionaleDto toObiettivoNutrizionaleDto(ObiettivoNutrizionale ob) {
+		if (ob == null) return null;
+
+		ObiettivoNutrizionaleDto dto = new ObiettivoNutrizionaleDto();
+		dto.setId(ob.getId());
+		dto.setClienteId(ob.getCliente() != null ? ob.getCliente().getId() : null);
+		dto.setObiettivo(ob.getObiettivo());
+		dto.setBmr(ob.getBmr());
+		dto.setTdee(ob.getTdee());
+		dto.setLaf(ob.getLaf());
+		dto.setTargetCalorie(ob.getTargetCalorie());
+		dto.setTargetProteine(ob.getTargetProteine());
+		dto.setTargetCarboidrati(ob.getTargetCarboidrati());
+		dto.setTargetGrassi(ob.getTargetGrassi());
+		dto.setTargetFibre(ob.getTargetFibre());
+		dto.setPctProteine(ob.getPctProteine());
+		dto.setPctCarboidrati(ob.getPctCarboidrati());
+		dto.setPctGrassi(ob.getPctGrassi());
+		dto.setNote(ob.getNote());
+		dto.setCreatedAt(ob.getCreatedAt());
+		dto.setUpdatedAt(ob.getUpdatedAt());
+		return dto;
 	}
 
 	// Mapper per l'entita alimentoBase
@@ -1111,6 +1142,7 @@ public class DtoMapper {
 		AlimentoAlternativoDto dto = new AlimentoAlternativoDto();
 		dto.setId(aa.getId());
 		dto.setAlimentoPasto(toAlimentoPastoDtoSafe(aa.getAlimentoPasto()));
+		dto.setPastoId(aa.getPasto() != null ? aa.getPasto().getId() : null);
 		dto.setAlimentoAlternativo(toAlimentoBaseDtoLight(aa.getAlimentoAlternativo()));
 		dto.setQuantita(aa.getQuantita());
 		dto.setPriorita(aa.getPriorita());

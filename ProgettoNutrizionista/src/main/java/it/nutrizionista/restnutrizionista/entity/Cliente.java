@@ -54,8 +54,9 @@ public class Cliente {
 	private double peso;
 	@Column(nullable = false)
 	private int altezza;
-	@Column(nullable = false, name = "num_allenamenti_settimanali")
-	private String numAllenamentiSett;
+	@Enumerated(EnumType.STRING)
+	@Column(name = "livello_attivita")
+	private LivelloDiAttivita livelloDiAttivita;
 	@Column(nullable = false)
 	private String intolleranze;
 	@Column(nullable = false, name = "funzioni_intestinali")
@@ -68,6 +69,8 @@ public class Cliente {
 	private String assunzioneFarmaci;
 	@Column(nullable = false, name = "beve_alcol")
 	private Boolean beveAlcol;
+	@Column(nullable = false)
+	private Boolean fuma;
 
 	@ManyToOne
 	@JoinColumn(name = "utente_id")
@@ -164,12 +167,12 @@ public class Cliente {
 		this.altezza = altezza;
 	}
 
-	public String getNumAllenamentiSett() {
-		return numAllenamentiSett;
+	public LivelloDiAttivita getLivelloDiAttivita() {
+		return livelloDiAttivita;
 	}
 
-	public void setNumAllenamentiSett(String numAllenamentiSett) {
-		this.numAllenamentiSett = numAllenamentiSett;
+	public void setLivelloDiAttivita(LivelloDiAttivita livelloDiAttivita) {
+		this.livelloDiAttivita = livelloDiAttivita;
 	}
 
 	public String getIntolleranze() {
@@ -218,6 +221,14 @@ public class Cliente {
 
 	public void setBeveAlcol(Boolean beveAlcol) {
 		this.beveAlcol = beveAlcol;
+	}
+
+	public Boolean getFuma() {
+		return fuma;
+	}
+
+	public void setFuma(Boolean fuma) {
+		this.fuma = fuma;
 	}
 
 	public List<AlimentoDaEvitare> getAlimentiDaEvitare() {
