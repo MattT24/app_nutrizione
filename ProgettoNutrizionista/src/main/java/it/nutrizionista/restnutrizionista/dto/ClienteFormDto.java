@@ -2,6 +2,7 @@ package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.LocalDate;
 
+import it.nutrizionista.restnutrizionista.entity.LivelloDiAttivita;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import jakarta.validation.constraints.NotBlank;
 
@@ -21,13 +22,14 @@ public class ClienteFormDto {
     private LocalDate dataNascita;
     private double peso;
     private int altezza;
-    private String numAllenamentiSett;
+    private LivelloDiAttivita livelloDiAttivita;
     private String intolleranze;
     private String funzioniIntestinali;
     private String problematicheSalutari;
     private String quantitaEQualitaDelSonno;
     private String assunzioneFarmaci;
     private Boolean beveAlcol;
+    private Boolean fuma;
     private UtenteDto nutrizionista;
     
 	public Sesso getSesso() {
@@ -84,11 +86,11 @@ public class ClienteFormDto {
 	public void setAltezza(int altezza) {
 		this.altezza = altezza;
 	}
-	public String getNumAllenamentiSett() {
-		return numAllenamentiSett;
+	public LivelloDiAttivita getLivelloDiAttivita() {
+		return livelloDiAttivita;
 	}
-	public void setNumAllenamentiSett(String numAllenamentiSett) {
-		this.numAllenamentiSett = numAllenamentiSett;
+	public void setLivelloDiAttivita(LivelloDiAttivita livelloDiAttivita) {
+		this.livelloDiAttivita = livelloDiAttivita;
 	}
 	public String getIntolleranze() {
 		return intolleranze;
@@ -125,6 +127,12 @@ public class ClienteFormDto {
 	}
 	public void setBeveAlcol(Boolean beveAlcol) {
 		this.beveAlcol = beveAlcol;
+	}
+	public Boolean getFuma() {
+		return fuma;
+	}
+	public void setFuma(Boolean fuma) {
+		this.fuma = fuma;
 	}
 	public UtenteDto getNutrizionista() {
 		return nutrizionista;

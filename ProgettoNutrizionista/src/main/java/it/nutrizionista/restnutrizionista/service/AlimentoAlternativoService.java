@@ -305,4 +305,90 @@ public class AlimentoAlternativoService {
         }
         return result;
     }
+
+    // === PER-PASTO METHODS ===
+
+    @Transactional(readOnly = true)
+    public List<AlimentoAlternativoDto> listByPasto(Long pastoId) {
+        ownershipValidator.getOwnedPasto(pastoId);
+        return repo.findByPasto_IdOrderByPrioritaAsc(pastoId).stream()
+                .map(DtoMapper::toAlimentoAlternativoDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public AlimentoAlternativoDto createForPasto(Long pastoId,
+            @Valid AlimentoAlternativoUpsertDto body) {
+        var pasto = ownershipValidator.getOwnedPasto(pastoId);
+
+        AlimentoBase alimentoAlt = alimentoBaseRepo.findById(body.getAlimentoAlternativoId())
+                .orElseThrow(() -> new NotFoundException(
+                        "Alimento alternativo non trovato con id: " + body.getAlimentoAlternativoId()));
+
+        if (repo.existsByPasto_IdAndAlimentoAlternativo_Id(pastoId, body.getAlimentoAlternativoId())) {
+            throw new ConflictException("Questa alternativa esiste già per questo pasto");
+        }
+
+        Integer priorita = body.getPriorita();
+        if (priorita == null || priorita < 1) {
+            priorita = (int) repo.countByPasto_Id(pastoId) + 1;
+        }
+
+        AlternativeMode mode = body.getMode() != null ? body.getMode() : AlternativeMode.CALORIE;
+        boolean manual = Boolean.TRUE.equals(body.getManual());
+        Integer quantita = body.getQuantita();
+        if (!manual && quantita == null) {
+            // Use first food in meal as reference for auto-suggest
+            var alimentiPasto = pasto.getAlimentiPasto();
+            if (alimentiPasto != null && !alimentiPasto.isEmpty()) {
+                quantita = suggestionCalculator.suggestQuantity(alimentiPasto.get(0), alimentoAlt, mode);
+            }
+        }
+
+        AlimentoAlternativo entity = new AlimentoAlternativo();
+        entity.setPasto(pasto);
+        entity.setAlimentoAlternativo(alimentoAlt);
+        entity.setQuantita(quantita != null ? quantita : 100);
+        entity.setPriorita(priorita);
+        entity.setMode(mode);
+        entity.setManual(manual);
+        entity.setNote(body.getNote());
+
+        return DtoMapper.toAlimentoAlternativoDto(repo.save(entity));
+    }
+
+    @Transactional
+    public AlimentoAlternativoDto updateForPasto(Long pastoId, Long alternativeId,
+            @Valid AlimentoAlternativoUpsertDto body) {
+        ownershipValidator.getOwnedPasto(pastoId);
+
+        AlimentoAlternativo entity = repo.findById(alternativeId)
+                .orElseThrow(() -> new NotFoundException("Alternativa non trovata con id: " + alternativeId));
+
+        if (entity.getPasto() == null || !entity.getPasto().getId().equals(pastoId)) {
+            throw new BadRequestException("Alternativa non associata al pasto indicato");
+        }
+
+        if (body.getQuantita() != null) entity.setQuantita(body.getQuantita());
+        if (body.getPriorita() != null) entity.setPriorita(body.getPriorita());
+        if (body.getMode() != null) entity.setMode(body.getMode());
+        if (body.getManual() != null) entity.setManual(body.getManual());
+        if (body.getNote() != null) entity.setNote(body.getNote());
+
+        return DtoMapper.toAlimentoAlternativoDto(repo.save(entity));
+    }
+
+    @Transactional
+    public void deleteForPasto(Long pastoId, Long alternativeId) {
+        ownershipValidator.getOwnedPasto(pastoId);
+
+        AlimentoAlternativo entity = repo.findById(alternativeId)
+                .orElseThrow(() -> new NotFoundException("Alternativa non trovata con id: " + alternativeId));
+
+        if (entity.getPasto() == null || !entity.getPasto().getId().equals(pastoId)) {
+            throw new BadRequestException("Alternativa non associata al pasto indicato");
+        }
+
+        repo.delete(entity);
+    }
 }
