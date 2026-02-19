@@ -25,10 +25,16 @@ import jakarta.persistence.UniqueConstraint;
  */
 @Entity
 @Table(name = "alimenti_alternativi",
-    uniqueConstraints = @UniqueConstraint(
-        columnNames = {"alimento_pasto_id", "alimento_alternativo_id"},
-        name = "uk_pasto_alternativo"
-    ))
+    uniqueConstraints = {
+        @UniqueConstraint(
+            columnNames = {"alimento_pasto_id", "alimento_alternativo_id"},
+            name = "uk_pasto_alternativo"
+        ),
+        @UniqueConstraint(
+            columnNames = {"pasto_id", "alimento_alternativo_id"},
+            name = "uk_pasto_alt_per_pasto"
+        )
+    })
 @EntityListeners(AuditingEntityListener.class)
 public class AlimentoAlternativo {
 
@@ -37,11 +43,18 @@ public class AlimentoAlternativo {
     private Long id;
 
     /**
-     * L'alimento principale nel pasto per cui questa è un'alternativa
+     * L'alimento principale nel pasto per cui questa è un'alternativa (legacy, nullable)
      */
     @ManyToOne
-    @JoinColumn(name = "alimento_pasto_id", nullable = false)
+    @JoinColumn(name = "alimento_pasto_id", nullable = true)
     private AlimentoPasto alimentoPasto;
+
+    /**
+     * Il pasto per cui questa è un'alternativa (nuova FK per-pasto)
+     */
+    @ManyToOne
+    @JoinColumn(name = "pasto_id", nullable = true)
+    private Pasto pasto;
 
     /**
      * L'alimento alternativo (sostitutivo) dal catalogo
@@ -113,6 +126,14 @@ public class AlimentoAlternativo {
 
     public void setAlimentoPasto(AlimentoPasto alimentoPasto) {
         this.alimentoPasto = alimentoPasto;
+    }
+
+    public Pasto getPasto() {
+        return pasto;
+    }
+
+    public void setPasto(Pasto pasto) {
+        this.pasto = pasto;
     }
 
     public AlimentoBase getAlimentoAlternativo() {

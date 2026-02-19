@@ -35,4 +35,26 @@ public interface AlimentoAlternativoRepository extends JpaRepository<AlimentoAlt
      * Elimina tutte le alternative di un alimento in pasto
      */
     void deleteByAlimentoPasto_Id(Long alimentoPastoId);
+
+    // === PER-PASTO METHODS ===
+
+    /**
+     * Trova tutte le alternative per un pasto, ordinate per priorità
+     */
+    List<AlimentoAlternativo> findByPasto_IdOrderByPrioritaAsc(Long pastoId);
+
+    /**
+     * Verifica se esiste già questa combinazione pasto + alimento_alternativo
+     */
+    boolean existsByPasto_IdAndAlimentoAlternativo_Id(Long pastoId, Long alimentoAlternativoId);
+
+    /**
+     * Conta le alternative per un pasto
+     */
+    long countByPasto_Id(Long pastoId);
+
+    /**
+     * Elimina tutte le alternative di un pasto
+     */
+    void deleteByPasto_Id(Long pastoId);
 }

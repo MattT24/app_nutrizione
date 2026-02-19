@@ -11,6 +11,7 @@ public class AlimentoAlternativoDto {
 
     private Long id;
     private AlimentoPastoDto alimentoPasto;
+    private Long pastoId;
     private AlimentoBaseDto alimentoAlternativo;
     private Integer quantita;
     private Integer priorita;
@@ -35,6 +36,14 @@ public class AlimentoAlternativoDto {
 
     public void setAlimentoPasto(AlimentoPastoDto alimentoPasto) {
         this.alimentoPasto = alimentoPasto;
+    }
+
+    public Long getPastoId() {
+        return pastoId;
+    }
+
+    public void setPastoId(Long pastoId) {
+        this.pastoId = pastoId;
     }
 
     public AlimentoBaseDto getAlimentoAlternativo() {
