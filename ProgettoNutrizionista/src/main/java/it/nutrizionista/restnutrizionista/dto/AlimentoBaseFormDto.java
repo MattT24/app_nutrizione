@@ -2,6 +2,7 @@ package it.nutrizionista.restnutrizionista.dto;
 
 
 import java.util.List;
+import java.util.Set;
 
 import jakarta.validation.constraints.NotBlank;
 
@@ -19,6 +20,8 @@ public class AlimentoBaseFormDto {
     private Double misuraInGrammi;
     private List<ValoreMicroFormDto> microNutrienti;
 	private String categoria;
+    private String urlImmagine;
+    private Set<String> tracce;
 	
 
     
@@ -59,4 +62,17 @@ public class AlimentoBaseFormDto {
     public void setCategoria(String categoria) {
         this.categoria = categoria;
     }
+    public String getUrlImmagine() {
+        return urlImmagine;
+    }
+    public void setUrlImmagine(String urlImmagine) {
+        this.urlImmagine = urlImmagine;
+    }
+    public Set<String> getTracce() {
+        return tracce;
+    }
+    public void setTracce(Set<String> tracce) {
+        this.tracce = tracce;
+    }
 }
+

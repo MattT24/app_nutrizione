@@ -2,6 +2,7 @@ package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 public class AlimentoBaseDto {
 	
@@ -13,6 +14,8 @@ public class AlimentoBaseDto {
     private List<ValoreMicroDto> micronutrienti;
     private Double misuraInGrammi;
 	private String categoria;
+    private String urlImmagine;
+    private Set<String> tracce;
     private Instant createdAt;
     private Instant updatedAt;
 	public Long getId() {
@@ -77,4 +80,17 @@ public class AlimentoBaseDto {
     public void setCategoria(String categoria) {
         this.categoria = categoria;
     }
+    public String getUrlImmagine() {
+        return urlImmagine;
+    }
+    public void setUrlImmagine(String urlImmagine) {
+        this.urlImmagine = urlImmagine;
+    }
+    public Set<String> getTracce() {
+        return tracce;
+    }
+    public void setTracce(Set<String> tracce) {
+        this.tracce = tracce;
+    }
 }
+
