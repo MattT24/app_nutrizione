@@ -20,6 +20,8 @@ import it.nutrizionista.restnutrizionista.dto.MacroDto;
 import it.nutrizionista.restnutrizionista.dto.MicroDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaFormDto;
+import it.nutrizionista.restnutrizionista.dto.OrariStudioDto;
+import it.nutrizionista.restnutrizionista.dto.OrariStudioFormDto;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
@@ -41,6 +43,7 @@ import it.nutrizionista.restnutrizionista.entity.Gruppo;
 import it.nutrizionista.restnutrizionista.entity.Macro;
 import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
+import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
@@ -1135,5 +1138,71 @@ public class DtoMapper {
 		dto.setManual(aa.getManual());
 		dto.setNote(aa.getNote());
 		return dto;
+	}
+	
+	// MAPPER PER ORARIO STUDIO
+	
+	public static OrariStudioDto toOrariStudioDto(OrariStudio orari) {
+	    if (orari == null) {
+	        return null;
+	    }
+
+	    OrariStudioDto dto = new OrariStudioDto();
+	    dto.setId(orari.getId());
+
+	    if (orari.getNutrizionista() != null) {
+	        dto.setNutrizionistaId(orari.getNutrizionista().getId());
+	    }
+
+	    dto.setOraApertura(orari.getOraApertura());
+	    dto.setOraChiusura(orari.getOraChiusura());
+
+	    dto.setPausaInizio(orari.getPausaInizio());
+	    dto.setPausaFine(orari.getPausaFine());
+
+	    dto.setLavoraSabato(orari.isLavoraSabato());
+
+	    dto.setCreatedAt(orari.getCreatedAt());
+	    dto.setUpdatedAt(orari.getUpdatedAt());
+
+	    return dto;
+	}
+
+	public static OrariStudio toOrariStudio(OrariStudioFormDto formDto, Utente nutrizionista) {
+	    if (formDto == null) {
+	        return null;
+	    }
+
+	    OrariStudio orari = new OrariStudio();
+	    orari.setNutrizionista(nutrizionista);
+
+	    orari.setOraApertura(formDto.getOraApertura());
+	    orari.setOraChiusura(formDto.getOraChiusura());
+
+	    orari.setPausaInizio(formDto.getPausaInizio());
+	    orari.setPausaFine(formDto.getPausaFine());
+
+	    orari.setLavoraSabato(formDto.isLavoraSabato());
+
+	    return orari;
+	}
+
+	public static void updateOrariStudioFromFormDto(OrariStudio orari, OrariStudioFormDto formDto) {
+	    if (orari == null || formDto == null) {
+	        return;
+	    }
+
+	    if (formDto.getOraApertura() != null) {
+	        orari.setOraApertura(formDto.getOraApertura());
+	    }
+	    if (formDto.getOraChiusura() != null) {
+	        orari.setOraChiusura(formDto.getOraChiusura());
+	    }
+
+	    // Pausa: permetto di svuotarla inviando null
+	    orari.setPausaInizio(formDto.getPausaInizio());
+	    orari.setPausaFine(formDto.getPausaFine());
+
+	    orari.setLavoraSabato(formDto.isLavoraSabato());
 	}
 }
