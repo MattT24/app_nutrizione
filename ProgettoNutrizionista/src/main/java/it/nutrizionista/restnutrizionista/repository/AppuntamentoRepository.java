@@ -19,4 +19,7 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
 
     // serve per update: “esiste un altro appuntamento alla stessa data/ora?”
     boolean existsByNutrizionista_IdAndDataAndOraAndIdNot(Long nutrizionistaId, LocalDate data, LocalTime ora, Long idNot);
+
+    // query “candidate overlap” (grezza) basata su start/end date (poi check preciso in service con LocalDateTime)
+    List<Appuntamento> findByNutrizionista_IdAndDataLessThanEqualAndEndDataGreaterThanEqual(Long nutrizionistaId, LocalDate dataMax, LocalDate dataMin);
 }

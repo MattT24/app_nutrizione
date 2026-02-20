@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -47,9 +48,17 @@ public class AppuntamentoService {
 
         Cliente cliente = resolveCliente(form);
 
+        normalizeFormDates(form, null);
         validateBusiness(form, me.getId(), null);
 
         Appuntamento a = DtoMapper.toAppuntamento(form, me, cliente);
+
+        // ✅ safety: nel caso il mapper non gestisca i nuovi campi, li imposto comunque qui
+        a.setEndData(form.getEndData());
+        a.setEndOra(form.getEndOra());
+        a.setTimezone(form.getTimezone());
+        a.setAllDay(Boolean.TRUE.equals(form.getAllDay()));
+
         Appuntamento saved = repo.save(a);
         return DtoMapper.toAppuntamentoDto(saved);
     }
@@ -68,9 +77,17 @@ public class AppuntamentoService {
             a.setClienteCognomeTemp(null);
         }
 
+        normalizeFormDates(form, a);
         validateBusiness(form, me.getId(), id);
 
         DtoMapper.updateAppuntamentoFromFormDto(a, form);
+
+        // ✅ safety: nel caso il mapper non gestisca i nuovi campi, li imposto comunque qui
+        a.setEndData(form.getEndData());
+        a.setEndOra(form.getEndOra());
+        a.setTimezone(form.getTimezone());
+        a.setAllDay(Boolean.TRUE.equals(form.getAllDay()));
+
         Appuntamento saved = repo.save(a);
         return DtoMapper.toAppuntamentoDto(saved);
     }
@@ -98,10 +115,11 @@ public class AppuntamentoService {
     public List<CalendarEventDto> getMyCalendarEvents(LocalDate start, LocalDate end) {
         Utente me = getMe();
 
-        // FullCalendar spesso passa end esclusivo; per sicurezza includiamo anche il giorno precedente:
+        // FullCalendar spesso passa end esclusivo
         LocalDate inclusiveEnd = end.minusDays(1);
 
-        return repo.findByNutrizionista_IdAndDataBetween(me.getId(), start, inclusiveEnd).stream()
+        // ✅ include eventi che “overlappano” il range, anche se iniziano prima
+        return repo.findByNutrizionista_IdAndDataLessThanEqualAndEndDataGreaterThanEqual(me.getId(), inclusiveEnd, start).stream()
                 .map(this::toCalendarEvent)
                 .toList();
     }
@@ -111,10 +129,24 @@ public class AppuntamentoService {
         Utente me = getMe();
         Appuntamento a = ownershipValidator.getOwnedAppuntamento(id);
 
-        // per ora usiamo solo start -> data/ora
+        // durata esistente (fallback 60 se dati vecchi senza end)
+        LocalDateTime oldStart = LocalDateTime.of(a.getData(), a.getOra());
+        LocalDateTime oldEnd = getSafeEnd(a);
+
+        Duration dur = Duration.between(oldStart, oldEnd);
+        if (dur.isNegative() || dur.isZero()) dur = Duration.ofMinutes(60);
+
+        LocalDateTime computedEnd = (newEnd != null) ? newEnd : newStart.plus(dur);
+
         AppuntamentoFormDto form = new AppuntamentoFormDto();
         form.setData(newStart.toLocalDate());
         form.setOra(newStart.toLocalTime());
+        form.setEndData(computedEnd.toLocalDate());
+        form.setEndOra(computedEnd.toLocalTime());
+
+        form.setTimezone(a.getTimezone() != null ? a.getTimezone() : "Europe/Rome");
+        form.setAllDay(a.isAllDay());
+
         form.setDescrizioneAppuntamento(a.getDescrizioneAppuntamento());
         form.setModalita(a.getModalita());
         form.setStato(a.getStato());
@@ -132,6 +164,10 @@ public class AppuntamentoService {
 
         a.setData(form.getData());
         a.setOra(form.getOra());
+        a.setEndData(form.getEndData());
+        a.setEndOra(form.getEndOra());
+        a.setTimezone(form.getTimezone());
+        a.setAllDay(Boolean.TRUE.equals(form.getAllDay()));
 
         return DtoMapper.toAppuntamentoDto(repo.save(a));
     }
@@ -151,11 +187,65 @@ public class AppuntamentoService {
         return null;
     }
 
+    private void normalizeFormDates(AppuntamentoFormDto form, Appuntamento existing) {
+        if (form.getTimezone() == null || form.getTimezone().trim().isEmpty()) {
+            form.setTimezone(existing != null && existing.getTimezone() != null ? existing.getTimezone() : "Europe/Rome");
+        }
+
+        if (form.getAllDay() == null) {
+            form.setAllDay(existing != null ? existing.isAllDay() : false);
+        }
+
+        // end mancante -> default: start + 60 minuti
+        if (form.getEndData() == null || form.getEndOra() == null) {
+            if (form.getData() != null && form.getOra() != null) {
+                LocalDateTime start = LocalDateTime.of(form.getData(), form.getOra());
+
+                // se stiamo aggiornando e l'esistente ha end valido, mantengo la durata
+                if (existing != null && existing.getData() != null && existing.getOra() != null) {
+                    LocalDateTime oldStart = LocalDateTime.of(existing.getData(), existing.getOra());
+                    LocalDateTime oldEnd = getSafeEnd(existing);
+
+                    Duration dur = Duration.between(oldStart, oldEnd);
+                    if (!dur.isNegative() && !dur.isZero()) {
+                        LocalDateTime end = start.plus(dur);
+                        form.setEndData(end.toLocalDate());
+                        form.setEndOra(end.toLocalTime());
+                        return;
+                    }
+                }
+
+                LocalDateTime end = start.plusMinutes(60);
+                form.setEndData(end.toLocalDate());
+                form.setEndOra(end.toLocalTime());
+            }
+        }
+    }
+
+    private LocalDateTime getSafeEnd(Appuntamento a) {
+        if (a.getEndData() != null && a.getEndOra() != null) {
+            return LocalDateTime.of(a.getEndData(), a.getEndOra());
+        }
+        LocalDateTime start = LocalDateTime.of(a.getData(), a.getOra());
+        return start.plusMinutes(60);
+    }
+
     private void validateBusiness(AppuntamentoFormDto form, Long nutrizionistaId, Long excludeId) {
         if (form.getData() == null) throw new RuntimeException("Data obbligatoria");
         if (form.getOra() == null) throw new RuntimeException("Ora obbligatoria");
         if (isBlank(form.getDescrizioneAppuntamento())) throw new RuntimeException("Descrizione obbligatoria");
         if (form.getModalita() == null) throw new RuntimeException("Modalità obbligatoria");
+
+        // ✅ end obbligatorio “a valle” della normalizzazione
+        if (form.getEndData() == null) throw new RuntimeException("Data fine obbligatoria");
+        if (form.getEndOra() == null) throw new RuntimeException("Ora fine obbligatoria");
+
+        LocalDateTime start = LocalDateTime.of(form.getData(), form.getOra());
+        LocalDateTime end = LocalDateTime.of(form.getEndData(), form.getEndOra());
+
+        if (!end.isAfter(start)) {
+            throw new RuntimeException("L'orario di fine deve essere dopo l'orario di inizio");
+        }
 
         // slot lavorativo (come già fai) – qui lo tengo semplice
         LocalTime apertura = LocalTime.of(8, 0);
@@ -164,12 +254,24 @@ public class AppuntamentoService {
             throw new RuntimeException("L'appuntamento deve essere tra le 8:00 e le 20:00");
         }
 
-        // conflitto nutrizionista (update-safe)
-        boolean busy = (excludeId == null)
-                ? repo.existsByNutrizionista_IdAndDataAndOra(nutrizionistaId, form.getData(), form.getOra())
-                : repo.existsByNutrizionista_IdAndDataAndOraAndIdNot(nutrizionistaId, form.getData(), form.getOra(), excludeId);
+        // ✅ conflitto su intervallo (overlap), update-safe
+        // prendo candidati che overlappano per date (grezzo) e poi check preciso con LocalDateTime
+        List<Appuntamento> candidates = repo.findByNutrizionista_IdAndDataLessThanEqualAndEndDataGreaterThanEqual(
+                nutrizionistaId,
+                form.getEndData(),
+                form.getData()
+        );
 
-        if (busy) throw new RuntimeException("Hai già un appuntamento in questa data e ora");
+        for (Appuntamento a : candidates) {
+            if (excludeId != null && a.getId() != null && a.getId().equals(excludeId)) continue;
+
+            LocalDateTime aStart = LocalDateTime.of(a.getData(), a.getOra());
+            LocalDateTime aEnd = getSafeEnd(a);
+
+            // overlap standard: existingStart < newEnd AND existingEnd > newStart  (end esclusivo)
+            boolean overlap = aStart.isBefore(end) && aEnd.isAfter(start);
+            if (overlap) throw new RuntimeException("Hai già un appuntamento in questa fascia oraria");
+        }
 
         // in presenza -> luogo obbligatorio
         if (form.getModalita() == Appuntamento.Modalita.IN_PRESENZA && isBlank(form.getLuogo())) {
@@ -188,7 +290,10 @@ public class AppuntamentoService {
 
         LocalDateTime start = LocalDateTime.of(a.getData(), a.getOra());
         ev.setStart(start);
-        ev.setEnd(start.plusMinutes(60)); // durata base 60 min (poi possiamo renderla configurabile)
+
+        // ✅ end persistito (fallback 60 min per dati vecchi)
+        LocalDateTime end = getSafeEnd(a);
+        ev.setEnd(end);
 
         var props = new HashMap<String, Object>();
         props.put("stato", a.getStato());
@@ -198,6 +303,10 @@ public class AppuntamentoService {
         props.put("descrizione", a.getDescrizioneAppuntamento());
         props.put("clienteRegistrato", a.getCliente() != null);
         props.put("clienteId", a.getCliente() != null ? a.getCliente().getId() : null);
+
+        // ✅ nuovi campi utili lato UI
+        props.put("timezone", a.getTimezone());
+        props.put("allDay", a.isAllDay());
 
         ev.setExtendedProps(props);
         return ev;

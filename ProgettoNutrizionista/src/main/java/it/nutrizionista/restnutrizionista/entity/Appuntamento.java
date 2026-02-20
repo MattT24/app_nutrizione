@@ -63,6 +63,21 @@ public class Appuntamento {
     @Column(nullable = false)
     private LocalTime ora;
 
+    //  Fine - necessaria per durata reale, resize, overlap
+    @Column(nullable = false, name = "end_data")
+    private LocalDate endData;
+
+    @Column(nullable = false, name = "end_ora")
+    private LocalTime endOra;
+
+    // Timezone  (es. "Europe/Rome")
+    @Column(nullable = false)
+    private String timezone;
+
+    // All-day
+    @Column(nullable = false)
+    private boolean allDay;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Modalita modalita;
@@ -174,6 +189,38 @@ public class Appuntamento {
 
     public void setOra(LocalTime ora) {
         this.ora = ora;
+    }
+
+    public LocalDate getEndData() {
+        return endData;
+    }
+
+    public void setEndData(LocalDate endData) {
+        this.endData = endData;
+    }
+
+    public LocalTime getEndOra() {
+        return endOra;
+    }
+
+    public void setEndOra(LocalTime endOra) {
+        this.endOra = endOra;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = timezone;
+    }
+
+    public boolean isAllDay() {
+        return allDay;
+    }
+
+    public void setAllDay(boolean allDay) {
+        this.allDay = allDay;
     }
 
     public Modalita getModalita() {
