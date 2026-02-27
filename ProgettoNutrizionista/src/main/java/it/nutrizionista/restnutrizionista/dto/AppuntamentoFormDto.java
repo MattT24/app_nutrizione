@@ -19,6 +19,15 @@ public class AppuntamentoFormDto {
     private String descrizioneAppuntamento;
     private LocalDate data;
     private LocalTime ora;
+
+    // ✅ Fine (opzionale in input: se null -> default 60 min)
+    private LocalDate endData;
+    private LocalTime endOra;
+
+    // ✅ timezone/allDay (opzionali in input)
+    private String timezone;
+    private Boolean allDay;
+
     private Modalita modalita;
     private StatoAppuntamento stato;
     private String luogo;
@@ -73,6 +82,38 @@ public class AppuntamentoFormDto {
 
     public void setOra(LocalTime ora) {
         this.ora = ora;
+    }
+
+    public LocalDate getEndData() {
+        return endData;
+    }
+
+    public void setEndData(LocalDate endData) {
+        this.endData = endData;
+    }
+
+    public LocalTime getEndOra() {
+        return endOra;
+    }
+
+    public void setEndOra(LocalTime endOra) {
+        this.endOra = endOra;
+    }
+
+    public String getTimezone() {
+        return timezone;
+    }
+
+    public void setTimezone(String timezone) {
+        this.timezone = timezone;
+    }
+
+    public Boolean getAllDay() {
+        return allDay;
+    }
+
+    public void setAllDay(Boolean allDay) {
+        this.allDay = allDay;
     }
 
     public Modalita getModalita() {
