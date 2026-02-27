@@ -1,25 +1,31 @@
 package it.nutrizionista.restnutrizionista.security;
 
 import java.util.stream.Collectors;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 
-/**
- * Carica UserDetails mappando i Permessi del Ruolo in GrantedAuthority.
- * Attenzione: i permessi sono derivati da RuoloPermesso.
- */
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Autowired private UtenteRepository utenteRepository;
+
+    // Sottoclasse per trasportare l'entità Utente
+    public static class CustomUserDetails extends org.springframework.security.core.userdetails.User {
+        private final Utente utente;
+
+        public CustomUserDetails(Utente utente, java.util.List<SimpleGrantedAuthority> authorities) {
+            super(utente.getEmail(), utente.getPassword(), authorities);
+            this.utente = utente;
+        }
+
+        public Utente getUtente() { return utente; }
+    }
 
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
@@ -30,8 +36,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                 .map(rp -> new SimpleGrantedAuthority(rp.getPermesso().getAlias()))
                 .collect(Collectors.toList());
 
-        return new org.springframework.security.core.userdetails.User(
-                u.getEmail(), u.getPassword(), authorities
-        );
+        return new CustomUserDetails(u, authorities);
     }
 }

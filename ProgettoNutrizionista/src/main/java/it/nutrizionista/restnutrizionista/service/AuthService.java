@@ -6,6 +6,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,7 @@ import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import it.nutrizionista.restnutrizionista.security.JwtUtils;
+import it.nutrizionista.restnutrizionista.security.UserDetailsServiceImpl;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -34,23 +36,22 @@ public class AuthService {
     /** Esegue il login e costruisce la LoginResponse completa. */
 
     public LoginResponse login(@Valid LoginRequest req) {
-        // 1) Autentica credenziali
+        // 1) Autentica credenziali (esegue la super query una volta sola)
         Authentication auth = authManager.authenticate(
                 new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
+        
+        // 2) Recupera l'utente direttamente dal Principal autenticato! ZERO QUERY!
+        UserDetailsServiceImpl.CustomUserDetails userDetails = 
+                (UserDetailsServiceImpl.CustomUserDetails) auth.getPrincipal();
+        Utente u = userDetails.getUtente();
 
-        // 2) Recupera utente con ruolo e permessi già inizializzati
-        Utente u = utenteRepository.findByEmail(req.getEmail())
-                .orElseThrow(() -> new BadCredentialsException("Credenziali non valide"));
-
-        // 3) Estrai i permessi (authorities) dal ruolo
-        List<String> authorities = u.getRuolo() != null
-                ? u.getRuolo().getRuoloPermessi().stream()
-                    .map(rp -> rp.getPermesso().getAlias())
-                    .collect(Collectors.toList())
-                : List.of();
-
+        // 3) Estrai le authorities (usiamo direttamente quelle caricate da Spring Security)
+        List<String> authorities = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toList());
+        
         // 4) Crea i claims da inserire nel JWT
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", authorities); // ← QUESTO È FONDAMENTALE!
@@ -67,6 +68,7 @@ public class AuthService {
                 : List.of();
 
         // 7) Permessi dal ruolo (dedupe per alias)
+        
         List<PermessoDto> permessi = u.getRuolo() != null
                 ? u.getRuolo().getRuoloPermessi().stream()
                     .map(rp -> DtoMapper.toPermessoDtoLight(rp.getPermesso()))
@@ -76,6 +78,7 @@ public class AuthService {
                 : List.of();
 
         // 8) Gruppi dai permessi (DTO già pronti; dedupe per alias)
+        
         List<GruppoDto> gruppi = permessi.stream()
                 .map(PermessoDto::getGruppo)
                 .filter(Objects::nonNull)
@@ -86,9 +89,9 @@ public class AuthService {
         // 9) Costruisci risposta
         LoginResponse resp = new LoginResponse();
         resp.setToken(token);
-        resp.setEmail(u.getEmail());
-        resp.setNome(u.getNome());
-        resp.setCognome(u.getCognome());
+        //resp.setEmail(u.getEmail());
+        //resp.setNome(u.getNome());
+        //resp.setCognome(u.getCognome());
         resp.setRuoli(ruoli);
         resp.setPermessi(permessi);
         resp.setGruppi(gruppi);
