@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -11,11 +12,12 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 @Entity
@@ -27,9 +29,15 @@ public class ObiettivoNutrizionale {
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
-	@OneToOne
-	@JoinColumn(name = "cliente_id", nullable = false, unique = true)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "cliente_id", nullable = false)
 	private Cliente cliente;
+
+	@Column(nullable = false)
+	private Boolean attivo = true;
+
+	@Column(name = "data_creazione")
+	private LocalDate dataCreazione;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false)
@@ -59,6 +67,20 @@ public class ObiettivoNutrizionale {
 	private Double pctCarboidrati;
 	@Column(name = "pct_grassi")
 	private Double pctGrassi;
+
+	// Lock states
+	@Column(name = "locked_pct_proteine")
+	private Boolean lockedPctProteine = false;
+	@Column(name = "locked_pct_carboidrati")
+	private Boolean lockedPctCarboidrati = false;
+	@Column(name = "locked_pct_grassi")
+	private Boolean lockedPctGrassi = false;
+	@Column(name = "locked_g_proteine")
+	private Boolean lockedGProteine = false;
+	@Column(name = "locked_g_carboidrati")
+	private Boolean lockedGCarboidrati = false;
+	@Column(name = "locked_g_grassi")
+	private Boolean lockedGGrassi = false;
 
 	@Column(columnDefinition = "TEXT")
 	private String note;
@@ -207,4 +229,33 @@ public class ObiettivoNutrizionale {
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
 	}
+
+	public Boolean getAttivo() {
+		return attivo;
+	}
+
+	public void setAttivo(Boolean attivo) {
+		this.attivo = attivo;
+	}
+
+	public LocalDate getDataCreazione() {
+		return dataCreazione;
+	}
+
+	public void setDataCreazione(LocalDate dataCreazione) {
+		this.dataCreazione = dataCreazione;
+	}
+
+	public Boolean getLockedPctProteine() { return lockedPctProteine; }
+	public void setLockedPctProteine(Boolean v) { this.lockedPctProteine = v; }
+	public Boolean getLockedPctCarboidrati() { return lockedPctCarboidrati; }
+	public void setLockedPctCarboidrati(Boolean v) { this.lockedPctCarboidrati = v; }
+	public Boolean getLockedPctGrassi() { return lockedPctGrassi; }
+	public void setLockedPctGrassi(Boolean v) { this.lockedPctGrassi = v; }
+	public Boolean getLockedGProteine() { return lockedGProteine; }
+	public void setLockedGProteine(Boolean v) { this.lockedGProteine = v; }
+	public Boolean getLockedGCarboidrati() { return lockedGCarboidrati; }
+	public void setLockedGCarboidrati(Boolean v) { this.lockedGCarboidrati = v; }
+	public Boolean getLockedGGrassi() { return lockedGGrassi; }
+	public void setLockedGGrassi(Boolean v) { this.lockedGGrassi = v; }
 }

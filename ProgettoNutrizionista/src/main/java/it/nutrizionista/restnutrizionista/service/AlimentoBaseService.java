@@ -71,7 +71,7 @@ public class AlimentoBaseService {
 	
 	@Transactional(readOnly = true)
 	public AlimentoBaseDto dettaglio(Long id) {
-		return repo.findById(id).map(DtoMapper::toAlimentoBaseDto).orElseThrow(()-> new RuntimeException("Alimento non trovato"));
+		return repo.findByIdWithDetails(id).map(DtoMapper::toAlimentoBaseDto).orElseThrow(()-> new RuntimeException("Alimento non trovato"));
 	}
 	@Transactional(readOnly = true)
 	public AlimentoBaseDto dettaglioMacro(Long id) {

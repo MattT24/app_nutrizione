@@ -15,10 +15,13 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+
+import org.hibernate.annotations.BatchSize;
  
 @Entity
 @Table(name = "macro")
 @EntityListeners(AuditingEntityListener.class)
+@BatchSize(size = 50)
 public class Macro {
  
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)

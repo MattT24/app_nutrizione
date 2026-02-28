@@ -1,8 +1,9 @@
 package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -30,11 +31,11 @@ public class AlimentoPasto {
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
  
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "alimento_id")
     private AlimentoBase alimento;
 	
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pasto_id")
     private Pasto pasto;
     
@@ -45,7 +46,7 @@ public class AlimentoPasto {
      * Lista di alimenti alternativi (sostitutivi) per questo alimento nel pasto
      */
     @OneToMany(mappedBy = "alimentoPasto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<AlimentoAlternativo> alternative = new ArrayList<>();
+    private Set<AlimentoAlternativo> alternative = new LinkedHashSet<>();
 
     @OneToOne(mappedBy = "alimentoPasto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private AlimentoPastoNomeOverride nomeOverride;
@@ -105,10 +106,10 @@ public class AlimentoPasto {
 		this.updatedAt = updatedAt;
 	}
 	
-	public List<AlimentoAlternativo> getAlternative() {
+	public Set<AlimentoAlternativo> getAlternative() {
 		return alternative;
 	}
-	public void setAlternative(List<AlimentoAlternativo> alternative) {
+	public void setAlternative(Set<AlimentoAlternativo> alternative) {
 		this.alternative = alternative;
 	}
 	public AlimentoPastoNomeOverride getNomeOverride() {
@@ -116,5 +117,18 @@ public class AlimentoPasto {
 	}
 	public void setNomeOverride(AlimentoPastoNomeOverride nomeOverride) {
 		this.nomeOverride = nomeOverride;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		AlimentoPasto that = (AlimentoPasto) o;
+		return id != null && Objects.equals(id, that.id);
+	}
+
+	@Override
+	public int hashCode() {
+		return getClass().hashCode();
 	}
 }

@@ -2,7 +2,9 @@ package it.nutrizionista.restnutrizionista.service;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -108,7 +110,7 @@ public class SchedaService {
 
 	@Transactional(readOnly = true)
 	public SchedaDto getById(Long id) {
-		Scheda s = ownershipValidator.getOwnedScheda(id);
+		Scheda s = ownershipValidator.getOwnedSchedaFullDetails(id);
 		return DtoMapper.toSchedaDto(s);
 	}
 
@@ -157,8 +159,8 @@ public class SchedaService {
         return DtoMapper.toSchedaDto(repo.save(clone));
     }
 	/** Logica di clonazione profonda dei pasti e degli alimenti */
-    private List<Pasto> clonePastiList(List<Pasto> sourcePasti, Scheda targetScheda) {
-        if (sourcePasti == null) return new ArrayList<>();
+    private Set<Pasto> clonePastiList(Set<Pasto> sourcePasti, Scheda targetScheda) {
+        if (sourcePasti == null) return new LinkedHashSet<>();
 
         return sourcePasti.stream().map(pastoOriginale -> {
             Pasto nuovoPasto = new Pasto();
@@ -172,17 +174,17 @@ public class SchedaService {
             nuovoPasto.setScheda(targetScheda); // Collega alla nuova scheda
 
             if (pastoOriginale.getAlimentiPasto() != null) {
-                List<AlimentoPasto> nuoviAlimenti = pastoOriginale.getAlimentiPasto().stream().map(apOriginale -> {
+                Set<AlimentoPasto> nuoviAlimenti = pastoOriginale.getAlimentiPasto().stream().map(apOriginale -> {
                     AlimentoPasto apNuovo = new AlimentoPasto();
                     apNuovo.setAlimento(apOriginale.getAlimento()); 
                     apNuovo.setQuantita(apOriginale.getQuantita()); 
                     apNuovo.setPasto(nuovoPasto);
                     return apNuovo;
-                }).collect(Collectors.toList());
+                }).collect(Collectors.toCollection(LinkedHashSet::new));
                 nuovoPasto.setAlimentiPasto(nuoviAlimenti);
             }
             return nuovoPasto;
-        }).collect(Collectors.toList());
+        }).collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     /** Logica di controllo sicurezza centralizzata */

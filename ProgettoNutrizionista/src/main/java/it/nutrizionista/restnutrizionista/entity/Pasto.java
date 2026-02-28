@@ -2,7 +2,9 @@ package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
 import java.time.LocalTime;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -44,12 +46,12 @@ public class Pasto {
     @Column(nullable = false)
     private Boolean eliminabile = true;
     
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scheda_id")
     private Scheda scheda;
     
     @OneToMany(mappedBy = "pasto", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<AlimentoPasto> alimentiPasto;
+    private Set<AlimentoPasto> alimentiPasto = new LinkedHashSet<>();
     
     @Column(name = "orario_inizio")
     private LocalTime orarioInizio;
@@ -101,10 +103,10 @@ public class Pasto {
 	public void setEliminabile(Boolean eliminabile) {
 		this.eliminabile = eliminabile;
 	}
-	public List<AlimentoPasto> getAlimentiPasto() {
+	public Set<AlimentoPasto> getAlimentiPasto() {
 		return alimentiPasto;
 	}
-	public void setAlimentiPasto(List<AlimentoPasto> alimentiPasto) {
+	public void setAlimentiPasto(Set<AlimentoPasto> alimentiPasto) {
 		this.alimentiPasto = alimentiPasto;
 	}
 	public LocalTime getOrarioInizio() {
@@ -137,7 +139,19 @@ public class Pasto {
 	public void setScheda(Scheda scheda) {
 		this.scheda = scheda;
 	}
-	
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		Pasto pasto = (Pasto) o;
+		return id != null && Objects.equals(id, pasto.id);
+	}
+
+	@Override
+	public int hashCode() {
+		return getClass().hashCode();
+	}
 	
 
 }

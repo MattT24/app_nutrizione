@@ -127,4 +127,18 @@ public class AlimentoAlternativoController {
         service.deleteForPasto(pastoId, alternativeId);
         return ResponseEntity.noContent().build();
     }
+
+    // === BATCH PER-SCHEDA ===
+
+    /**
+     * Carica tutte le alternative di tutti i pasti di una scheda in una sola chiamata.
+     * GET /api/alimenti_alternativi/scheda/{schedaId}
+     * → Map<pastoId, List<AlimentoAlternativoDto>>
+     */
+    @GetMapping("/scheda/{schedaId}")
+    @PreAuthorize("hasAuthority('ALIMENTO_ALTERNATIVO_READ')")
+    public ResponseEntity<java.util.Map<Long, java.util.List<AlimentoAlternativoDto>>> listByScheda(
+            @PathVariable Long schedaId) {
+        return ResponseEntity.ok(service.listByScheda(schedaId));
+    }
 }

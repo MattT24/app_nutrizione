@@ -11,12 +11,14 @@ import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 @Service
 public class CurrentUserService {
 
-	@Autowired
-	private UtenteRepository repoUtente;
+    @Autowired
+    private UtenteRepository repoUtente;
 
-	public Utente getMe() {
-		String email = SecurityContextHolder.getContext().getAuthentication().getName();
-		return repoUtente.findByEmail(email)
-				.orElseThrow(() -> new NotFoundException("Utente corrente non trovato"));
-	}
+    public Utente getMe() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        
+        // Usiamo il metodo con il JOIN FETCH per prendere Utente + Ruolo (+ Permessi) in 1 colpo solo
+        return repoUtente.findWithAuthoritiesByEmail(email)
+                .orElseThrow(() -> new NotFoundException("Utente corrente non trovato"));
+    }
 }

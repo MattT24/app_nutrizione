@@ -100,4 +100,25 @@ public class ObiettivoNutrizionaleFormDto {
 	public void setNote(String note) {
 		this.note = note;
 	}
+
+	// Lock states
+	private Boolean lockedPctProteine;
+	private Boolean lockedPctCarboidrati;
+	private Boolean lockedPctGrassi;
+	private Boolean lockedGProteine;
+	private Boolean lockedGCarboidrati;
+	private Boolean lockedGGrassi;
+
+	public Boolean getLockedPctProteine() { return lockedPctProteine; }
+	public void setLockedPctProteine(Boolean v) { this.lockedPctProteine = v; }
+	public Boolean getLockedPctCarboidrati() { return lockedPctCarboidrati; }
+	public void setLockedPctCarboidrati(Boolean v) { this.lockedPctCarboidrati = v; }
+	public Boolean getLockedPctGrassi() { return lockedPctGrassi; }
+	public void setLockedPctGrassi(Boolean v) { this.lockedPctGrassi = v; }
+	public Boolean getLockedGProteine() { return lockedGProteine; }
+	public void setLockedGProteine(Boolean v) { this.lockedGProteine = v; }
+	public Boolean getLockedGCarboidrati() { return lockedGCarboidrati; }
+	public void setLockedGCarboidrati(Boolean v) { this.lockedGCarboidrati = v; }
+	public Boolean getLockedGGrassi() { return lockedGGrassi; }
+	public void setLockedGGrassi(Boolean v) { this.lockedGGrassi = v; }
 }
