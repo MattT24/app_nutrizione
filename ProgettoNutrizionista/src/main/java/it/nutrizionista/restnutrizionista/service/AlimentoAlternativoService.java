@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -341,7 +342,7 @@ public class AlimentoAlternativoService {
             // Use first food in meal as reference for auto-suggest
             var alimentiPasto = pasto.getAlimentiPasto();
             if (alimentiPasto != null && !alimentiPasto.isEmpty()) {
-                quantita = suggestionCalculator.suggestQuantity(alimentiPasto.get(0), alimentoAlt, mode);
+                quantita = suggestionCalculator.suggestQuantity(alimentiPasto.iterator().next(), alimentoAlt, mode);
             }
         }
 
@@ -390,5 +391,15 @@ public class AlimentoAlternativoService {
         }
 
         repo.delete(entity);
+    }
+
+    // === BATCH PER-SCHEDA ===
+
+    @Transactional(readOnly = true)
+    public Map<Long, List<AlimentoAlternativoDto>> listByScheda(Long schedaId) {
+        ownershipValidator.getOwnedScheda(schedaId);
+        return repo.findByPasto_Scheda_IdOrderByPastoIdAndPrioritaAsc(schedaId).stream()
+                .map(DtoMapper::toAlimentoAlternativoDto)
+                .collect(Collectors.groupingBy(dto -> dto.getPastoId()));
     }
 }

@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
+import java.util.Objects;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -15,6 +16,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
@@ -45,21 +47,21 @@ public class AlimentoAlternativo {
     /**
      * L'alimento principale nel pasto per cui questa è un'alternativa (legacy, nullable)
      */
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "alimento_pasto_id", nullable = true)
     private AlimentoPasto alimentoPasto;
 
     /**
      * Il pasto per cui questa è un'alternativa (nuova FK per-pasto)
      */
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "pasto_id", nullable = true)
     private Pasto pasto;
 
     /**
      * L'alimento alternativo (sostitutivo) dal catalogo
      */
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "alimento_alternativo_id", nullable = false)
     private AlimentoBase alimentoAlternativo;
 
@@ -198,5 +200,18 @@ public class AlimentoAlternativo {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        AlimentoAlternativo that = (AlimentoAlternativo) o;
+        return id != null && Objects.equals(id, that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

@@ -15,6 +15,16 @@ public class SchedaDto {
     private LocalDate dataCreazione;
     private Instant createdAt; 
     private Instant updatedAt;
+    private Integer numeroPasti;
+
+    // ... aggiungi getter e setter ...
+    public Integer getNumeroPasti() {
+        return numeroPasti;
+    }
+
+    public void setNumeroPasti(Integer numeroPasti) {
+        this.numeroPasti = numeroPasti;
+    }
 	public Long getId() {
 		return id;
 	}

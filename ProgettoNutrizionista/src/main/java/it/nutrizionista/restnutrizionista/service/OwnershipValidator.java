@@ -93,4 +93,10 @@ public class OwnershipValidator {
 		return plicometriaRepository.findByIdAndCliente_Nutrizionista_Id(id, me.getId())
 				.orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: plicometria non accessibile"));
 	}
+	// Aggiungi questo metodo nel tuo OwnershipValidator
+	public Scheda getOwnedSchedaFullDetails(Long schedaId) {
+	    var me = currentUserService.getMe();
+	    return schedaRepository.findByIdWithFullDetailsMine(schedaId, me.getId())
+	            .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: scheda non accessibile"));
+	}
 }

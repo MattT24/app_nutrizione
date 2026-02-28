@@ -88,12 +88,23 @@ public class Cliente {
 	@OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<Scheda> schede;
 
+	@OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	private List<ObiettivoNutrizionale> obiettivi = new ArrayList<>();
+
 	@CreatedDate
 	@Column(nullable = false)
 	private Instant createdAt;
 	@LastModifiedDate
 	@Column(nullable = false)
 	private Instant updatedAt;
+
+	public List<ObiettivoNutrizionale> getObiettivi() {
+		return obiettivi;
+	}
+
+	public void setObiettivi(List<ObiettivoNutrizionale> obiettivi) {
+		this.obiettivi = obiettivi;
+	}
 
 	public Long getId() {
 		return id;

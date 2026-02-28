@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
+import java.time.LocalDate;
 
 import it.nutrizionista.restnutrizionista.entity.TipoObiettivo;
 
@@ -25,6 +26,16 @@ public class ObiettivoNutrizionaleDto {
 	private Double pctGrassi;
 
 	private String note;
+
+	private Boolean lockedPctProteine;
+	private Boolean lockedPctCarboidrati;
+	private Boolean lockedPctGrassi;
+	private Boolean lockedGProteine;
+	private Boolean lockedGCarboidrati;
+	private Boolean lockedGGrassi;
+
+	private Boolean attivo;
+	private LocalDate dataCreazione;
 
 	private Instant createdAt;
 	private Instant updatedAt;
@@ -165,4 +176,33 @@ public class ObiettivoNutrizionaleDto {
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
 	}
+
+	public Boolean getAttivo() {
+		return attivo;
+	}
+
+	public void setAttivo(Boolean attivo) {
+		this.attivo = attivo;
+	}
+
+	public LocalDate getDataCreazione() {
+		return dataCreazione;
+	}
+
+	public void setDataCreazione(LocalDate dataCreazione) {
+		this.dataCreazione = dataCreazione;
+	}
+
+	public Boolean getLockedPctProteine() { return lockedPctProteine; }
+	public void setLockedPctProteine(Boolean v) { this.lockedPctProteine = v; }
+	public Boolean getLockedPctCarboidrati() { return lockedPctCarboidrati; }
+	public void setLockedPctCarboidrati(Boolean v) { this.lockedPctCarboidrati = v; }
+	public Boolean getLockedPctGrassi() { return lockedPctGrassi; }
+	public void setLockedPctGrassi(Boolean v) { this.lockedPctGrassi = v; }
+	public Boolean getLockedGProteine() { return lockedGProteine; }
+	public void setLockedGProteine(Boolean v) { this.lockedGProteine = v; }
+	public Boolean getLockedGCarboidrati() { return lockedGCarboidrati; }
+	public void setLockedGCarboidrati(Boolean v) { this.lockedGCarboidrati = v; }
+	public Boolean getLockedGGrassi() { return lockedGGrassi; }
+	public void setLockedGGrassi(Boolean v) { this.lockedGGrassi = v; }
 }

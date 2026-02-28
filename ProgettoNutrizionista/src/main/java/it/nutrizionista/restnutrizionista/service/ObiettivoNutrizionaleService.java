@@ -29,29 +29,43 @@ public class ObiettivoNutrizionaleService {
 	private OwnershipValidator ownershipValidator;
 
 	/**
-	 * Restituisce l'obiettivo nutrizionale del cliente (se esiste).
+	 * Restituisce l'obiettivo nutrizionale ATTIVO del cliente (se esiste).
 	 */
 	@Transactional(readOnly = true)
 	public ObiettivoNutrizionaleDto getByClienteId(Long clienteId) {
 		ownershipValidator.getOwnedCliente(clienteId);
-		return repo.findByCliente_Id(clienteId)
+		return repo.findByCliente_IdAndAttivoTrue(clienteId)
 				.map(DtoMapper::toObiettivoNutrizionaleDto)
 				.orElse(null);
 	}
 
 	/**
-	 * Crea o aggiorna l'obiettivo nutrizionale per un cliente.
-	 * Se il form contiene valori macro, li usa; altrimenti calcola dai dati del
-	 * cliente.
+	 * Restituisce lo storico completo degli obiettivi del cliente,
+	 * ordinati per data creazione decrescente.
+	 */
+	@Transactional(readOnly = true)
+	public List<ObiettivoNutrizionaleDto> getStoricoByClienteId(Long clienteId) {
+		ownershipValidator.getOwnedCliente(clienteId);
+		return repo.findByCliente_IdOrderByDataCreazioneDesc(clienteId)
+				.stream()
+				.map(DtoMapper::toObiettivoNutrizionaleDto)
+				.toList();
+	}
+
+	/**
+	 * Crea o aggiorna l'obiettivo nutrizionale ATTIVO per un cliente.
+	 * Se non esiste un obiettivo attivo, ne crea uno nuovo.
 	 */
 	@Transactional
 	public ObiettivoNutrizionaleDto creaOAggiorna(Long clienteId, @Valid ObiettivoNutrizionaleFormDto form) {
 		Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
 
-		ObiettivoNutrizionale ob = repo.findByCliente_Id(clienteId)
+		ObiettivoNutrizionale ob = repo.findByCliente_IdAndAttivoTrue(clienteId)
 				.orElseGet(() -> {
 					ObiettivoNutrizionale nuovo = new ObiettivoNutrizionale();
 					nuovo.setCliente(cliente);
+					nuovo.setAttivo(true);
+					nuovo.setDataCreazione(LocalDate.now());
 					return nuovo;
 				});
 
@@ -68,6 +82,14 @@ public class ObiettivoNutrizionaleService {
 		ob.setPctCarboidrati(form.getPctCarboidrati());
 		ob.setPctGrassi(form.getPctGrassi());
 
+		// Lock states
+		ob.setLockedPctProteine(form.getLockedPctProteine() != null ? form.getLockedPctProteine() : false);
+		ob.setLockedPctCarboidrati(form.getLockedPctCarboidrati() != null ? form.getLockedPctCarboidrati() : false);
+		ob.setLockedPctGrassi(form.getLockedPctGrassi() != null ? form.getLockedPctGrassi() : false);
+		ob.setLockedGProteine(form.getLockedGProteine() != null ? form.getLockedGProteine() : false);
+		ob.setLockedGCarboidrati(form.getLockedGCarboidrati() != null ? form.getLockedGCarboidrati() : false);
+		ob.setLockedGGrassi(form.getLockedGGrassi() != null ? form.getLockedGGrassi() : false);
+
 		// Tentativo di calcolo BMR/TDEE (best-effort, non blocca se dati mancanti)
 		try {
 			calcolaBmrTdee(ob, cliente);
@@ -76,6 +98,28 @@ public class ObiettivoNutrizionaleService {
 		}
 
 		return DtoMapper.toObiettivoNutrizionaleDto(repo.save(ob));
+	}
+
+	/**
+	 * Attiva un obiettivo specifico, disattivando quello corrente.
+	 */
+	@Transactional
+	public ObiettivoNutrizionaleDto attivaObiettivo(Long clienteId, Long obiettivoId) {
+		ownershipValidator.getOwnedCliente(clienteId);
+
+		// Disattiva l'obiettivo corrente (se esiste)
+		repo.findByCliente_IdAndAttivoTrue(clienteId).ifPresent(corrente -> {
+			corrente.setAttivo(false);
+			repo.save(corrente);
+		});
+
+		// Attiva quello selezionato
+		ObiettivoNutrizionale target = repo.findById(obiettivoId)
+				.filter(ob -> ob.getCliente().getId().equals(clienteId))
+				.orElseThrow(() -> new RuntimeException("Obiettivo non trovato"));
+
+		target.setAttivo(true);
+		return DtoMapper.toObiettivoNutrizionaleDto(repo.save(target));
 	}
 
 	/**
@@ -95,11 +139,13 @@ public class ObiettivoNutrizionaleService {
 			return new CalcoloResult(null, campiMancanti);
 		}
 
-		ObiettivoNutrizionale ob = repo.findByCliente_Id(clienteId)
+		ObiettivoNutrizionale ob = repo.findByCliente_IdAndAttivoTrue(clienteId)
 				.orElseGet(() -> {
 					ObiettivoNutrizionale nuovo = new ObiettivoNutrizionale();
 					nuovo.setCliente(cliente);
 					nuovo.setObiettivo(TipoObiettivo.MANTENIMENTO);
+					nuovo.setAttivo(true);
+					nuovo.setDataCreazione(LocalDate.now());
 					return nuovo;
 				});
 
@@ -137,12 +183,12 @@ public class ObiettivoNutrizionaleService {
 	}
 
 	/**
-	 * Elimina l'obiettivo nutrizionale di un cliente.
+	 * Elimina un obiettivo nutrizionale specifico.
 	 */
 	@Transactional
-	public void delete(Long clienteId) {
+	public void delete(Long clienteId, Long obiettivoId) {
 		ownershipValidator.getOwnedCliente(clienteId);
-		repo.deleteByCliente_Id(clienteId);
+		repo.deleteByIdAndCliente_Id(obiettivoId, clienteId);
 	}
 
 	// ─── Calcolo Mifflin-St Jeor ─────────────────────────────────────────

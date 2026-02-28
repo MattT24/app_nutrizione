@@ -19,7 +19,7 @@ public class MicroService {
 	public PageResponse<MicroDto> listAll(Pageable pageable) {
 		return PageResponse.from(repo.findAll(pageable).map(DtoMapper::toMicroDto));
 	}
-
+	@Transactional(readOnly = true)
 	public MicroDto getByNome(String nome) {
 		Micro m = repo.findByNome(nome).orElseThrow(() -> new RuntimeException("Micronutriente non trovato"));
 		return DtoMapper.toMicroDto(m);

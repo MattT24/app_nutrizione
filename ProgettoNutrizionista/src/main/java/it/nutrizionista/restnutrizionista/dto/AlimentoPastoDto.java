@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
+import java.util.List;
 
 
 
@@ -12,6 +13,7 @@ public class AlimentoPastoDto {
     private int quantita;
     private String nomeCustom;
     private String nomeVisualizzato;
+    private List<AlimentoAlternativoDto> alternative;
     private Instant createdAt;
     private Instant updatedAt;
     
@@ -50,6 +52,12 @@ public class AlimentoPastoDto {
 	}
 	public void setNomeVisualizzato(String nomeVisualizzato) {
 		this.nomeVisualizzato = nomeVisualizzato;
+	}
+	public List<AlimentoAlternativoDto> getAlternative() {
+		return alternative;
+	}
+	public void setAlternative(List<AlimentoAlternativoDto> alternative) {
+		this.alternative = alternative;
 	}
 	public Instant getCreatedAt() {
 		return createdAt;

@@ -26,4 +26,17 @@ public interface SchedaRepository extends JpaRepository<Scheda, Long> {
 	Optional<Scheda> findByIdAndCliente_Nutrizionista_Id(Long id, Long nutrizionistaId);
 	List<Scheda> findByCliente_Id(Long id);
 	Page<Scheda> findByCliente_IdOrderByDataCreazioneDescIdDesc(Long clienteId, Pageable pageable);	
+	@Query("""
+	    SELECT DISTINCT s FROM Scheda s
+	    LEFT JOIN FETCH s.pasti p
+	    LEFT JOIN FETCH p.alimentiPasto ap
+	    LEFT JOIN FETCH ap.alimento a
+	    LEFT JOIN FETCH a.macroNutrienti
+	    LEFT JOIN FETCH ap.alternative alt
+	    LEFT JOIN FETCH alt.alimentoAlternativo altA
+	    LEFT JOIN FETCH altA.macroNutrienti
+	    LEFT JOIN FETCH ap.nomeOverride
+	    WHERE s.id = :id AND s.cliente.nutrizionista.id = :nutrizionistaId
+	    """)
+	Optional<Scheda> findByIdWithFullDetailsMine(Long id, Long nutrizionistaId);
 }

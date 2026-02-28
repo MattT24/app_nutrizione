@@ -387,6 +387,14 @@ public class DtoMapper {
 		dto.setPctCarboidrati(ob.getPctCarboidrati());
 		dto.setPctGrassi(ob.getPctGrassi());
 		dto.setNote(ob.getNote());
+		dto.setLockedPctProteine(ob.getLockedPctProteine());
+		dto.setLockedPctCarboidrati(ob.getLockedPctCarboidrati());
+		dto.setLockedPctGrassi(ob.getLockedPctGrassi());
+		dto.setLockedGProteine(ob.getLockedGProteine());
+		dto.setLockedGCarboidrati(ob.getLockedGCarboidrati());
+		dto.setLockedGGrassi(ob.getLockedGGrassi());
+		dto.setAttivo(ob.getAttivo());
+		dto.setDataCreazione(ob.getDataCreazione());
 		dto.setCreatedAt(ob.getCreatedAt());
 		dto.setUpdatedAt(ob.getUpdatedAt());
 		return dto;
@@ -712,6 +720,17 @@ public class DtoMapper {
 		dto.setNomeCustom(nomeCustom);
 		dto.setNomeVisualizzato(nomeCustom != null ? nomeCustom : (alim != null ? alim.getNome() : null));
 
+		// Mappo le alternative (già caricate dal JOIN FETCH)
+		if (ap.getAlternative() != null && !ap.getAlternative().isEmpty()) {
+			dto.setAlternative(
+				ap.getAlternative().stream()
+					.map(DtoMapper::toAlimentoAlternativoDtoLight)
+					.collect(Collectors.toList())
+			);
+		} else {
+			dto.setAlternative(new ArrayList<>());
+		}
+
 		// IMPORTANTE: NON mappiamo dto.setPasto(...) qui!
 		// Evitiamo la ridondanza perché siamo già dentro l'oggetto Pasto.
 
@@ -780,10 +799,10 @@ public class DtoMapper {
 		dto.setCliente(toClienteDtoLight(s.getCliente()));
 		dto.setDataCreazione(s.getDataCreazione());
 		dto.setNome(s.getNome());
-		dto.setPasti(
-				s.getPasti().stream()
-						.map(DtoMapper::toPastoDtoLight)
-						.collect(Collectors.toList()));
+        
+		// 1. Passiamo il conteggio calcolato dal database
+		dto.setNumeroPasti(s.getNumeroPasti());
+        
 		return dto;
 	}
 
