@@ -14,6 +14,7 @@ import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
+import it.nutrizionista.restnutrizionista.repository.CalcoloTdeeRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import jakarta.validation.Valid;
 
@@ -23,6 +24,7 @@ public class ClienteService {
 	@Autowired private ClienteRepository repo;
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private CalcoloTdeeRepository calcoloTdeeRepository;
 
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
@@ -45,10 +47,17 @@ public class ClienteService {
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
 
+	@Transactional
 	public void deleteMyCliente(Long id) {
 	    if (id == null) throw new RuntimeException("Id cliente obbligatorio per il delete");
-        Cliente c = ownershipValidator.getOwnedCliente(id);
-		repo.delete(c);
+        
+	    Cliente c = ownershipValidator.getOwnedCliente(id);
+		
+	    // 1. Elimina prima tutto lo storico dei calcoli TDEE associati a questo cliente
+	    calcoloTdeeRepository.deleteByClienteId(id);
+	    
+	    // 2. Infine elimina il cliente stesso
+	    repo.delete(c);
 	}
 
 	@Transactional(readOnly = true)
