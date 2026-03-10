@@ -402,4 +402,23 @@ public class AlimentoAlternativoService {
                 .map(DtoMapper::toAlimentoAlternativoDto)
                 .collect(Collectors.groupingBy(dto -> dto.getPastoId()));
     }
+    // === DISPLAY NAME ===
+
+    @Transactional
+    public AlimentoAlternativoDto setDisplayName(Long alternativaId, String nome) {
+        AlimentoAlternativo alt = repo.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(
+                        alternativaId, currentUserService.getMe().getId())
+                .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        alt.setNomeCustom(nome);
+        return DtoMapper.toAlimentoAlternativoDto(repo.save(alt));
+    }
+
+    @Transactional
+    public AlimentoAlternativoDto deleteDisplayName(Long alternativaId) {
+        AlimentoAlternativo alt = repo.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(
+                        alternativaId, currentUserService.getMe().getId())
+                .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        alt.setNomeCustom(null);
+        return DtoMapper.toAlimentoAlternativoDto(repo.save(alt));
+    }
 }

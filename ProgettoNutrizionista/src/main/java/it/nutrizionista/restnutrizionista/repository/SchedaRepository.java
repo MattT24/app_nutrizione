@@ -15,11 +15,11 @@ public interface SchedaRepository extends JpaRepository<Scheda, Long> {
 
 	List<Scheda> findByCliente_IdAndAttivaTrue(Long id);
 //TODO da ricontrollare
-	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto"})
+	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto", "pasti.alimentiPasto.nomeOverride"})
     @Query("SELECT s FROM Scheda s WHERE s.id = :id")
     Optional<Scheda> findByIdWithPastiAndAlimenti(Long id);
 	
-	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto"})
+	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto", "pasti.alimentiPasto.nomeOverride"})
     @Query("SELECT s FROM Scheda s WHERE s.id = :id AND s.cliente.nutrizionista.id = :nutrizionistaId")
     Optional<Scheda> findByIdWithPastiAndAlimentiMine(Long id, Long nutrizionistaId);
 	
@@ -32,11 +32,10 @@ public interface SchedaRepository extends JpaRepository<Scheda, Long> {
 	    LEFT JOIN FETCH p.alimentiPasto ap
 	    LEFT JOIN FETCH ap.alimento a
 	    LEFT JOIN FETCH a.macroNutrienti
-	    LEFT JOIN FETCH ap.alternative alt
-	    LEFT JOIN FETCH alt.alimentoAlternativo altA
-	    LEFT JOIN FETCH altA.macroNutrienti
 	    LEFT JOIN FETCH ap.nomeOverride
-	    WHERE s.id = :id AND s.cliente.nutrizionista.id = :nutrizionistaId
+	    JOIN FETCH s.cliente c
+	    JOIN FETCH c.nutrizionista n
+	    WHERE s.id = :id AND n.id = :nutrizionistaId
 	    """)
 	Optional<Scheda> findByIdWithFullDetailsMine(Long id, Long nutrizionistaId);
 }

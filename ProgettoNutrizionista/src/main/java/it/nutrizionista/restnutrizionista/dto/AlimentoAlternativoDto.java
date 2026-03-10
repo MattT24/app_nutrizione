@@ -18,6 +18,8 @@ public class AlimentoAlternativoDto {
     private AlternativeMode mode;
     private Boolean manual;
     private String note;
+    private String nomeCustom;
+    private String nomeVisualizzato;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -92,6 +94,22 @@ public class AlimentoAlternativoDto {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public String getNomeCustom() {
+        return nomeCustom;
+    }
+
+    public void setNomeCustom(String nomeCustom) {
+        this.nomeCustom = nomeCustom;
+    }
+
+    public String getNomeVisualizzato() {
+        return nomeVisualizzato;
+    }
+
+    public void setNomeVisualizzato(String nomeVisualizzato) {
+        this.nomeVisualizzato = nomeVisualizzato;
     }
 
     public Instant getCreatedAt() {

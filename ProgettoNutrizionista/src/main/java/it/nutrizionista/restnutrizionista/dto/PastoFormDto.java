@@ -18,6 +18,7 @@ public class PastoFormDto {
     //secondo me gli orari sono opzionali
     private LocalTime orarioInizio;
     private LocalTime orarioFine;
+    private String giorno;
     
 	public Long getId() {
 		return id;
@@ -60,6 +61,12 @@ public class PastoFormDto {
 	}
 	public void setOrarioFine(LocalTime orarioFine) {
 		this.orarioFine = orarioFine;
+	}
+	public String getGiorno() {
+		return giorno;
+	}
+	public void setGiorno(String giorno) {
+		this.giorno = giorno;
 	}
     
     

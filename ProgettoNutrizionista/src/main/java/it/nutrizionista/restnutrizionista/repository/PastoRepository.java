@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import it.nutrizionista.restnutrizionista.entity.Pasto;
+import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
 
 public interface PastoRepository extends JpaRepository<Pasto, Long> {
 
@@ -25,6 +26,10 @@ public interface PastoRepository extends JpaRepository<Pasto, Long> {
 	List<Pasto> findByScheda_IdAndDefaultCodeIsNotNull(Long schedaId);
 	
 	List<Pasto> findByScheda_IdOrderByOrdineVisualizzazioneAscIdAsc(Long schedaId);
+
+	List<Pasto> findByScheda_IdAndGiornoOrderByOrdineVisualizzazioneAscIdAsc(Long schedaId, GiornoSettimana giorno);
+
+	void deleteByScheda_IdAndGiorno(Long schedaId, GiornoSettimana giorno);
 
 	/**
 	 * Carica l'intero albero del Pasto in una singola query:

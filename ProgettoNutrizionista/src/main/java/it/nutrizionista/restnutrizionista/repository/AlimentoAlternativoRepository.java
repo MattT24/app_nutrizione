@@ -73,6 +73,10 @@ public interface AlimentoAlternativoRepository extends JpaRepository<AlimentoAlt
     @Query("SELECT aa FROM AlimentoAlternativo aa " +
            "LEFT JOIN FETCH aa.alimentoAlternativo a " +
            "LEFT JOIN FETCH a.macroNutrienti " +
+           "LEFT JOIN FETCH aa.alimentoPasto ap " +
+           "LEFT JOIN FETCH ap.nomeOverride " +
+           "LEFT JOIN FETCH ap.alimento apAlim " +
+           "LEFT JOIN FETCH apAlim.macroNutrienti " +
            "WHERE aa.pasto.scheda.id = :schedaId " +
            "ORDER BY aa.pasto.id, aa.priorita ASC")
     List<AlimentoAlternativo> findByPasto_Scheda_IdOrderByPastoIdAndPrioritaAsc(@Param("schedaId") Long schedaId);

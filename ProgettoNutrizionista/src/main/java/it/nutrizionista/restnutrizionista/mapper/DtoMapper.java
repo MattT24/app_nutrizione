@@ -665,6 +665,7 @@ public class DtoMapper {
 		dto.setScheda(toSchedaDto(p.getScheda()));
 		dto.setOrarioFine(p.getOrarioFine());
 		dto.setOrarioInizio(p.getOrarioInizio());
+		dto.setGiorno(p.getGiorno() != null ? p.getGiorno().name() : null);
 		return dto;
 	}
 
@@ -681,6 +682,7 @@ public class DtoMapper {
 		dto.setEliminabile(p.getEliminabile());
 		dto.setOrarioFine(p.getOrarioFine());
 		dto.setOrarioInizio(p.getOrarioInizio());
+		dto.setGiorno(p.getGiorno() != null ? p.getGiorno().name() : null);
 		return dto;
 	}
 
@@ -759,6 +761,7 @@ public class DtoMapper {
 		dto.setCliente(toClienteDtoLight(s.getCliente()));
 		dto.setDataCreazione(s.getDataCreazione());
 		dto.setNome(s.getNome());
+		dto.setTipo(s.getTipo() != null ? s.getTipo().name() : "GIORNALIERA");
 		return dto;
 	}
 
@@ -768,6 +771,15 @@ public class DtoMapper {
 
 		s.setAttiva(form.getAttiva());
 		s.setNome(form.getNome());
+
+		// Aggiorna tipo solo se il form lo specifica
+		if (form.getTipo() != null) {
+			try {
+				s.setTipo(it.nutrizionista.restnutrizionista.entity.TipoScheda.valueOf(form.getTipo()));
+			} catch (IllegalArgumentException e) {
+				// Ignora valori non validi, mantieni quello esistente
+			}
+		}
 	}
 
 	public static SchedaDto toSchedaDto(Scheda s) {
@@ -781,16 +793,27 @@ public class DtoMapper {
 		dto.setCliente(toClienteDtoLight(s.getCliente()));
 		dto.setDataCreazione(s.getDataCreazione());
 		dto.setNome(s.getNome());
+		dto.setTipo(s.getTipo() != null ? s.getTipo().name() : "GIORNALIERA");
 		dto.setPasti(
 				s.getPasti().stream()
 						.map(DtoMapper::toPastoDtoWithAssoc)
 						.collect(Collectors.toList()));
 		return dto;
 	}
+	
+	public static SchedaDto toSchedaDtoForSave(Scheda s) {
+		if (s == null) {
+			return null;
+		}
+		SchedaDto dto = new SchedaDto();
+		dto.setAttiva(s.getAttiva());
+		return dto;
+	}
 
 	public static SchedaDto toSchedaDtoLista(Scheda s) {
 		if (s == null) {
 			return null;
+			
 		}
 
 		SchedaDto dto = new SchedaDto();
@@ -802,6 +825,7 @@ public class DtoMapper {
         
 		// 1. Passiamo il conteggio calcolato dal database
 		dto.setNumeroPasti(s.getNumeroPasti());
+		dto.setTipo(s.getTipo() != null ? s.getTipo().name() : "GIORNALIERA");
         
 		return dto;
 	}
@@ -1168,6 +1192,9 @@ public class DtoMapper {
 		dto.setMode(aa.getMode());
 		dto.setManual(aa.getManual());
 		dto.setNote(aa.getNote());
+		dto.setNomeCustom(aa.getNomeCustom());
+		String nomeAlt = aa.getAlimentoAlternativo() != null ? aa.getAlimentoAlternativo().getNome() : null;
+		dto.setNomeVisualizzato(aa.getNomeCustom() != null ? aa.getNomeCustom() : nomeAlt);
 		dto.setCreatedAt(aa.getCreatedAt());
 		dto.setUpdatedAt(aa.getUpdatedAt());
 		return dto;
@@ -1188,6 +1215,9 @@ public class DtoMapper {
 		dto.setMode(aa.getMode());
 		dto.setManual(aa.getManual());
 		dto.setNote(aa.getNote());
+		dto.setNomeCustom(aa.getNomeCustom());
+		String nomeAlt = aa.getAlimentoAlternativo() != null ? aa.getAlimentoAlternativo().getNome() : null;
+		dto.setNomeVisualizzato(aa.getNomeCustom() != null ? aa.getNomeCustom() : nomeAlt);
 		return dto;
 	}
 	

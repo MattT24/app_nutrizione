@@ -16,6 +16,7 @@ public class SchedaDto {
     private Instant createdAt; 
     private Instant updatedAt;
     private Integer numeroPasti;
+    private String tipo;
 
     // ... aggiungi getter e setter ...
     public Integer getNumeroPasti() {
@@ -73,6 +74,12 @@ public class SchedaDto {
 	}
 	public void setNome(String nome) {
 		this.nome = nome;
+	}
+	public String getTipo() {
+		return tipo;
+	}
+	public void setTipo(String tipo) {
+		this.tipo = tipo;
 	}
     
 }

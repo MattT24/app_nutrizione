@@ -16,6 +16,7 @@ public class SchedaFormDto {
     //non ho idea dell'annotazione dei boolean
     private Boolean attiva;
     private LocalDate dataCreazione;
+    private String tipo;
 
     
 	public Long getId() {
@@ -47,6 +48,12 @@ public class SchedaFormDto {
 	}
 	public void setNome(String nome) {
 		this.nome = nome;
+	}
+	public String getTipo() {
+		return tipo;
+	}
+	public void setTipo(String tipo) {
+		this.tipo = tipo;
 	}
 	
     

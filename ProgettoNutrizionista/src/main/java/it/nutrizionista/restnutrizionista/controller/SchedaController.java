@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
@@ -80,6 +81,13 @@ public class SchedaController {
         return ResponseEntity.ok(service.duplicateFromCliente(sourceId, targetClienteId));
     }
     
+    // 3. Copia giorno
+    @PostMapping("/{id}/copy-day")
+    @PreAuthorize("hasAuthority('SCHEDA_CREATE')")
+    public ResponseEntity<SchedaDto> copyDay(@PathVariable Long id, @Valid @RequestBody CopyDayRequest request) {
+        return ResponseEntity.ok(service.copyDay(id, request));
+    }
+
     //ha senso dare la possibilità di attivare una scheda diversa dall'ultima creata? Lo userei più come flag nel frontend che come funzionalità
     @PutMapping("/{id}/activate")
     @PreAuthorize("hasAuthority('SCHEDA_UPDATE')")
