@@ -9,6 +9,8 @@ import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PastoFormDto;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
+import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
+import it.nutrizionista.restnutrizionista.entity.TipoScheda;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
@@ -51,6 +53,18 @@ public class PastoService {
         p.setOrarioFine(form.getOrarioFine());
         p.setDescrizione(form.getDescrizione());
         p.setScheda(scheda);
+
+        // Gestione giorno per schede settimanali
+        if (form.getGiorno() != null) {
+            try {
+                p.setGiorno(GiornoSettimana.valueOf(form.getGiorno()));
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Giorno non valido: " + form.getGiorno());
+            }
+        }
+        if (TipoScheda.SETTIMANALE.equals(scheda.getTipo()) && p.getGiorno() == null) {
+            throw new BadRequestException("Il giorno è obbligatorio per schede settimanali");
+        }
         
         if (isDefaultMealName(form.getNome())) {
         	if (repo.existsByScheda_IdAndDefaultCodeIgnoreCase(scheda.getId(), form.getNome())) {
@@ -90,6 +104,16 @@ public class PastoService {
         validateOrari(form.getOrarioInizio(), form.getOrarioFine());
         p.setOrarioInizio(form.getOrarioInizio());
         p.setOrarioFine(form.getOrarioFine());
+
+        // Aggiorna giorno se fornito
+        if (form.getGiorno() != null) {
+            try {
+                p.setGiorno(GiornoSettimana.valueOf(form.getGiorno()));
+            } catch (IllegalArgumentException e) {
+                throw new BadRequestException("Giorno non valido: " + form.getGiorno());
+            }
+        }
+
         return DtoMapper.toPastoDtoLight(repo.save(p));
     }
 	

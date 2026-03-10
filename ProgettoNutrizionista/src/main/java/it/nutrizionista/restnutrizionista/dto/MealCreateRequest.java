@@ -12,6 +12,7 @@ public class MealCreateRequest {
 	
 	private String descrizione;
 	private Integer ordineVisualizzazione;
+	private String giorno;
 
 	public Long getSchedaId() {
 		return schedaId;
@@ -43,6 +44,15 @@ public class MealCreateRequest {
 
 	public void setOrdineVisualizzazione(Integer ordineVisualizzazione) {
 		this.ordineVisualizzazione = ordineVisualizzazione;
+	}
+
+
+	public String getGiorno() {
+		return giorno;
+	}
+
+	public void setGiorno(String giorno) {
+		this.giorno = giorno;
 	}
 }
 

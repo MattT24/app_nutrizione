@@ -34,6 +34,16 @@ public class MealService {
 			int next = (last != null && last.getOrdineVisualizzazione() != null) ? last.getOrdineVisualizzazione() + 1 : 10;
 			p.setOrdineVisualizzazione(next);
 		}
+
+		// Gestione giorno per schede settimanali
+		if (req.getGiorno() != null && !req.getGiorno().isBlank()) {
+			try {
+				p.setGiorno(it.nutrizionista.restnutrizionista.entity.GiornoSettimana.valueOf(req.getGiorno()));
+			} catch (IllegalArgumentException e) {
+				// Ignore invalid giorno
+			}
+		}
+
 		return DtoMapper.toPastoDtoLight(repo.save(p));
 	}
 

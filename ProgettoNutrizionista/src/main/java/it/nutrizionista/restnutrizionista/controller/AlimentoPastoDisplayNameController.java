@@ -15,7 +15,10 @@ import it.nutrizionista.restnutrizionista.dto.DisplayNameRequest;
 import it.nutrizionista.restnutrizionista.service.AlimentoPastoDisplayNameService;
 import jakarta.validation.Valid;
 
+import org.springframework.web.bind.annotation.CrossOrigin;
+
 @RestController
+@CrossOrigin(origins = "http://localhost:4200")
 @RequestMapping("/api/schede/{schedaId}/alimenti-pasto/{alimentoPastoId}/display-name")
 public class AlimentoPastoDisplayNameController {
 	@Autowired private AlimentoPastoDisplayNameService service;

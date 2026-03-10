@@ -96,6 +96,12 @@ public class AlimentoAlternativo {
     @Column(length = 500)
     private String note;
 
+    /**
+     * Nome custom per l'alimento alternativo (override del nome base)
+     */
+    @Column(name = "nome_custom")
+    private String nomeCustom;
+
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
@@ -184,6 +190,14 @@ public class AlimentoAlternativo {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public String getNomeCustom() {
+        return nomeCustom;
+    }
+
+    public void setNomeCustom(String nomeCustom) {
+        this.nomeCustom = nomeCustom;
     }
 
     public Instant getCreatedAt() {

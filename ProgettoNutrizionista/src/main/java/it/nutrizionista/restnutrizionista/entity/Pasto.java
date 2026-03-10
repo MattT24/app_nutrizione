@@ -14,6 +14,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -45,7 +47,10 @@ public class Pasto {
     
     @Column(nullable = false)
     private Boolean eliminabile = true;
-    
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "giorno")
+    private GiornoSettimana giorno;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "scheda_id")
     private Scheda scheda;
@@ -138,6 +143,12 @@ public class Pasto {
 	}
 	public void setScheda(Scheda scheda) {
 		this.scheda = scheda;
+	}
+	public GiornoSettimana getGiorno() {
+		return giorno;
+	}
+	public void setGiorno(GiornoSettimana giorno) {
+		this.giorno = giorno;
 	}
 
 	@Override

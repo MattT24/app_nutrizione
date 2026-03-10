@@ -19,6 +19,7 @@ public class PastoDto {
 	    private LocalTime orarioFine;
 	    private Instant createdAt;
 	    private Instant updatedAt;
+	    private String giorno;
 	    
 		public Long getId() {
 			return id;
@@ -91,6 +92,12 @@ public class PastoDto {
 		}
 		public void setUpdatedAt(Instant updatedAt) {
 			this.updatedAt = updatedAt;
+		}
+		public String getGiorno() {
+			return giorno;
+		}
+		public void setGiorno(String giorno) {
+			this.giorno = giorno;
 		}
 	    
 }

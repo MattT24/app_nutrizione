@@ -14,6 +14,8 @@ import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EntityListeners;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -41,6 +43,10 @@ public class Scheda {
 	
     @Column(nullable = false)
     private Boolean attiva;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TipoScheda tipo = TipoScheda.GIORNALIERA;
     
     @OneToMany(mappedBy = "scheda", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @OrderBy("ordineVisualizzazione ASC, id ASC")
@@ -85,6 +91,12 @@ public class Scheda {
 	}
 	public void setAttiva(Boolean attiva) {
 		this.attiva = attiva;
+	}
+	public TipoScheda getTipo() {
+		return tipo;
+	}
+	public void setTipo(TipoScheda tipo) {
+		this.tipo = tipo;
 	}
 	public Set<Pasto> getPasti() {
 		return pasti;

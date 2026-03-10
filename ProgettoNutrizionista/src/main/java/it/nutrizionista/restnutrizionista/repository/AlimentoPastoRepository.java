@@ -12,6 +12,8 @@ public interface AlimentoPastoRepository extends JpaRepository<AlimentoPasto, Lo
 	boolean existsByPasto_IdAndAlimento_Id(Long id, Long id2);
 
 	void deleteByPasto_IdAndAlimento_Id(Long id, Long id2);
+	
+	void deleteByPasto_Id(Long pastoId);
 
 	List<AlimentoPasto> findByPasto_Id(Long pastoId);
 

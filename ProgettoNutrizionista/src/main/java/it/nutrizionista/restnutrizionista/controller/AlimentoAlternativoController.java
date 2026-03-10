@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import it.nutrizionista.restnutrizionista.dto.AlimentoAlternativoDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoAlternativoFormDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoAlternativoUpsertDto;
+import it.nutrizionista.restnutrizionista.dto.DisplayNameRequest;
 import it.nutrizionista.restnutrizionista.service.AlimentoAlternativoService;
 import jakarta.validation.Valid;
 
@@ -140,5 +141,20 @@ public class AlimentoAlternativoController {
     public ResponseEntity<java.util.Map<Long, java.util.List<AlimentoAlternativoDto>>> listByScheda(
             @PathVariable Long schedaId) {
         return ResponseEntity.ok(service.listByScheda(schedaId));
+    }
+    // === DISPLAY NAME ===
+
+    @PutMapping("/{alternativaId}/display-name")
+    @PreAuthorize("hasAuthority('ALIMENTO_ALTERNATIVO_UPDATE')")
+    public ResponseEntity<AlimentoAlternativoDto> setDisplayName(
+            @PathVariable Long alternativaId,
+            @Valid @RequestBody DisplayNameRequest req) {
+        return ResponseEntity.ok(service.setDisplayName(alternativaId, req.getNome()));
+    }
+
+    @DeleteMapping("/{alternativaId}/display-name")
+    @PreAuthorize("hasAuthority('ALIMENTO_ALTERNATIVO_UPDATE')")
+    public ResponseEntity<AlimentoAlternativoDto> deleteDisplayName(@PathVariable Long alternativaId) {
+        return ResponseEntity.ok(service.deleteDisplayName(alternativaId));
     }
 }
