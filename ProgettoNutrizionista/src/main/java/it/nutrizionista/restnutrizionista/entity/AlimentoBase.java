@@ -19,6 +19,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
@@ -55,6 +56,11 @@ public class AlimentoBase {
 
 	@Column(name = "url_immagine")
     private String urlImmagine;
+    
+    /** null = alimento globale (Admin), valorizzato = alimento privato del nutrizionista */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by")
+    private Utente createdBy;
     
     @CreatedDate
     @Column(nullable = false) 
@@ -158,6 +164,12 @@ public class AlimentoBase {
 	}
 	public void setCategoria(String categoria) {
 		this.categoria = categoria;
+	}
+	public Utente getCreatedBy() {
+		return createdBy;
+	}
+	public void setCreatedBy(Utente createdBy) {
+		this.createdBy = createdBy;
 	}
 }
 

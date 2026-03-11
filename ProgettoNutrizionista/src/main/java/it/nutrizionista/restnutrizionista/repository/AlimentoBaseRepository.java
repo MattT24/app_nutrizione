@@ -49,4 +49,46 @@ public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long
 	       "WHERE a.id = :id")
 	Optional<AlimentoBase> findByIdWithDetails(@Param("id") Long id);
 
+	@Query("SELECT DISTINCT a.categoria FROM AlimentoBase a WHERE a.categoria IS NOT NULL ORDER BY a.categoria")
+	List<String> findDistinctCategorie();
+
+	/** Alimenti visibili: globali (createdBy IS NULL) + propri */
+	@EntityGraph(attributePaths = {"macroNutrienti"})
+	@Query("SELECT a FROM AlimentoBase a WHERE a.createdBy IS NULL OR a.createdBy.id = :utenteId")
+	Page<AlimentoBase> findVisibleByUtente(@Param("utenteId") Long utenteId, Pageable pageable);
+
+	/** Categorie visibili per un utente */
+	@Query("SELECT DISTINCT a.categoria FROM AlimentoBase a WHERE a.categoria IS NOT NULL AND (a.createdBy IS NULL OR a.createdBy.id = :utenteId) ORDER BY a.categoria")
+	List<String> findDistinctCategorieForUser(@Param("utenteId") Long utenteId);
+
+	/** Ricerca filtrata per utente */
+	@Query("""
+		SELECT a
+		FROM AlimentoBase a
+		LEFT JOIN FETCH a.macroNutrienti
+		WHERE (a.createdBy IS NULL OR a.createdBy.id = :utenteId)
+		  AND lower(a.nome) LIKE concat('%', lower(:query), '%')
+		ORDER BY
+			CASE
+				WHEN lower(a.nome) LIKE concat(lower(:query), '%') THEN 0
+				ELSE 1
+			END,
+			lower(a.nome) ASC
+	""")
+	List<AlimentoBase> searchByNomeRankedForUser(@Param("query") String query, @Param("utenteId") Long utenteId);
+
+	/** Più utilizzati per il nutrizionista corrente */
+	@Query("""
+		SELECT a
+		FROM AlimentoPasto ap
+		JOIN ap.alimento a
+		JOIN ap.pasto p
+		JOIN p.scheda s
+		JOIN s.cliente c
+		WHERE c.nutrizionista.id = :utenteId
+		GROUP BY a
+		ORDER BY COUNT(ap.id) DESC
+	""")
+	List<AlimentoBase> findTopAlimentiByNutrizionista(@Param("utenteId") Long utenteId, Pageable pageable);
+
 }

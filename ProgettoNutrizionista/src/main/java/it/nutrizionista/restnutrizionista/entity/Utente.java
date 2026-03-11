@@ -58,6 +58,9 @@ public class Utente {
     @OneToMany(mappedBy = "nutrizionista", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Cliente> clienti;
 
+    @OneToMany(mappedBy = "utente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<UtentePreferito> preferiti;
+
     // Getter/Setter
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }

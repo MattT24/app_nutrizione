@@ -22,9 +22,16 @@ public class AlimentoBaseController {
 	@Autowired private AlimentoBaseService service;
 	
 	@PostMapping
-	@PreAuthorize("hasAuthority('ALIMENTO_CREATE')") // Usa i nomi standard
+	@PreAuthorize("hasAuthority('ALIMENTO_CREATE')") // Solo Admin
 	public ResponseEntity<AlimentoBaseDto> add(@Valid @RequestBody AlimentoBaseFormDto form){
 		var create = service.create(form);
+		return ResponseEntity.status(201).body(create);
+	}
+
+	@PostMapping("/personale")
+	@PreAuthorize("hasAuthority('ALIMENTO_PERSONALE_CREATE')") // Nutrizionista
+	public ResponseEntity<AlimentoBaseDto> addPersonale(@Valid @RequestBody AlimentoBaseFormDto form){
+		var create = service.createPersonale(form);
 		return ResponseEntity.status(201).body(create);
 	}
 	
@@ -41,6 +48,13 @@ public class AlimentoBaseController {
 		service.delete(id);
 		return ResponseEntity.noContent().build();
 	}
+
+	@DeleteMapping("/personale/{id}")
+	@PreAuthorize("hasAuthority('ALIMENTO_PERSONALE_CREATE')")
+	public ResponseEntity<Void> deletePersonale(@PathVariable Long id) {
+		service.deletePersonale(id);
+		return ResponseEntity.noContent().build();
+	}
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('ALIMENTO_READ')")
@@ -54,6 +68,42 @@ public class AlimentoBaseController {
     @PreAuthorize("hasAuthority('ALIMENTO_READ')")
     public ResponseEntity<List<AlimentoBaseDto>> search(@RequestParam String query) {
         return ResponseEntity.ok(service.search(query));
+    }
+
+    @GetMapping("/piu-utilizzati")
+    @PreAuthorize("hasAuthority('ALIMENTO_READ')")
+    public ResponseEntity<List<AlimentoBaseDto>> getTopAlimenti(@RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(service.getTopAlimenti(limit));
+    }
+
+	/* ==========================================================
+	 * GESTIONE PREFERITI
+	 * ========================================================== */
+
+    @GetMapping("/preferiti")
+    @PreAuthorize("hasAuthority('ALIMENTO_READ')")
+    public ResponseEntity<List<AlimentoBaseDto>> getPreferiti() {
+        return ResponseEntity.ok(service.getPreferiti());
+    }
+
+    @PostMapping("/preferiti/{id}")
+    @PreAuthorize("hasAuthority('ALIMENTO_READ')")
+    public ResponseEntity<Void> addPreferito(@PathVariable Long id) {
+        service.addPreferito(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/preferiti/{id}")
+    @PreAuthorize("hasAuthority('ALIMENTO_READ')")
+    public ResponseEntity<Void> removePreferito(@PathVariable Long id) {
+        service.removePreferito(id);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/categorie")
+    @PreAuthorize("hasAuthority('ALIMENTO_READ')")
+    public ResponseEntity<List<String>> getCategorie() {
+        return ResponseEntity.ok(service.getCategorie());
     }
 
 	@GetMapping("/{id}/macro")

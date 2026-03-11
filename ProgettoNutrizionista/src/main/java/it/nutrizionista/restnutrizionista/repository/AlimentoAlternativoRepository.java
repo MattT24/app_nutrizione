@@ -38,46 +38,11 @@ public interface AlimentoAlternativoRepository extends JpaRepository<AlimentoAlt
      */
     void deleteByAlimentoPasto_Id(Long alimentoPastoId);
 
-    // === PER-PASTO METHODS ===
-
     /**
-     * Trova tutte le alternative per un pasto con JOIN FETCH su alimentoAlternativo e macro
-     */
-    @Query("SELECT aa FROM AlimentoAlternativo aa " +
-           "LEFT JOIN FETCH aa.alimentoAlternativo a " +
-           "LEFT JOIN FETCH a.macroNutrienti " +
-           "WHERE aa.pasto.id = :pastoId " +
-           "ORDER BY aa.priorita ASC")
-    List<AlimentoAlternativo> findByPasto_IdOrderByPrioritaAsc(@Param("pastoId") Long pastoId);
-
-    /**
-     * Verifica se esiste già questa combinazione pasto + alimento_alternativo
-     */
-    boolean existsByPasto_IdAndAlimentoAlternativo_Id(Long pastoId, Long alimentoAlternativoId);
-
-    /**
-     * Conta le alternative per un pasto
-     */
-    long countByPasto_Id(Long pastoId);
-
-    /**
-     * Elimina tutte le alternative di un pasto
+     * Elimina tutte le alternative di un pasto (usato da copyDay per pulizia)
      */
     void deleteByPasto_Id(Long pastoId);
 
-    // === BATCH PER-SCHEDA ===
+    boolean existsByPasto_IdAndAlimentoAlternativo_Id(Long pastoId, Long alimentoAlternativoId);
 
-    /**
-     * Carica tutte le alternative di tutti i pasti di una scheda in una sola query
-     */
-    @Query("SELECT aa FROM AlimentoAlternativo aa " +
-           "LEFT JOIN FETCH aa.alimentoAlternativo a " +
-           "LEFT JOIN FETCH a.macroNutrienti " +
-           "LEFT JOIN FETCH aa.alimentoPasto ap " +
-           "LEFT JOIN FETCH ap.nomeOverride " +
-           "LEFT JOIN FETCH ap.alimento apAlim " +
-           "LEFT JOIN FETCH apAlim.macroNutrienti " +
-           "WHERE aa.pasto.scheda.id = :schedaId " +
-           "ORDER BY aa.pasto.id, aa.priorita ASC")
-    List<AlimentoAlternativo> findByPasto_Scheda_IdOrderByPastoIdAndPrioritaAsc(@Param("schedaId") Long schedaId);
 }
