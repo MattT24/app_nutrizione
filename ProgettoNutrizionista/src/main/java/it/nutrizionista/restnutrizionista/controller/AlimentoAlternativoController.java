@@ -79,69 +79,6 @@ public class AlimentoAlternativoController {
         return ResponseEntity.ok(service.listByAlimentoPasto(alimentoPastoId));
     }
 
-    // === PER-PASTO ENDPOINTS ===
-
-    /**
-     * Lista tutte le alternative per un pasto
-     * GET /api/alimenti_alternativi/pasto/{pastoId}
-     */
-    @GetMapping("/pasto/{pastoId}")
-    @PreAuthorize("hasAuthority('ALIMENTO_ALTERNATIVO_READ')")
-    public ResponseEntity<List<AlimentoAlternativoDto>> listByPasto(@PathVariable Long pastoId) {
-        return ResponseEntity.ok(service.listByPasto(pastoId));
-    }
-
-    /**
-     * Crea una nuova alternativa per un pasto
-     * POST /api/alimenti_alternativi/pasto/{pastoId}
-     */
-    @PostMapping("/pasto/{pastoId}")
-    @PreAuthorize("hasAuthority('ALIMENTO_ALTERNATIVO_CREATE')")
-    public ResponseEntity<AlimentoAlternativoDto> createForPasto(
-            @PathVariable Long pastoId,
-            @Valid @RequestBody AlimentoAlternativoUpsertDto body) {
-        return ResponseEntity.status(201).body(service.createForPasto(pastoId, body));
-    }
-
-    /**
-     * Aggiorna un'alternativa per un pasto
-     * PUT /api/alimenti_alternativi/pasto/{pastoId}/{alternativeId}
-     */
-    @PutMapping("/pasto/{pastoId}/{alternativeId}")
-    @PreAuthorize("hasAuthority('ALIMENTO_ALTERNATIVO_UPDATE')")
-    public ResponseEntity<AlimentoAlternativoDto> updateForPasto(
-            @PathVariable Long pastoId,
-            @PathVariable Long alternativeId,
-            @Valid @RequestBody AlimentoAlternativoUpsertDto body) {
-        return ResponseEntity.ok(service.updateForPasto(pastoId, alternativeId, body));
-    }
-
-    /**
-     * Elimina un'alternativa per un pasto
-     * DELETE /api/alimenti_alternativi/pasto/{pastoId}/{alternativeId}
-     */
-    @DeleteMapping("/pasto/{pastoId}/{alternativeId}")
-    @PreAuthorize("hasAuthority('ALIMENTO_ALTERNATIVO_DELETE')")
-    public ResponseEntity<Void> deleteForPasto(
-            @PathVariable Long pastoId,
-            @PathVariable Long alternativeId) {
-        service.deleteForPasto(pastoId, alternativeId);
-        return ResponseEntity.noContent().build();
-    }
-
-    // === BATCH PER-SCHEDA ===
-
-    /**
-     * Carica tutte le alternative di tutti i pasti di una scheda in una sola chiamata.
-     * GET /api/alimenti_alternativi/scheda/{schedaId}
-     * → Map<pastoId, List<AlimentoAlternativoDto>>
-     */
-    @GetMapping("/scheda/{schedaId}")
-    @PreAuthorize("hasAuthority('ALIMENTO_ALTERNATIVO_READ')")
-    public ResponseEntity<java.util.Map<Long, java.util.List<AlimentoAlternativoDto>>> listByScheda(
-            @PathVariable Long schedaId) {
-        return ResponseEntity.ok(service.listByScheda(schedaId));
-    }
     // === DISPLAY NAME ===
 
     @PutMapping("/{alternativaId}/display-name")

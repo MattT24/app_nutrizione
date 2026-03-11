@@ -24,6 +24,9 @@ import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaFormDto;
 import it.nutrizionista.restnutrizionista.dto.OrariStudioDto;
 import it.nutrizionista.restnutrizionista.dto.OrariStudioFormDto;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
+import it.nutrizionista.restnutrizionista.dto.PastoTemplateAlternativaDto;
+import it.nutrizionista.restnutrizionista.dto.PastoTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.PastoTemplateItemDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoRuoloDto;
 import it.nutrizionista.restnutrizionista.dto.PlicometriaDto;
@@ -46,6 +49,9 @@ import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
+import it.nutrizionista.restnutrizionista.entity.PastoTemplate;
+import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlternativo;
+import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlimento;
 import it.nutrizionista.restnutrizionista.entity.ObiettivoNutrizionale;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
@@ -345,7 +351,8 @@ public class DtoMapper {
 		c.setIntolleranze(form.getIntolleranze() != null ? form.getIntolleranze() : "");
 		c.setFunzioniIntestinali(form.getFunzioniIntestinali() != null ? form.getFunzioniIntestinali() : "");
 		c.setProblematicheSalutari(form.getProblematicheSalutari() != null ? form.getProblematicheSalutari() : "");
-		c.setQuantitaEQualitaDelSonno(form.getQuantitaEQualitaDelSonno() != null ? form.getQuantitaEQualitaDelSonno() : "");
+		c.setQuantitaEQualitaDelSonno(
+				form.getQuantitaEQualitaDelSonno() != null ? form.getQuantitaEQualitaDelSonno() : "");
 		c.setAssunzioneFarmaci(form.getAssunzioneFarmaci() != null ? form.getAssunzioneFarmaci() : "");
 		c.setBeveAlcol(form.getBeveAlcol() != null ? form.getBeveAlcol() : false);
 		c.setFuma(form.getFuma() != null ? form.getFuma() : false);
@@ -369,7 +376,8 @@ public class DtoMapper {
 	// ─── ObiettivoNutrizionale ──────────────────────────────────────────
 
 	public static ObiettivoNutrizionaleDto toObiettivoNutrizionaleDto(ObiettivoNutrizionale ob) {
-		if (ob == null) return null;
+		if (ob == null)
+			return null;
 
 		ObiettivoNutrizionaleDto dto = new ObiettivoNutrizionaleDto();
 		dto.setId(ob.getId());
@@ -510,6 +518,7 @@ public class DtoMapper {
 		dto.setMisuraInGrammi(a.getMisuraInGrammi());
 		dto.setMacroNutrienti(toMacroDtoLight(a.getMacronutrienti())); // Fix: include macronutrienti
 		dto.setCategoria(a.getCategoria());
+		dto.setPersonale(a.getCreatedBy() != null);
 		return dto;
 	}
 
@@ -725,10 +734,9 @@ public class DtoMapper {
 		// Mappo le alternative (già caricate dal JOIN FETCH)
 		if (ap.getAlternative() != null && !ap.getAlternative().isEmpty()) {
 			dto.setAlternative(
-				ap.getAlternative().stream()
-					.map(DtoMapper::toAlimentoAlternativoDtoLight)
-					.collect(Collectors.toList())
-			);
+					ap.getAlternative().stream()
+							.map(DtoMapper::toAlimentoAlternativoDtoLight)
+							.collect(Collectors.toList()));
 		} else {
 			dto.setAlternative(new ArrayList<>());
 		}
@@ -800,7 +808,7 @@ public class DtoMapper {
 						.collect(Collectors.toList()));
 		return dto;
 	}
-	
+
 	public static SchedaDto toSchedaDtoForSave(Scheda s) {
 		if (s == null) {
 			return null;
@@ -813,7 +821,7 @@ public class DtoMapper {
 	public static SchedaDto toSchedaDtoLista(Scheda s) {
 		if (s == null) {
 			return null;
-			
+
 		}
 
 		SchedaDto dto = new SchedaDto();
@@ -822,11 +830,11 @@ public class DtoMapper {
 		dto.setCliente(toClienteDtoLight(s.getCliente()));
 		dto.setDataCreazione(s.getDataCreazione());
 		dto.setNome(s.getNome());
-        
+
 		// 1. Passiamo il conteggio calcolato dal database
 		dto.setNumeroPasti(s.getNumeroPasti());
 		dto.setTipo(s.getTipo() != null ? s.getTipo().name() : "GIORNALIERA");
-        
+
 		return dto;
 	}
 
@@ -1220,70 +1228,129 @@ public class DtoMapper {
 		dto.setNomeVisualizzato(aa.getNomeCustom() != null ? aa.getNomeCustom() : nomeAlt);
 		return dto;
 	}
-	
+
 	// MAPPER PER ORARIO STUDIO
-	
+
 	public static OrariStudioDto toOrariStudioDto(OrariStudio orari) {
-	    if (orari == null) {
-	        return null;
-	    }
+		if (orari == null) {
+			return null;
+		}
 
-	    OrariStudioDto dto = new OrariStudioDto();
-	    dto.setId(orari.getId());
+		OrariStudioDto dto = new OrariStudioDto();
+		dto.setId(orari.getId());
 
-	    if (orari.getNutrizionista() != null) {
-	        dto.setNutrizionistaId(orari.getNutrizionista().getId());
-	    }
+		if (orari.getNutrizionista() != null) {
+			dto.setNutrizionistaId(orari.getNutrizionista().getId());
+		}
 
-	    dto.setOraApertura(orari.getOraApertura());
-	    dto.setOraChiusura(orari.getOraChiusura());
+		dto.setOraApertura(orari.getOraApertura());
+		dto.setOraChiusura(orari.getOraChiusura());
 
-	    dto.setPausaInizio(orari.getPausaInizio());
-	    dto.setPausaFine(orari.getPausaFine());
+		dto.setPausaInizio(orari.getPausaInizio());
+		dto.setPausaFine(orari.getPausaFine());
 
-	    dto.setLavoraSabato(orari.isLavoraSabato());
+		dto.setLavoraSabato(orari.isLavoraSabato());
 
-	    dto.setCreatedAt(orari.getCreatedAt());
-	    dto.setUpdatedAt(orari.getUpdatedAt());
+		dto.setCreatedAt(orari.getCreatedAt());
+		dto.setUpdatedAt(orari.getUpdatedAt());
 
-	    return dto;
+		return dto;
 	}
 
 	public static OrariStudio toOrariStudio(OrariStudioFormDto formDto, Utente nutrizionista) {
-	    if (formDto == null) {
-	        return null;
-	    }
+		if (formDto == null) {
+			return null;
+		}
 
-	    OrariStudio orari = new OrariStudio();
-	    orari.setNutrizionista(nutrizionista);
+		OrariStudio orari = new OrariStudio();
+		orari.setNutrizionista(nutrizionista);
 
-	    orari.setOraApertura(formDto.getOraApertura());
-	    orari.setOraChiusura(formDto.getOraChiusura());
+		orari.setOraApertura(formDto.getOraApertura());
+		orari.setOraChiusura(formDto.getOraChiusura());
 
-	    orari.setPausaInizio(formDto.getPausaInizio());
-	    orari.setPausaFine(formDto.getPausaFine());
+		orari.setPausaInizio(formDto.getPausaInizio());
+		orari.setPausaFine(formDto.getPausaFine());
 
-	    orari.setLavoraSabato(formDto.isLavoraSabato());
+		orari.setLavoraSabato(formDto.isLavoraSabato());
 
-	    return orari;
+		return orari;
 	}
 
 	public static void updateOrariStudioFromFormDto(OrariStudio orari, OrariStudioFormDto formDto) {
-	    if (orari == null || formDto == null) {
-	        return;
-	    }
+		if (orari == null || formDto == null) {
+			return;
+		}
 
-	    if (formDto.getOraApertura() != null) {
-	        orari.setOraApertura(formDto.getOraApertura());
-	    }
-	    if (formDto.getOraChiusura() != null) {
-	        orari.setOraChiusura(formDto.getOraChiusura());
-	    }
+		if (formDto.getOraApertura() != null) {
+			orari.setOraApertura(formDto.getOraApertura());
+		}
+		if (formDto.getOraChiusura() != null) {
+			orari.setOraChiusura(formDto.getOraChiusura());
+		}
 
-	    // Pausa: permetto di svuotarla inviando null
-	    orari.setPausaInizio(formDto.getPausaInizio());
-	    orari.setPausaFine(formDto.getPausaFine());
+		// Pausa: permetto di svuotarla inviando null
+		orari.setPausaInizio(formDto.getPausaInizio());
+		orari.setPausaFine(formDto.getPausaFine());
 
-	    orari.setLavoraSabato(formDto.isLavoraSabato());
+		orari.setLavoraSabato(formDto.isLavoraSabato());
+	}
+
+	public static PastoTemplateDto toPastoTemplateDto(PastoTemplate t) {
+		if (t == null)
+			return null;
+		PastoTemplateDto dto = new PastoTemplateDto();
+		dto.setId(t.getId());
+		dto.setNome(t.getNome());
+		dto.setDescrizione(t.getDescrizione());
+		if (t.getAlimenti() != null) {
+			dto.setAlimenti(t.getAlimenti().stream()
+					.map(DtoMapper::toPastoTemplateItemDto)
+					.collect(Collectors.toList()));
+		}
+		dto.setCreatedAt(t.getCreatedAt());
+		dto.setUpdatedAt(t.getUpdatedAt());
+		return dto;
+	}
+
+	public static PastoTemplateItemDto toPastoTemplateItemDto(PastoTemplateAlimento a) {
+		if (a == null)
+			return null;
+		PastoTemplateItemDto dto = new PastoTemplateItemDto();
+		AlimentoBase alim = a.getAlimento();
+		if (alim != null) {
+			dto.setAlimento(toAlimentoBaseDtoMacro(alim));
+		}
+		dto.setQuantita(a.getQuantita());
+		dto.setNomeCustom(a.getNomeCustom());
+		dto.setNomeVisualizzato(a.getNomeCustom() != null && !a.getNomeCustom().isBlank()
+				? a.getNomeCustom()
+				: (alim != null ? alim.getNome() : null));
+		if (a.getAlternative() != null && !a.getAlternative().isEmpty()) {
+			dto.setAlternative(a.getAlternative().stream()
+					.map(DtoMapper::toPastoTemplateAlternativaDto)
+					.collect(Collectors.toList()));
+		} else {
+			dto.setAlternative(new ArrayList<>());
+		}
+		return dto;
+	}
+
+	public static PastoTemplateAlternativaDto toPastoTemplateAlternativaDto(PastoTemplateAlternativo a) {
+		if (a == null)
+			return null;
+		PastoTemplateAlternativaDto dto = new PastoTemplateAlternativaDto();
+		dto.setId(a.getId());
+		if (a.getAlimentoAlternativo() != null) {
+			dto.setAlimentoAlternativo(toAlimentoBaseDtoMacro(a.getAlimentoAlternativo()));
+		}
+		dto.setQuantita(a.getQuantita());
+		dto.setPriorita(a.getPriorita());
+		dto.setMode(a.getMode());
+		dto.setManual(a.getManual());
+		dto.setNote(a.getNote());
+		dto.setNomeCustom(a.getNomeCustom());
+		String base = a.getAlimentoAlternativo() != null ? a.getAlimentoAlternativo().getNome() : null;
+		dto.setNomeVisualizzato(a.getNomeCustom() != null && !a.getNomeCustom().isBlank() ? a.getNomeCustom() : base);
+		return dto;
 	}
 }

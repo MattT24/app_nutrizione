@@ -7,10 +7,13 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*; // Importa tutto
 
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateRequest;
+import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateResultDto;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PastoFormDto;
 import it.nutrizionista.restnutrizionista.dto.PastoOrariFormDto;
 import it.nutrizionista.restnutrizionista.service.PastoService;
+import it.nutrizionista.restnutrizionista.service.PastoTemplateApplyService;
 import jakarta.validation.Valid;
 
 @CrossOrigin(origins = "http://localhost:4200")
@@ -19,6 +22,7 @@ import jakarta.validation.Valid;
 public class PastoController {
 
 	@Autowired private PastoService service;
+	@Autowired private PastoTemplateApplyService templateApplyService;
 	
 	@PostMapping
 	@PreAuthorize("hasAuthority('PASTO_CREATE')")
@@ -60,5 +64,11 @@ public class PastoController {
 	public ResponseEntity<PastoDto> getById(@PathVariable Long id){
 		var dto = service.dettaglio(id); // Uso dettaglio per avere tutto
 		return ResponseEntity.ok(dto);
+	}
+
+	@PostMapping("/{id}/apply-template")
+	@PreAuthorize("hasAuthority('PASTO_UPDATE')")
+	public ResponseEntity<PastoApplyTemplateResultDto> applyTemplate(@PathVariable Long id, @Valid @RequestBody PastoApplyTemplateRequest req) {
+		return ResponseEntity.ok(templateApplyService.applyToPasto(id, req));
 	}
 }

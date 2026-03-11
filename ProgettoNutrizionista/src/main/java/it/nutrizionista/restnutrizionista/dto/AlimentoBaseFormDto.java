@@ -4,7 +4,9 @@ package it.nutrizionista.restnutrizionista.dto;
 import java.util.List;
 import java.util.Set;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class AlimentoBaseFormDto {
 
@@ -13,10 +15,11 @@ public class AlimentoBaseFormDto {
     @NotBlank(message = "Il nome è obbligatorio")
 	private String nome;
 
-    @NotBlank(message = "I macro sono obbligatori")
+    @NotNull(message = "I macro sono obbligatori")
+    @Valid
     private MacroDto macroNutrienti;
     
-    @NotBlank(message = "La misura è obbligatoria")
+    @NotNull(message = "La misura è obbligatoria")
     private Double misuraInGrammi;
     private List<ValoreMicroFormDto> microNutrienti;
 	private String categoria;

@@ -16,6 +16,7 @@ public class AlimentoBaseDto {
 	private String categoria;
     private String urlImmagine;
     private Set<String> tracce;
+    private boolean personale;
     private Instant createdAt;
     private Instant updatedAt;
 	public Long getId() {
@@ -91,6 +92,12 @@ public class AlimentoBaseDto {
     }
     public void setTracce(Set<String> tracce) {
         this.tracce = tracce;
+    }
+    public boolean isPersonale() {
+        return personale;
+    }
+    public void setPersonale(boolean personale) {
+        this.personale = personale;
     }
 }
 
