@@ -68,6 +68,13 @@ public class CalcoloTdeeService {
         calcoloTdeeRepository.deleteById(calcoloId);
     }
     
+    public List<CalcoloTdeeDto> getUltimiCalcoli() {
+        return calcoloTdeeRepository.findTop10ByOrderByIdDesc()
+                .stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+    
     @Transactional
     public void eliminaTuttiCalcoliCliente(Long clienteId) {
         calcoloTdeeRepository.deleteByClienteId(clienteId);
@@ -85,6 +92,25 @@ public class CalcoloTdeeService {
         dto.setBmr(Math.round(entity.getBmr()));
         dto.setTdee(Math.round(entity.getTdee()));
         dto.setClienteId(entity.getCliente().getId());
+        
+        long bmr = Math.round(entity.getBmr());
+        long tdee = Math.round(entity.getTdee());
+        
+        dto.setBmr(bmr);
+        dto.setTdee(tdee);
+        dto.setClienteId(entity.getCliente().getId());
+        
+        dto.setTdeeSettimanale(tdee * 7);
+        
+     // Calorie Obiettivi (Deficit standard 500, Surplus standard 300)
+        dto.setCalorieDimagrimento(tdee - 500); 
+        dto.setCalorieMassa(tdee + 300);
+        
+     // Fabbisogno Idrico (circa 30ml per kg di peso, convertito in litri)
+        double acquaLitri = (entity.getPeso() * 30.0) / 1000.0;
+        dto.setFabbisognoIdrico(Math.round(acquaLitri * 10.0) / 10.0); // Arrotonda a 1 decimale
+        
+        
         return dto;
     }
 }

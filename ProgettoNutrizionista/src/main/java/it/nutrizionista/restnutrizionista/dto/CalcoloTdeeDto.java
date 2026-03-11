@@ -13,6 +13,10 @@ public class CalcoloTdeeDto {
     private Long bmr;
     private Long tdee;
     private Long clienteId;
+    private Long tdeeSettimanale;
+    private Long calorieDimagrimento;
+    private Long calorieMassa;
+    private Double fabbisognoIdrico;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -43,4 +47,30 @@ public class CalcoloTdeeDto {
 
     public Long getClienteId() { return clienteId; }
     public void setClienteId(Long clienteId) { this.clienteId = clienteId; }
+	public Long getTdeeSettimanale() {
+		return tdeeSettimanale;
+	}
+	public void setTdeeSettimanale(Long tdeeSettimanale) {
+		this.tdeeSettimanale = tdeeSettimanale;
+	}
+	public Long getCalorieDimagrimento() {
+		return calorieDimagrimento;
+	}
+	public void setCalorieDimagrimento(Long calorieDimagrimento) {
+		this.calorieDimagrimento = calorieDimagrimento;
+	}
+	public Long getCalorieMassa() {
+		return calorieMassa;
+	}
+	public void setCalorieMassa(Long calorieMassa) {
+		this.calorieMassa = calorieMassa;
+	}
+	public Double getFabbisognoIdrico() {
+		return fabbisognoIdrico;
+	}
+	public void setFabbisognoIdrico(Double fabbisognoIdrico) {
+		this.fabbisognoIdrico = fabbisognoIdrico;
+	}
+    
+    
 }

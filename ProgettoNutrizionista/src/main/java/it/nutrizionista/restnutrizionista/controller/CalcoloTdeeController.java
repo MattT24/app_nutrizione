@@ -34,6 +34,12 @@ public class CalcoloTdeeController {
 		return service.getStoricoCliente(clienteId);
 	}
 	
+	@GetMapping("/recenti")
+	@PreAuthorize("hasAuthority('CLIENTE_READ')")
+    public ResponseEntity<List<CalcoloTdeeDto>> getUltimiCalcoli() {
+        return ResponseEntity.ok(service.getUltimiCalcoli());
+    }
+	
 	// DELETE /api/tdee/123
 	@DeleteMapping("/{calcoloId}")
 	@PreAuthorize("hasAuthority('CLIENTE_UPDATE')")

@@ -13,4 +13,7 @@ public interface CalcoloTdeeRepository extends JpaRepository<CalcoloTdee, Long> 
 
     // NUOVO: Elimina tutti i calcoli associati a un cliente
     void deleteByClienteId(Long clienteId);
+    
+ // Trova gli ultimi 10 calcoli effettuati in ordine cronologico
+    List<CalcoloTdee> findTop10ByOrderByIdDesc();
 }
