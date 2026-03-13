@@ -59,6 +59,12 @@ public class ClienteController {
 		return service.allMyClienti( pageable);
 	} 
 	
+	@GetMapping("/lista-completa")
+	@PreAuthorize("hasAuthority('CLIENTE_READ')")
+	public List<ClienteDto> getListaCompleta(){
+		return service.allMyClientiList();
+	}
+	
 	@GetMapping("/byId")
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
 	public ResponseEntity<ClienteDto> getById(@Valid @RequestBody IdRequest req){

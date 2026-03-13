@@ -368,7 +368,7 @@ public class DtoMapper {
 		dto.setNome(c.getNome());
 		dto.setCognome(c.getCognome());
 		dto.setDataNascita(c.getDataNascita());
-
+		dto.setSesso(c.getSesso());
 		return dto;
 
 	}
