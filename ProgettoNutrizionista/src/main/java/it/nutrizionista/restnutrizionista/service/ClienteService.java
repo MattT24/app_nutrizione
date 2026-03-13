@@ -69,6 +69,16 @@ public class ClienteService {
 	    }		
 		return PageResponse.from(repo.findByNutrizionista_Id(u.getId(),pageable).map(DtoMapper::toClienteDtoLight));
 	}
+	
+	@Transactional(readOnly = true)
+	public List<ClienteDto> allMyClientiList() {
+		Utente u = currentUserService.getMe();
+		// Assicurati di avere questo metodo nel tuo ClienteRepository:
+		// List<Cliente> findByNutrizionista_Id(Long id);
+		return repo.findByNutrizionista_Id(u.getId()).stream()
+				.map(DtoMapper::toClienteDtoLight)
+				.toList();
+	}
 
 	@Transactional(readOnly = true)
     public ClienteDto getById(Long id) {

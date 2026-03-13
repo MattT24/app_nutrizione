@@ -25,6 +25,9 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>{
     
     List<Cliente> findByNutrizionista_IdAndCognomeContainingIgnoreCase(Long nutrizionistaId, String cognome);
     
+ // Cerca tutti i clienti per nutrizionista (Lista completa senza paginazione)
+    List<Cliente> findByNutrizionista_Id(Long nutrizionistaId);
+    
     // Verifica duplicati codice fiscale
     boolean existsByCodiceFiscale(String codiceFiscale);
     
