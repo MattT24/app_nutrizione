@@ -1353,4 +1353,64 @@ public class DtoMapper {
 		dto.setNomeVisualizzato(a.getNomeCustom() != null && !a.getNomeCustom().isBlank() ? a.getNomeCustom() : base);
 		return dto;
 	}
+
+	// ── Ricette ────────────────────────────────────────────────────────────────
+
+	public static it.nutrizionista.restnutrizionista.dto.RicettaDto toRicettaDto(
+			it.nutrizionista.restnutrizionista.entity.Ricetta r) {
+		if (r == null)
+			return null;
+		var dto = new it.nutrizionista.restnutrizionista.dto.RicettaDto();
+		dto.setId(r.getId());
+		dto.setTitolo(r.getTitolo());
+		dto.setDescrizione(r.getDescrizione());
+		dto.setCategoria(r.getCategoria());
+		dto.setUrlImmagine(r.getUrlImmagine());
+		dto.setFonte(r.getFonte());
+		dto.setPubblica(r.getPubblica());
+
+		// Mappa ingredienti e calcola macro totali
+		double totKcal = 0, totP = 0, totC = 0, totG = 0;
+		java.util.List<it.nutrizionista.restnutrizionista.dto.RicettaIngredienteDto> ingDtos = new ArrayList<>();
+		if (r.getIngredienti() != null) {
+			for (var ing : r.getIngredienti()) {
+				ingDtos.add(toRicettaIngredienteDto(ing));
+				// Contributo macro proporzionale alla quantita
+				var alim = ing.getAlimento();
+				var macro = alim != null ? alim.getMacroNutrienti() : null;
+				double qty = ing.getQuantita() != null ? ing.getQuantita() : 0;
+				double ref = (alim != null && alim.getMisuraInGrammi() != null && alim.getMisuraInGrammi() > 0)
+						? alim.getMisuraInGrammi() : 100.0;
+				if (macro != null) {
+					totKcal += safeValue(macro.getCalorie()) * qty / ref;
+					totP    += safeValue(macro.getProteine()) * qty / ref;
+					totC    += safeValue(macro.getCarboidrati()) * qty / ref;
+					totG    += safeValue(macro.getGrassi()) * qty / ref;
+				}
+			}
+		}
+		dto.setIngredienti(ingDtos);
+		dto.setMacroTotali(new it.nutrizionista.restnutrizionista.dto.RicettaDto.MacroRicettaDto(
+				round1(totKcal), round1(totP), round1(totC), round1(totG)));
+		return dto;
+	}
+
+	public static it.nutrizionista.restnutrizionista.dto.RicettaIngredienteDto toRicettaIngredienteDto(
+			it.nutrizionista.restnutrizionista.entity.RicettaIngrediente ing) {
+		if (ing == null)
+			return null;
+		var dto = new it.nutrizionista.restnutrizionista.dto.RicettaIngredienteDto();
+		dto.setId(ing.getId());
+		if (ing.getAlimento() != null)
+			dto.setAlimento(toAlimentoBaseDtoMacro(ing.getAlimento()));
+		dto.setQuantita(ing.getQuantita());
+		dto.setNomeCustom(ing.getNomeCustom());
+		String base = ing.getAlimento() != null ? ing.getAlimento().getNome() : null;
+		dto.setNomeVisualizzato(ing.getNomeCustom() != null && !ing.getNomeCustom().isBlank()
+				? ing.getNomeCustom() : base);
+		return dto;
+	}
+
+	private static double safeValue(Double v) { return v != null ? v : 0.0; }
+	private static double round1(double v)    { return Math.round(v * 10.0) / 10.0; }
 }
