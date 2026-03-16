@@ -21,13 +21,18 @@ public class AlimentoBaseFormDto {
     
     @NotNull(message = "La misura è obbligatoria")
     private Double misuraInGrammi;
+
     private List<ValoreMicroFormDto> microNutrienti;
+
 	private String categoria;
     private String urlImmagine;
     private Set<String> tracce;
-	
 
-    
+    // ── Tag dietetici (D4) ──────────────────────────────────────────
+    private Boolean senzaGlutine;
+    private Boolean senzaLattosio;
+    private Boolean vegano;
+
 	public Long getId() {
 		return id;
 	}
@@ -53,12 +58,14 @@ public class AlimentoBaseFormDto {
 	public void setMisuraInGrammi(Double misuraInGrammi) {
 		this.misuraInGrammi = misuraInGrammi;
 	}
-	public List<ValoreMicroFormDto> getMicroNutrienti() {
-		return microNutrienti;
-	}
-	public void setMicroNutrienti(List<ValoreMicroFormDto> microNutrienti) {
-		this.microNutrienti = microNutrienti;
-	}
+
+    public List<ValoreMicroFormDto> getMicroNutrienti() {
+        return microNutrienti;
+    }
+    public void setMicroNutrienti(List<ValoreMicroFormDto> microNutrienti) {
+        this.microNutrienti = microNutrienti;
+    }
+
     public String getCategoria() {
         return categoria;
     }
@@ -77,5 +84,13 @@ public class AlimentoBaseFormDto {
     public void setTracce(Set<String> tracce) {
         this.tracce = tracce;
     }
+
+    // ── Tag booleani (D4) ────────────────────────────────────────────
+    public Boolean getSenzaGlutine() { return senzaGlutine; }
+    public void setSenzaGlutine(Boolean senzaGlutine) { this.senzaGlutine = senzaGlutine; }
+    public Boolean getSenzaLattosio() { return senzaLattosio; }
+    public void setSenzaLattosio(Boolean senzaLattosio) { this.senzaLattosio = senzaLattosio; }
+    public Boolean getVegano() { return vegano; }
+    public void setVegano(Boolean vegano) { this.vegano = vegano; }
 }
 

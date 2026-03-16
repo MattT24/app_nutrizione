@@ -36,7 +36,7 @@ public class PastoTemplateService {
 	@Transactional(readOnly = true)
 	public List<PastoTemplateDto> listMine() {
 		var me = currentUserService.getMe();
-		return repo.findByCreatedBy_IdOrderByUpdatedAtDesc(me.getId()).stream()
+		return repo.findByCreatedByIdWithFullTree(me.getId()).stream()
 				.map(DtoMapper::toPastoTemplateDto)
 				.collect(Collectors.toList());
 	}

@@ -99,5 +99,16 @@ public class AlimentoBaseDto {
     public void setPersonale(boolean personale) {
         this.personale = personale;
     }
-}
 
+    // ── Tag dietetici certificati (D4) ──────────────────────────────
+    private Boolean senzaGlutine;
+    private Boolean senzaLattosio;
+    private Boolean vegano;
+
+    public Boolean getSenzaGlutine() { return senzaGlutine; }
+    public void setSenzaGlutine(Boolean senzaGlutine) { this.senzaGlutine = senzaGlutine; }
+    public Boolean getSenzaLattosio() { return senzaLattosio; }
+    public void setSenzaLattosio(Boolean senzaLattosio) { this.senzaLattosio = senzaLattosio; }
+    public Boolean getVegano() { return vegano; }
+    public void setVegano(Boolean vegano) { this.vegano = vegano; }
+}

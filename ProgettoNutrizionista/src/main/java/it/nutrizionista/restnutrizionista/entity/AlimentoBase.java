@@ -24,6 +24,7 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.JoinColumn;
+import org.hibernate.annotations.BatchSize;
 
 @Entity
 @Table(name = "alimenti_base")
@@ -75,7 +76,18 @@ public class AlimentoBase {
         joinColumns = @JoinColumn(name = "alimento_id")
     )
     @Column(name = "nutriente")
+    @BatchSize(size = 50)
     private Set<String> tracce = new HashSet<>();
+
+    // ── Tag dietetici certificati (D3) ──────────────────────────────
+    @Column(name = "senza_glutine")
+    private Boolean senzaGlutine;
+
+    @Column(name = "senza_lattosio")
+    private Boolean senzaLattosio;
+
+    @Column(name = "vegano")
+    private Boolean vegano;
 
     // Getter e Setter
     public Set<String> getTracce() {
@@ -171,6 +183,16 @@ public class AlimentoBase {
 	public void setCreatedBy(Utente createdBy) {
 		this.createdBy = createdBy;
 	}
+
+    // ── Getters/Setters tag booleani (D3) ──────────────────────────
+    public Boolean getSenzaGlutine() { return senzaGlutine; }
+    public void setSenzaGlutine(Boolean senzaGlutine) { this.senzaGlutine = senzaGlutine; }
+
+    public Boolean getSenzaLattosio() { return senzaLattosio; }
+    public void setSenzaLattosio(Boolean senzaLattosio) { this.senzaLattosio = senzaLattosio; }
+
+    public Boolean getVegano() { return vegano; }
+    public void setVegano(Boolean vegano) { this.vegano = vegano; }
 }
 
 

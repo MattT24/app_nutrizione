@@ -16,7 +16,7 @@ import jakarta.validation.Valid;
 public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long>{
 
 	@Override
-	@EntityGraph(attributePaths = {"macroNutrienti"})
+	@EntityGraph(attributePaths = {"macroNutrienti", "tracce"})
 	Page<AlimentoBase> findAll(Pageable pageable);
 
 	Optional<AlimentoBase> findByNome(@Valid String nome);
@@ -61,11 +61,12 @@ public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long
 	@Query("SELECT DISTINCT a.categoria FROM AlimentoBase a WHERE a.categoria IS NOT NULL AND (a.createdBy IS NULL OR a.createdBy.id = :utenteId) ORDER BY a.categoria")
 	List<String> findDistinctCategorieForUser(@Param("utenteId") Long utenteId);
 
-	/** Ricerca filtrata per utente */
+	/** Ricerca filtrata per utente — LOWER()+LIKE per case-insensitive, JOIN FETCH tracce per filtri esclusione */
 	@Query("""
 		SELECT a
 		FROM AlimentoBase a
 		LEFT JOIN FETCH a.macroNutrienti
+		LEFT JOIN FETCH a.tracce
 		WHERE (a.createdBy IS NULL OR a.createdBy.id = :utenteId)
 		  AND lower(a.nome) LIKE concat('%', lower(:query), '%')
 		ORDER BY
