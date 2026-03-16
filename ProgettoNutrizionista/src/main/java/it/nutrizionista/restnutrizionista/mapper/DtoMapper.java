@@ -429,7 +429,12 @@ public class DtoMapper {
 		macro.setAlimento(a);
 		a.setMacronutrienti(macro);
 
-		// Micronutrienti (usa metodo unico)
+		// Tag booleani (D5)
+		a.setSenzaGlutine(dto.getSenzaGlutine());
+		a.setSenzaLattosio(dto.getSenzaLattosio());
+		a.setVegano(dto.getVegano());
+
+		// Micronutrienti
 		mapMicroFromForm(a, dto.getMicroNutrienti(), microCatalogo);
 
 		return a;
@@ -448,6 +453,11 @@ public class DtoMapper {
 		a.setUrlImmagine(form.getUrlImmagine());
 		a.setTracce(form.getTracce());
 
+		// Tag booleani (D5)
+		a.setSenzaGlutine(form.getSenzaGlutine());
+		a.setSenzaLattosio(form.getSenzaLattosio());
+		a.setVegano(form.getVegano());
+
 		// Macro
 		a.setMacronutrienti(toMacro(form.getMacroNutrienti()));
 		// Micro
@@ -457,31 +467,23 @@ public class DtoMapper {
 
 	public static void mapMicroFromForm(
 			AlimentoBase alimento,
-			List<ValoreMicroFormDto> form,
-			Map<Long, Micro> microCatalogo) {
+			java.util.List<ValoreMicroFormDto> form,
+			java.util.Map<Long, Micro> microCatalogo) {
 		alimento.getMicronutrienti().clear();
-
-		if (form == null)
-			return;
-
+		if (form == null) return;
 		for (ValoreMicroFormDto dto : form) {
 			Micro micro = microCatalogo.get(dto.getMicronutriente().getId());
-			if (micro == null)
-				continue;
-
+			if (micro == null) continue;
 			ValoreMicro vm = new ValoreMicro();
 			vm.setAlimento(alimento);
 			vm.setMicronutriente(micro);
 			vm.setValore(dto.getValore());
-
 			alimento.getMicronutrienti().add(vm);
 		}
 	}
 
 	public static AlimentoBaseDto toAlimentoBaseDto(AlimentoBase a) {
-		if (a == null) {
-			return null;
-		}
+		if (a == null) return null;
 		AlimentoBaseDto dto = new AlimentoBaseDto();
 		dto.setId(a.getId());
 		dto.setNome(a.getNome());
@@ -490,8 +492,12 @@ public class DtoMapper {
 		dto.setMisuraInGrammi(a.getMisuraInGrammi());
 		dto.setCategoria(a.getCategoria());
 		dto.setUrlImmagine(a.getUrlImmagine());
-		dto.setTracce(a.getTracce());
-
+		// Materializziamo la collection per evitare LazyInitializationException durante la serializzazione JSON
+		dto.setTracce(a.getTracce() != null ? new java.util.HashSet<>(a.getTracce()) : null);
+		// Tag booleani (D5)
+		dto.setSenzaGlutine(a.getSenzaGlutine());
+		dto.setSenzaLattosio(a.getSenzaLattosio());
+		dto.setVegano(a.getVegano());
 		return dto;
 	}
 
@@ -509,16 +515,20 @@ public class DtoMapper {
 	}
 
 	public static AlimentoBaseDto toAlimentoBaseDtoLight(AlimentoBase a) {
-		if (a == null) {
-			return null;
-		}
+		if (a == null) return null;
 		AlimentoBaseDto dto = new AlimentoBaseDto();
 		dto.setId(a.getId());
 		dto.setNome(a.getNome());
 		dto.setMisuraInGrammi(a.getMisuraInGrammi());
-		dto.setMacroNutrienti(toMacroDtoLight(a.getMacronutrienti())); // Fix: include macronutrienti
+		dto.setMacroNutrienti(toMacroDtoLight(a.getMacronutrienti()));
 		dto.setCategoria(a.getCategoria());
+		// Materializziamo la collection per evitare LazyInitializationException durante la serializzazione JSON
+		dto.setTracce(a.getTracce() != null ? new java.util.HashSet<>(a.getTracce()) : null);
 		dto.setPersonale(a.getCreatedBy() != null);
+		// Tag booleani (D5)
+		dto.setSenzaGlutine(a.getSenzaGlutine());
+		dto.setSenzaLattosio(a.getSenzaLattosio());
+		dto.setVegano(a.getVegano());
 		return dto;
 	}
 

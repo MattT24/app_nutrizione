@@ -31,7 +31,7 @@ public class Ricetta {
 	@Column(nullable = false)
 	private String titolo;
 
-	@Column(columnDefinition = "TEXT")
+
 	private String descrizione;
 
 	private String categoria;
