@@ -410,9 +410,7 @@ public class DtoMapper {
 
 	// Mapper per l'entita alimentoBase
 
-	public static AlimentoBase toAlimentoBase(
-			AlimentoBaseFormDto dto,
-			Map<Long, Micro> microCatalogo) {
+	public static AlimentoBase toAlimentoBase(AlimentoBaseFormDto dto) {
 		if (dto == null)
 			return null;
 
@@ -434,16 +432,14 @@ public class DtoMapper {
 		a.setSenzaLattosio(dto.getSenzaLattosio());
 		a.setVegano(dto.getVegano());
 
-		// Micronutrienti
-		mapMicroFromForm(a, dto.getMicroNutrienti(), microCatalogo);
+		// Micronutrienti → gestiti nel Service (find-or-create)
 
 		return a;
 	}
 
 	public static void updateAlimentoBaseFromForm(
 			AlimentoBase a,
-			AlimentoBaseFormDto form,
-			Map<Long, Micro> microCatalogo) {
+			AlimentoBaseFormDto form) {
 		if (a == null || form == null)
 			return;
 
@@ -459,28 +455,13 @@ public class DtoMapper {
 		a.setVegano(form.getVegano());
 
 		// Macro
-		a.setMacronutrienti(toMacro(form.getMacroNutrienti()));
-		// Micro
-		mapMicroFromForm(a, form.getMicroNutrienti(), microCatalogo);
+		Macro macro = toMacro(form.getMacroNutrienti());
+		macro.setAlimento(a);
+		a.setMacronutrienti(macro);
 
+		// Micronutrienti → gestiti nel Service (find-or-create)
 	}
 
-	public static void mapMicroFromForm(
-			AlimentoBase alimento,
-			java.util.List<ValoreMicroFormDto> form,
-			java.util.Map<Long, Micro> microCatalogo) {
-		alimento.getMicronutrienti().clear();
-		if (form == null) return;
-		for (ValoreMicroFormDto dto : form) {
-			Micro micro = microCatalogo.get(dto.getMicronutriente().getId());
-			if (micro == null) continue;
-			ValoreMicro vm = new ValoreMicro();
-			vm.setAlimento(alimento);
-			vm.setMicronutriente(micro);
-			vm.setValore(dto.getValore());
-			alimento.getMicronutrienti().add(vm);
-		}
-	}
 
 	public static AlimentoBaseDto toAlimentoBaseDto(AlimentoBase a) {
 		if (a == null) return null;

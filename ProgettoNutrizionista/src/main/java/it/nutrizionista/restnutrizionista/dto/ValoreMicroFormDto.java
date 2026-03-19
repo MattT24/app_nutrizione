@@ -1,13 +1,12 @@
 package it.nutrizionista.restnutrizionista.dto;
 
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 public class ValoreMicroFormDto {
 	
     private Long id;
-    @NotBlank(message = "L'alimento base è obbligatorio")
-    private AlimentoBaseDto alimento;
-    @NotBlank(message = "Il micronutriente è obbligatorio")
+
+    @NotNull(message = "Il micronutriente è obbligatorio")
     private MicroDto micronutriente;
 
     private Double valore;
@@ -18,14 +17,6 @@ public class ValoreMicroFormDto {
 
 	public void setId(Long id) {
 		this.id = id;
-	}
-
-	public AlimentoBaseDto getAlimento() {
-		return alimento;
-	}
-
-	public void setAlimento(AlimentoBaseDto alimento) {
-		this.alimento = alimento;
 	}
 
 	public MicroDto getMicronutriente() {

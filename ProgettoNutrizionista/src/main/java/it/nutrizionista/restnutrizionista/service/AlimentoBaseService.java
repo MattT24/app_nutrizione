@@ -1,8 +1,9 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,9 +17,11 @@ import org.springframework.transaction.annotation.Transactional;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.dto.ValoreMicroFormDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.entity.ValoreMicro;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
 import it.nutrizionista.restnutrizionista.repository.MicroRepository;
@@ -38,18 +41,18 @@ public class AlimentoBaseService {
 	/** Crea alimento globale (Admin) — createdBy = null */
 	@Transactional
 	public AlimentoBaseDto create(@Valid AlimentoBaseFormDto form) {
-	    Map<Long, Micro> microCatalogo = loadMicroCatalogo();
-	    AlimentoBase a = DtoMapper.toAlimentoBase(form, microCatalogo);
+	    AlimentoBase a = DtoMapper.toAlimentoBase(form);
 	    a.setCreatedBy(null); // globale
+	    applyMicronutrienti(a, form.getMicroNutrienti());
 	    return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
 	}
 
 	/** Crea alimento personale (Nutrizionista) — createdBy = utente loggato */
 	@Transactional
 	public AlimentoBaseDto createPersonale(@Valid AlimentoBaseFormDto form) {
-	    Map<Long, Micro> microCatalogo = loadMicroCatalogo();
-	    AlimentoBase a = DtoMapper.toAlimentoBase(form, microCatalogo);
+	    AlimentoBase a = DtoMapper.toAlimentoBase(form);
 	    a.setCreatedBy(getCurrentUtente());
+	    applyMicronutrienti(a, form.getMicroNutrienti());
 	    return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
 	}
 
@@ -60,9 +63,56 @@ public class AlimentoBaseService {
 	    }
 	    AlimentoBase a = repo.findById(form.getId())
 	            .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
-	    Map<Long, Micro> microCatalogo = loadMicroCatalogo();
-	    DtoMapper.updateAlimentoBaseFromForm(a, form, microCatalogo);
+	    DtoMapper.updateAlimentoBaseFromForm(a, form);
+	    applyMicronutrienti(a, form.getMicroNutrienti());
 	    return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
+	}
+
+	/**
+	 * Applica i micronutrienti all'alimento con strategia find-or-create.
+	 * Se il DTO micro ha un ID → cerca per ID.
+	 * Altrimenti cerca per nome (case-insensitive) o crea un nuovo record Micro.
+	 */
+	private void applyMicronutrienti(AlimentoBase alimento, List<ValoreMicroFormDto> microDtos) {
+		alimento.getMicronutrienti().clear();
+		if (microDtos == null || microDtos.isEmpty()) return;
+
+		Set<ValoreMicro> nuoviMicro = new HashSet<>();
+		for (ValoreMicroFormDto dto : microDtos) {
+			if (dto.getMicronutriente() == null || dto.getValore() == null) continue;
+
+			Micro micro;
+			if (dto.getMicronutriente().getId() != null) {
+				// Fast path: riferimento per ID (es. da autocomplete)
+				micro = microRepository.findById(dto.getMicronutriente().getId())
+						.orElseThrow(() -> new RuntimeException(
+								"Micronutriente con id " + dto.getMicronutriente().getId() + " non trovato"));
+			} else {
+				// Find-or-create per nome
+				String nome = dto.getMicronutriente().getNome();
+				if (nome == null || nome.isBlank()) continue;
+				micro = microRepository.findByNomeIgnoreCase(nome.trim())
+						.orElseGet(() -> {
+							Micro nuovo = new Micro();
+							nuovo.setNome(nome.trim());
+							nuovo.setUnita(dto.getMicronutriente().getUnita() != null
+									? dto.getMicronutriente().getUnita() : "mg");
+							nuovo.setCategoria(dto.getMicronutriente().getCategoria());
+							nuovo.setCreatedAt(Instant.now());
+							nuovo.setUpdatedAt(Instant.now());
+							return microRepository.save(nuovo);
+						});
+			}
+
+			ValoreMicro vm = new ValoreMicro();
+			vm.setAlimento(alimento);
+			vm.setMicronutriente(micro);
+			vm.setValore(dto.getValore());
+			vm.setCreatedAt(Instant.now());
+			vm.setUpdatedAt(Instant.now());
+			nuoviMicro.add(vm);
+		}
+		alimento.getMicronutrienti().addAll(nuoviMicro);
 	}
 
 	@Transactional
@@ -132,15 +182,6 @@ public class AlimentoBaseService {
 	public List<String> getCategorie() {
 		Long utenteId = getCurrentUtente().getId();
 		return repo.findDistinctCategorieForUser(utenteId);
-	}
-
-	private Map<Long, Micro> loadMicroCatalogo() {
-	    return microRepository.findAll()
-	            .stream()
-	            .collect(Collectors.toMap(
-	                Micro::getId,
-	                Function.identity()
-	            ));
 	}
 
 	/* ==========================================================
