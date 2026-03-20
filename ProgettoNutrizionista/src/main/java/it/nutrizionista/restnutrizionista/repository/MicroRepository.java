@@ -10,4 +10,6 @@ public interface MicroRepository extends JpaRepository<Micro, Long> {
 
 	Optional<Micro> findByNome(String nome);
 
+	Optional<Micro> findByNomeIgnoreCase(String nome);
+
 }
