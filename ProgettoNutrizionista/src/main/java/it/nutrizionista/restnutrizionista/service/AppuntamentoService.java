@@ -1,340 +1,311 @@
 package it.nutrizionista.restnutrizionista.service;
 
-import java.time.Duration;
+import it.nutrizionista.restnutrizionista.dto.*;
+import it.nutrizionista.restnutrizionista.entity.Appuntamento;
+import it.nutrizionista.restnutrizionista.entity.Cliente;
+import it.nutrizionista.restnutrizionista.entity.OrariStudio;
+import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
+import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
+import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
-import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
-import it.nutrizionista.restnutrizionista.dto.CalendarEventDto;
-import it.nutrizionista.restnutrizionista.dto.ClienteDropdownDto;
-import it.nutrizionista.restnutrizionista.entity.Appuntamento;
-import it.nutrizionista.restnutrizionista.entity.Cliente;
-import it.nutrizionista.restnutrizionista.entity.Utente;
-import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
-import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
-import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class AppuntamentoService {
 
-    private final AppuntamentoRepository repo;
-    private final ClienteRepository repoCliente;
-    
-    @Autowired private CurrentUserService currentUserService;
-    @Autowired private OwnershipValidator ownershipValidator;
+    private final AppuntamentoRepository appuntamentoRepository;
+    private final OrariStudioRepository orariStudioRepository;
+    private final ClienteRepository clienteRepository;
+    private final CurrentUserService currentUserService;
 
-    public AppuntamentoService(AppuntamentoRepository repo, ClienteRepository repoCliente) {
-        this.repo = repo;
-        this.repoCliente = repoCliente;
+    public AppuntamentoService(
+            AppuntamentoRepository appuntamentoRepository,
+            OrariStudioRepository orariStudioRepository,
+            ClienteRepository clienteRepository,
+            CurrentUserService currentUserService) {
+        this.appuntamentoRepository = appuntamentoRepository;
+        this.orariStudioRepository = orariStudioRepository;
+        this.clienteRepository = clienteRepository;
+        this.currentUserService = currentUserService;
     }
-
-    private Utente getMe() {
-        return currentUserService.getMe();
-    }
-
-    // ============ CRUD ============
 
     @Transactional
     public AppuntamentoDto create(AppuntamentoFormDto form) {
-        Utente me = getMe();
-
-        Cliente cliente = resolveCliente(form);
-
-        normalizeFormDates(form, null);
-        validateBusiness(form, me.getId(), null);
-
-        Appuntamento a = DtoMapper.toAppuntamento(form, me, cliente);
-
-        // ✅ safety: nel caso il mapper non gestisca i nuovi campi, li imposto comunque qui
-        a.setEndData(form.getEndData());
-        a.setEndOra(form.getEndOra());
-        a.setTimezone(form.getTimezone());
-        a.setAllDay(Boolean.TRUE.equals(form.getAllDay()));
-
-        Appuntamento saved = repo.save(a);
-        return DtoMapper.toAppuntamentoDto(saved);
+        Utente nutrizionista = currentUserService.getMe();
+        
+        Appuntamento appuntamento = new Appuntamento();
+        appuntamento.setNutrizionista(nutrizionista);
+        
+        mapFormToEntity(form, appuntamento);
+        validaSlotOrario(appuntamento);
+        
+        if (appuntamento.getStato() == null) {
+            appuntamento.setStato(Appuntamento.StatoAppuntamento.PRENOTATO);
+        }
+        
+        Appuntamento salvato = appuntamentoRepository.save(appuntamento);
+        return convertToDto(salvato);
     }
 
     @Transactional
     public AppuntamentoDto update(Long id, AppuntamentoFormDto form) {
-        Utente me = getMe();
-        Appuntamento a = ownershipValidator.getOwnedAppuntamento(id);
-
-        Cliente cliente = resolveCliente(form);
-
-        // se passo cliente registrato, pulisco i campi temp; se non registrato, setto cliente null
-        a.setCliente(cliente);
-        if (cliente != null) {
-            a.setClienteNomeTemp(null);
-            a.setClienteCognomeTemp(null);
+        Appuntamento esistente = appuntamentoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
+        
+        Utente nutrizionista = currentUserService.getMe();
+        if (!esistente.getNutrizionista().getId().equals(nutrizionista.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non hai i permessi per modificare questo appuntamento");
         }
 
-        normalizeFormDates(form, a);
-        validateBusiness(form, me.getId(), id);
-
-        DtoMapper.updateAppuntamentoFromFormDto(a, form);
-
-        // ✅ safety: nel caso il mapper non gestisca i nuovi campi, li imposto comunque qui
-        a.setEndData(form.getEndData());
-        a.setEndOra(form.getEndOra());
-        a.setTimezone(form.getTimezone());
-        a.setAllDay(Boolean.TRUE.equals(form.getAllDay()));
-
-        Appuntamento saved = repo.save(a);
-        return DtoMapper.toAppuntamentoDto(saved);
+        mapFormToEntity(form, esistente);
+        validaSlotOrario(esistente);
+        
+        Appuntamento salvato = appuntamentoRepository.save(esistente);
+        return convertToDto(salvato);
     }
 
-    @Transactional(readOnly = true)
     public AppuntamentoDto getById(Long id) {
-        Appuntamento a = ownershipValidator.getOwnedAppuntamento(id);
-        return DtoMapper.toAppuntamentoDto(a);
+        Appuntamento appuntamento = appuntamentoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
+        return convertToDto(appuntamento);
     }
 
     @Transactional
     public void delete(Long id) {
-        Appuntamento a = ownershipValidator.getOwnedAppuntamento(id);
-
-        // regola opzionale: non cancellare confermati
-        if (a.getStato() == Appuntamento.StatoAppuntamento.CONFERMATO) {
-            throw new RuntimeException("Non è possibile eliminare un appuntamento confermato. Annullalo prima.");
-        }
-        repo.delete(a);
+        Appuntamento esistente = appuntamentoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
+        
+        // Soft delete per storico
+        esistente.setStato(Appuntamento.StatoAppuntamento.ANNULLATO);
+        appuntamentoRepository.save(esistente);
     }
 
-    // ============ FULLCALENDAR: GET range + drag/drop ============
-
-    @Transactional(readOnly = true)
+    /**
+     * Interfaccia Angular Calendar / Full Calendar: ritorna gli eventi di "/me" formattati
+     */
     public List<CalendarEventDto> getMyCalendarEvents(LocalDate start, LocalDate end) {
-        Utente me = getMe();
-
-        // FullCalendar spesso passa end esclusivo
-        LocalDate inclusiveEnd = end.minusDays(1);
-
-        // ✅ include eventi che “overlappano” il range, anche se iniziano prima
-        return repo.findByNutrizionista_IdAndDataLessThanEqualAndEndDataGreaterThanEqual(me.getId(), inclusiveEnd, start).stream()
-                .map(this::toCalendarEvent)
-                .toList();
+        Utente nutrizionista = currentUserService.getMe();
+        List<Appuntamento> appuntamenti = appuntamentoRepository.findByNutrizionistaIdAndDateRange(
+                nutrizionista.getId(), start, end);
+        
+        List<CalendarEventDto> eventi = new ArrayList<>();
+        
+        for (Appuntamento app : appuntamenti) {
+            if (app.getStato() == Appuntamento.StatoAppuntamento.ANNULLATO) {
+                continue; // Nascondiamo gli appuntamenti annullati dalla griglia
+            }
+            
+            CalendarEventDto event = new CalendarEventDto();
+            event.setId(app.getId());
+            event.setAllDay(app.isAllDay());
+            
+            // Compone il titolo
+            String nomeCliente = app.isClienteRegistrato() && app.getCliente() != null 
+                    ? app.getCliente().getNome() + " " + app.getCliente().getCognome()
+                    : app.getClienteNome() + " " + app.getClienteCognome();
+            event.setTitle(nomeCliente + (app.getModalita() != null ? " - " + app.getModalita() : ""));
+            
+            // Imposta start e end formattati ISO per Angular
+            if (app.isAllDay()) {
+                event.setStart(app.getData().atStartOfDay());
+                event.setEnd(app.getEndData().atTime(LocalTime.MAX));
+            } else {
+                event.setStart(LocalDateTime.of(app.getData(), app.getOra() != null ? app.getOra() : LocalTime.MIDNIGHT));
+                event.setEnd(LocalDateTime.of(app.getEndData(), app.getEndOra() != null ? app.getEndOra() : LocalTime.MAX));
+            }
+            
+            Map<String, Object> meta = new HashMap<>();
+            meta.put("id", app.getId());
+            meta.put("stato", app.getStato() != null ? app.getStato().name() : "PRENOTATO");
+            meta.put("modalita", app.getModalita() != null ? app.getModalita().name() : "");
+            meta.put("clienteId", app.getCliente() != null ? app.getCliente().getId() : null);
+            meta.put("clienteNome", app.getCliente() != null ? app.getCliente().getNome() : app.getClienteNome());
+            meta.put("clienteCognome", app.getCliente() != null ? app.getCliente().getCognome() : app.getClienteCognome());
+            meta.put("descrizioneAppuntamento", app.getDescrizioneAppuntamento());
+            meta.put("emailCliente", app.getEmailCliente());
+            meta.put("isPast", event.getEnd().isBefore(LocalDateTime.now()));
+            event.setMeta(meta);
+            
+            eventi.add(event);
+        }
+        return eventi;
     }
 
+    /**
+     * Metodo scatenato dal Drag & Drop / Resize di Angular Calendar
+     */
     @Transactional
-    public AppuntamentoDto moveResize(Long id, LocalDateTime newStart, LocalDateTime newEnd) {
-        Utente me = getMe();
-        Appuntamento a = ownershipValidator.getOwnedAppuntamento(id);
-
-        // durata esistente (fallback 60 se dati vecchi senza end)
-        LocalDateTime oldStart = LocalDateTime.of(a.getData(), a.getOra());
-        LocalDateTime oldEnd = getSafeEnd(a);
-
-        Duration dur = Duration.between(oldStart, oldEnd);
-        if (dur.isNegative() || dur.isZero()) dur = Duration.ofMinutes(60);
-
-        LocalDateTime computedEnd = (newEnd != null) ? newEnd : newStart.plus(dur);
-
-        AppuntamentoFormDto form = new AppuntamentoFormDto();
-        form.setData(newStart.toLocalDate());
-        form.setOra(newStart.toLocalTime());
-        form.setEndData(computedEnd.toLocalDate());
-        form.setEndOra(computedEnd.toLocalTime());
-
-        form.setTimezone(a.getTimezone() != null ? a.getTimezone() : "Europe/Rome");
-        form.setAllDay(a.isAllDay());
-
-        form.setDescrizioneAppuntamento(a.getDescrizioneAppuntamento());
-        form.setModalita(a.getModalita());
-        form.setStato(a.getStato());
-        form.setLuogo(a.getLuogo());
-        form.setEmailCliente(a.getEmailCliente());
-
-        if (a.getCliente() != null) {
-            form.setClienteId(a.getCliente().getId());
+    public AppuntamentoDto moveResize(Long id, LocalDateTime start, LocalDateTime end) {
+        Appuntamento esistente = appuntamentoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
+        
+        esistente.setData(start.toLocalDate());
+        esistente.setOra(start.toLocalTime());
+        
+        if (end != null) {
+            esistente.setEndData(end.toLocalDate());
+            esistente.setEndOra(end.toLocalTime());
         } else {
-            form.setClienteNome(a.getClienteNomeTemp());
-            form.setClienteCognome(a.getClienteCognomeTemp());
+            // Se trascini un evento, la library potrebbe non inviare l'end-time, manteniamo la vecchia durata (es 1 ora)
+            esistente.setEndData(start.toLocalDate());
+            esistente.setEndOra(start.toLocalTime().plusHours(1));
         }
 
-        validateBusiness(form, me.getId(), id);
-
-        a.setData(form.getData());
-        a.setOra(form.getOra());
-        a.setEndData(form.getEndData());
-        a.setEndOra(form.getEndOra());
-        a.setTimezone(form.getTimezone());
-        a.setAllDay(Boolean.TRUE.equals(form.getAllDay()));
-
-        return DtoMapper.toAppuntamentoDto(repo.save(a));
+        validaSlotOrario(esistente);
+        Appuntamento salvato = appuntamentoRepository.save(esistente);
+        return convertToDto(salvato);
     }
 
-    // ============ Helpers ============
-
-    private Cliente resolveCliente(AppuntamentoFormDto form) {
-        if (form.getClienteId() != null) {
-        	return ownershipValidator.getOwnedCliente(form.getClienteId());
-        }
-
-        // cliente non registrato: obbligatori
-        if (isBlank(form.getClienteNome())) throw new RuntimeException("Il nome del cliente è obbligatorio");
-        if (isBlank(form.getClienteCognome())) throw new RuntimeException("Il cognome del cliente è obbligatorio");
-        if (isBlank(form.getEmailCliente())) throw new RuntimeException("L'email del cliente è obbligatoria");
-
-        return null;
+    public List<ClienteDropdownDto> searchMyClientsForDropdown(String q) {
+        Utente nutrizionista = currentUserService.getMe(); 
+        
+        // Utilizziamo la TUA query personalizzata per fare la ricerca direttamente nel DB
+        return clienteRepository.searchMyClientsByName(nutrizionista.getId(), q)
+                .stream()
+                .map(c -> {
+                    ClienteDropdownDto dto = new ClienteDropdownDto();
+                    dto.setId(c.getId());
+                    dto.setNome(c.getNome()); 
+                    dto.setCognome(c.getCognome());
+                    dto.setEmail(c.getEmail()); // <-- FIX: email era mancante
+                    return dto;
+                })
+                .collect(Collectors.toList());
     }
 
-    private void normalizeFormDates(AppuntamentoFormDto form, Appuntamento existing) {
-        if (form.getTimezone() == null || form.getTimezone().trim().isEmpty()) {
-            form.setTimezone(existing != null && existing.getTimezone() != null ? existing.getTimezone() : "Europe/Rome");
+    // ==========================================
+    // METODI PRIVATI DI VALIDAZIONE E MAPPATURA
+    // ==========================================
+
+    private void validaSlotOrario(Appuntamento nuovoApp) {
+        if (nuovoApp.isAllDay() || nuovoApp.getOra() == null || nuovoApp.getEndOra() == null) return;
+
+        LocalDate endData = nuovoApp.getEndData() != null ? nuovoApp.getEndData() : nuovoApp.getData();
+        LocalDateTime inizioNuovo = LocalDateTime.of(nuovoApp.getData(), nuovoApp.getOra());
+        LocalDateTime fineNuovo = LocalDateTime.of(endData, nuovoApp.getEndOra());
+
+        if (!inizioNuovo.isBefore(fineNuovo)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "L'inizio deve essere antecedente alla fine.");
         }
 
-        if (form.getAllDay() == null) {
-            form.setAllDay(existing != null ? existing.isAllDay() : false);
-        }
-
-        // end mancante -> default: start + 60 minuti
-        if (form.getEndData() == null || form.getEndOra() == null) {
-            if (form.getData() != null && form.getOra() != null) {
-                LocalDateTime start = LocalDateTime.of(form.getData(), form.getOra());
-
-                // se stiamo aggiornando e l'esistente ha end valido, mantengo la durata
-                if (existing != null && existing.getData() != null && existing.getOra() != null) {
-                    LocalDateTime oldStart = LocalDateTime.of(existing.getData(), existing.getOra());
-                    LocalDateTime oldEnd = getSafeEnd(existing);
-
-                    Duration dur = Duration.between(oldStart, oldEnd);
-                    if (!dur.isNegative() && !dur.isZero()) {
-                        LocalDateTime end = start.plus(dur);
-                        form.setEndData(end.toLocalDate());
-                        form.setEndOra(end.toLocalTime());
-                        return;
-                    }
+        // CONTROLLO ORARI STUDIO IN BASE AL GIORNO DELLA SETTIMANA
+        DayOfWeek giorno = inizioNuovo.getDayOfWeek();
+        OrariStudio orario = orariStudioRepository.findByNutrizionistaIdAndGiornoSettimana(nuovoApp.getNutrizionista().getId(), giorno).orElse(null);
+        
+        if (orario != null) {
+            if (!orario.isGiornoLavorativo()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lo studio è chiuso di " + giorno);
+            }
+            if (orario.getOraApertura() != null && orario.getOraChiusura() != null) {
+                if (nuovoApp.getOra().isBefore(orario.getOraApertura()) || nuovoApp.getEndOra().isAfter(orario.getOraChiusura())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Fuori orario lavorativo.");
                 }
+            }
+            if (orario.getInizioPausaPranzo() != null && orario.getFinePausaPranzo() != null) {
+                boolean sovrapponePausa = nuovoApp.getOra().isBefore(orario.getFinePausaPranzo()) && nuovoApp.getEndOra().isAfter(orario.getInizioPausaPranzo());
+                if (sovrapponePausa) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sovrapposizione con pausa pranzo.");
+                }
+            }
+        }
 
-                LocalDateTime end = start.plusMinutes(60);
-                form.setEndData(end.toLocalDate());
-                form.setEndOra(end.toLocalTime());
+        // Controllo Sovrapposizioni (Overbooking)
+        List<Appuntamento> esistenti = appuntamentoRepository.findByNutrizionistaIdAndDateRange(
+                nuovoApp.getNutrizionista().getId(), nuovoApp.getData().minusDays(1), endData.plusDays(1)
+        );
+
+        for (Appuntamento esistente : esistenti) {
+            if (esistente.getId() != null && esistente.getId().equals(nuovoApp.getId())) continue;
+            if (esistente.getStato() == Appuntamento.StatoAppuntamento.ANNULLATO) continue;
+            if (esistente.isAllDay() || esistente.getOra() == null || esistente.getEndOra() == null) continue;
+
+            LocalDate existEndData = esistente.getEndData() != null ? esistente.getEndData() : esistente.getData();
+            LocalDateTime inizioEsistente = LocalDateTime.of(esistente.getData(), esistente.getOra());
+            LocalDateTime fineEsistente = LocalDateTime.of(existEndData, esistente.getEndOra());
+
+            if (inizioNuovo.isBefore(fineEsistente) && fineNuovo.isAfter(inizioEsistente)) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Lo slot orario risulta già occupato da un altro appuntamento.");
             }
         }
     }
 
-    private LocalDateTime getSafeEnd(Appuntamento a) {
-        if (a.getEndData() != null && a.getEndOra() != null) {
-            return LocalDateTime.of(a.getEndData(), a.getEndOra());
-        }
-        LocalDateTime start = LocalDateTime.of(a.getData(), a.getOra());
-        return start.plusMinutes(60);
-    }
+    private void mapFormToEntity(AppuntamentoFormDto form, Appuntamento app) {
+        app.setData(form.getData());
+        app.setOra(form.getOra());
+        app.setEndData(form.getEndData());
+        app.setEndOra(form.getEndOra());
+        app.setTimezone(form.getTimezone());
+        app.setAllDay(form.isAllDay());
+        app.setModalita(form.getModalita());
+        app.setStato(form.getStato());
+        app.setLuogo(form.getLuogo());
+        app.setDescrizioneAppuntamento(form.getDescrizioneAppuntamento());
+        
+        app.setClienteRegistrato(form.isClienteRegistrato());
+        app.setClienteNome(form.getClienteNome());
+        app.setClienteCognome(form.getClienteCognome());
 
-    private void validateBusiness(AppuntamentoFormDto form, Long nutrizionistaId, Long excludeId) {
-        if (form.getData() == null) throw new RuntimeException("Data obbligatoria");
-        if (form.getOra() == null) throw new RuntimeException("Ora obbligatoria");
-        if (isBlank(form.getDescrizioneAppuntamento())) throw new RuntimeException("Descrizione obbligatoria");
-        if (form.getModalita() == null) throw new RuntimeException("Modalità obbligatoria");
-
-        // ✅ end obbligatorio “a valle” della normalizzazione
-        if (form.getEndData() == null) throw new RuntimeException("Data fine obbligatoria");
-        if (form.getEndOra() == null) throw new RuntimeException("Ora fine obbligatoria");
-
-        LocalDateTime start = LocalDateTime.of(form.getData(), form.getOra());
-        LocalDateTime end = LocalDateTime.of(form.getEndData(), form.getEndOra());
-
-        if (!end.isAfter(start)) {
-            throw new RuntimeException("L'orario di fine deve essere dopo l'orario di inizio");
-        }
-
-        // slot lavorativo (come già fai) – qui lo tengo semplice
-        LocalTime apertura = LocalTime.of(8, 0);
-        LocalTime chiusura = LocalTime.of(20, 0);
-        if (form.getOra().isBefore(apertura) || form.getOra().isAfter(chiusura)) {
-            throw new RuntimeException("L'appuntamento deve essere tra le 8:00 e le 20:00");
-        }
-
-        // ✅ conflitto su intervallo (overlap), update-safe
-        // prendo candidati che overlappano per date (grezzo) e poi check preciso con LocalDateTime
-        List<Appuntamento> candidates = repo.findByNutrizionista_IdAndDataLessThanEqualAndEndDataGreaterThanEqual(
-                nutrizionistaId,
-                form.getEndData(),
-                form.getData()
-        );
-
-        for (Appuntamento a : candidates) {
-            if (excludeId != null && a.getId() != null && a.getId().equals(excludeId)) continue;
-
-            LocalDateTime aStart = LocalDateTime.of(a.getData(), a.getOra());
-            LocalDateTime aEnd = getSafeEnd(a);
-
-            // overlap standard: existingStart < newEnd AND existingEnd > newStart  (end esclusivo)
-            boolean overlap = aStart.isBefore(end) && aEnd.isAfter(start);
-            if (overlap) throw new RuntimeException("Hai già un appuntamento in questa fascia oraria");
-        }
-
-        // in presenza -> luogo obbligatorio
-        if (form.getModalita() == Appuntamento.Modalita.IN_PRESENZA && isBlank(form.getLuogo())) {
-            throw new RuntimeException("Il luogo è obbligatorio per gli appuntamenti in presenza");
+        if (form.getClienteId() != null) {
+            Cliente cliente = clienteRepository.findById(form.getClienteId()).orElse(null);
+            app.setCliente(cliente);
+            // FIX: se l'email non arriva dal form, la prendiamo dall'entità cliente
+            if (form.getEmailCliente() != null && !form.getEmailCliente().isBlank()) {
+                app.setEmailCliente(form.getEmailCliente());
+            } else if (cliente != null) {
+                app.setEmailCliente(cliente.getEmail());
+            } else {
+                app.setEmailCliente(form.getEmailCliente());
+            }
+        } else {
+            app.setCliente(null);
+            app.setEmailCliente(form.getEmailCliente());
         }
     }
 
-    private CalendarEventDto toCalendarEvent(Appuntamento a) {
-        CalendarEventDto ev = new CalendarEventDto();
-        ev.setId(a.getId());
-
-        String clienteNome = a.getCliente() != null ? a.getCliente().getNome() : a.getClienteNomeTemp();
-        String clienteCognome = a.getCliente() != null ? a.getCliente().getCognome() : a.getClienteCognomeTemp();
-
-        ev.setTitle((clienteNome != null ? clienteNome : "") + " " + (clienteCognome != null ? clienteCognome : ""));
-
-        LocalDateTime start = LocalDateTime.of(a.getData(), a.getOra());
-        ev.setStart(start);
-
-        // ✅ end persistito (fallback 60 min per dati vecchi)
-        LocalDateTime end = getSafeEnd(a);
-        ev.setEnd(end);
-
-        var props = new HashMap<String, Object>();
-        props.put("stato", a.getStato());
-        props.put("modalita", a.getModalita());
-        props.put("luogo", a.getLuogo());
-        props.put("emailCliente", a.getEmailCliente());
-        props.put("descrizione", a.getDescrizioneAppuntamento());
-        props.put("clienteRegistrato", a.getCliente() != null);
-        props.put("clienteId", a.getCliente() != null ? a.getCliente().getId() : null);
-
-        // ✅ nuovi campi utili lato UI
-        props.put("timezone", a.getTimezone());
-        props.put("allDay", a.isAllDay());
-
-        ev.setExtendedProps(props);
-        return ev;
-    }
-
-    private boolean isBlank(String s) {
-        return s == null || s.trim().isEmpty();
-    }
-    
-    @Transactional(readOnly = true)
-    public List<ClienteDropdownDto> searchMyClientsForDropdown(String q) {
-        Utente me = getMe();
-
-        String query = (q == null) ? "" : q.trim();
-        if (query.isEmpty()) {
-            return List.of(); // evita di caricare tutti i clienti senza filtro
+    private AppuntamentoDto convertToDto(Appuntamento app) {
+        AppuntamentoDto dto = new AppuntamentoDto();
+        dto.setId(app.getId());
+        
+        if (app.getNutrizionista() != null) {
+            dto.setNutrizionistaId(app.getNutrizionista().getId());
+            dto.setNutrizionistaNome(app.getNutrizionista().getNome());
+            dto.setNutrizionistaCognome(app.getNutrizionista().getCognome());
         }
-
-        return repoCliente.searchMyClientsByName(me.getId(), query).stream()
-                .limit(10) // limita risultati per dropdown
-                .map(c -> new ClienteDropdownDto(
-                        c.getId(),
-                        c.getNome(),
-                        c.getCognome(),
-                        c.getDataNascita(),
-                        c.getEmail()
-                ))
-                .toList();
+        
+        if (app.getCliente() != null) {
+            dto.setClienteId(app.getCliente().getId());
+        }
+        
+        dto.setClienteNome(app.getClienteNome());
+        dto.setClienteCognome(app.getClienteCognome());
+        dto.setClienteRegistrato(app.isClienteRegistrato());
+        dto.setDescrizioneAppuntamento(app.getDescrizioneAppuntamento());
+        dto.setData(app.getData());
+        dto.setOra(app.getOra());
+        dto.setEndData(app.getEndData());
+        dto.setEndOra(app.getEndOra());
+        dto.setTimezone(app.getTimezone());
+        dto.setAllDay(app.isAllDay());
+        dto.setModalita(app.getModalita());
+        dto.setStato(app.getStato());
+        dto.setLuogo(app.getLuogo());
+        dto.setEmailCliente(app.getEmailCliente());
+        dto.setCreatedAt(app.getCreatedAt());
+        dto.setUpdatedAt(app.getUpdatedAt());
+        
+        return dto;
     }
-
 }

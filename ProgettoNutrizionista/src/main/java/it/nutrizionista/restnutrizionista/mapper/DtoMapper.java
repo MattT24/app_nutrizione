@@ -1023,133 +1023,165 @@ public class DtoMapper {
 		p.setNote(form.getNote());
 	}
 
-	// mapper per l'entità appuntamento
+	// ==========================================
+		// MAPPER PER APPUNTAMENTO 
+		// ==========================================
 
-	public static AppuntamentoDto toAppuntamentoDto(Appuntamento appuntamento) {
-		if (appuntamento == null) {
-			return null;
+		public static AppuntamentoDto toAppuntamentoDto(Appuntamento appuntamento) {
+			if (appuntamento == null) {
+				return null;
+			}
+
+			AppuntamentoDto dto = new AppuntamentoDto();
+			dto.setId(appuntamento.getId());
+
+			// Dati nutrizionista
+			dto.setNutrizionistaId(appuntamento.getNutrizionista().getId());
+			dto.setNutrizionistaNome(appuntamento.getNutrizionista().getNome());
+			dto.setNutrizionistaCognome(appuntamento.getNutrizionista().getCognome());
+
+			// Dati cliente - verifica se è registrato o meno
+			if (appuntamento.getCliente() != null) {
+				// Cliente registrato
+				dto.setClienteId(appuntamento.getCliente().getId());
+				dto.setClienteNome(appuntamento.getCliente().getNome());
+				dto.setClienteCognome(appuntamento.getCliente().getCognome());
+				dto.setClienteRegistrato(true);
+			} else {
+				// Cliente non registrato - usa i campi temporanei
+				dto.setClienteId(null);
+				dto.setClienteNome(appuntamento.getClienteNome());
+				dto.setClienteCognome(appuntamento.getClienteCognome());
+				dto.setClienteRegistrato(false);
+			}
+
+			dto.setDescrizioneAppuntamento(appuntamento.getDescrizioneAppuntamento());
+			
+			// Inizio Appuntamento
+			dto.setData(appuntamento.getData());
+			dto.setOra(appuntamento.getOra());
+
+			// Fine Appuntamento e Modificatori (Novità per Angular Calendar)
+			dto.setEndData(appuntamento.getEndData());
+			dto.setEndOra(appuntamento.getEndOra());
+			dto.setAllDay(appuntamento.isAllDay());
+			dto.setTimezone(appuntamento.getTimezone());
+
+			dto.setModalita(appuntamento.getModalita());
+			dto.setStato(appuntamento.getStato());
+			dto.setLuogo(appuntamento.getLuogo());
+			dto.setEmailCliente(appuntamento.getEmailCliente());
+			
+			dto.setCreatedAt(appuntamento.getCreatedAt());
+			dto.setUpdatedAt(appuntamento.getUpdatedAt());
+
+			return dto;
 		}
 
-		AppuntamentoDto dto = new AppuntamentoDto();
-		dto.setId(appuntamento.getId());
+		/**
+		 * Converte da AppuntamentoFormDto a Appuntamento entity
+		 * Gestisce sia clienti registrati (cliente != null) che non registrati (cliente == null)
+		 */
+		public static Appuntamento toAppuntamento(AppuntamentoFormDto formDTO, Utente nutrizionista, Cliente cliente) {
+			if (formDTO == null) {
+				return null;
+			}
 
-		// Dati nutrizionista
-		dto.setNutrizionistaId(appuntamento.getNutrizionista().getId());
-		dto.setNutrizionistaNome(appuntamento.getNutrizionista().getNome());
-		dto.setNutrizionistaCognome(appuntamento.getNutrizionista().getCognome());
+			Appuntamento appuntamento = new Appuntamento();
+			appuntamento.setNutrizionista(nutrizionista);
+			appuntamento.setCliente(cliente); // Può essere null per clienti non registrati
 
-		// Dati cliente - verifica se è registrato o meno
-		if (appuntamento.getCliente() != null) {
-			// Cliente registrato
-			dto.setClienteId(appuntamento.getCliente().getId());
-			dto.setClienteNome(appuntamento.getCliente().getNome());
-			dto.setClienteCognome(appuntamento.getCliente().getCognome());
-			dto.setClienteRegistrato(true);
-		} else {
-			// Cliente non registrato - usa i campi temporanei
-			dto.setClienteId(null);
-			dto.setClienteNome(appuntamento.getClienteNomeTemp());
-			dto.setClienteCognome(appuntamento.getClienteCognomeTemp());
-			dto.setClienteRegistrato(false);
+			// Se il cliente non è registrato, popola i campi temporanei
+			if (cliente == null) {
+				appuntamento.setClienteNome(formDTO.getClienteNome());
+				appuntamento.setClienteCognome(formDTO.getClienteCognome());
+			}
+
+			appuntamento.setDescrizioneAppuntamento(formDTO.getDescrizioneAppuntamento());
+			
+			// Inizio Appuntamento
+			appuntamento.setData(formDTO.getData());
+			appuntamento.setOra(formDTO.getOra());
+
+			// Fine Appuntamento e Modificatori (Novità per Angular Calendar)
+			appuntamento.setEndData(formDTO.getEndData());
+			appuntamento.setEndOra(formDTO.getEndOra());
+			appuntamento.setAllDay(formDTO.isAllDay());
+			appuntamento.setTimezone(formDTO.getTimezone());
+
+			appuntamento.setModalita(formDTO.getModalita());
+			appuntamento.setStato(formDTO.getStato() != null ? formDTO.getStato() : Appuntamento.StatoAppuntamento.PRENOTATO);
+			appuntamento.setLuogo(formDTO.getLuogo());
+
+			// Gestione email cliente
+			String emailCliente;
+			if (formDTO.getEmailCliente() != null) {
+				emailCliente = formDTO.getEmailCliente();
+			} else if (cliente != null) {
+				emailCliente = cliente.getEmail();
+			} else {
+				emailCliente = null; // Verrà validato nel service
+			}
+			appuntamento.setEmailCliente(emailCliente);
+
+			return appuntamento;
 		}
 
-		dto.setDescrizioneAppuntamento(appuntamento.getDescrizioneAppuntamento());
-		dto.setData(appuntamento.getData());
-		dto.setOra(appuntamento.getOra());
-		dto.setModalita(appuntamento.getModalita());
-		dto.setStato(appuntamento.getStato());
-		dto.setLuogo(appuntamento.getLuogo());
-		dto.setEmailCliente(appuntamento.getEmailCliente());
-		return dto;
-	}
+		public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDto) {
 
-	/**
-	 * Converte da AppuntamentoFormDto a Appuntamento entity
-	 * Gestisce sia clienti registrati (cliente != null) che non registrati (cliente
-	 * == null)
-	 */
-	public static Appuntamento toAppuntamento(AppuntamentoFormDto formDTO, Utente nutrizionista, Cliente cliente) {
-		if (formDTO == null) {
-			return null;
+			// Aggiorna data e ora inizio
+			if (formDto.getData() != null) {
+				appuntamento.setData(formDto.getData());
+			}
+			if (formDto.getOra() != null) {
+				appuntamento.setOra(formDto.getOra());
+			}
+
+			// Aggiorna data e ora fine (Novità per Angular Calendar)
+			if (formDto.getEndData() != null) {
+				appuntamento.setEndData(formDto.getEndData());
+			}
+			if (formDto.getEndOra() != null) {
+				appuntamento.setEndOra(formDto.getEndOra());
+			}
+
+			// Aggiorna timezone e flag intera giornata
+			appuntamento.setAllDay(formDto.isAllDay());
+			if (formDto.getTimezone() != null) {
+				appuntamento.setTimezone(formDto.getTimezone());
+			}
+
+			// Aggiorna descrizione appuntamento
+			if (formDto.getDescrizioneAppuntamento() != null) {
+				appuntamento.setDescrizioneAppuntamento(formDto.getDescrizioneAppuntamento());
+			}
+
+			// Aggiorna modalità (ONLINE/IN_PRESENZA)
+			if (formDto.getModalita() != null) {
+				appuntamento.setModalita(formDto.getModalita());
+			}
+
+			// Aggiorna stato (PROGRAMMATO/CONFERMATO/ANNULLATO)
+			if (formDto.getStato() != null) {
+				appuntamento.setStato(formDto.getStato());
+			}
+
+			// Aggiorna luogo
+			if (formDto.getLuogo() != null) {
+				appuntamento.setLuogo(formDto.getLuogo());
+			}
+
+			// Aggiorna email cliente
+			if (formDto.getEmailCliente() != null) {
+				appuntamento.setEmailCliente(formDto.getEmailCliente());
+			}
+
+			// Aggiorna dati cliente temporaneo (se non è un cliente registrato)
+			if (formDto.getClienteId() == null) {
+				appuntamento.setClienteNome(formDto.getClienteNome());
+				appuntamento.setClienteCognome(formDto.getClienteCognome());
+			}
 		}
-
-		Appuntamento appuntamento = new Appuntamento();
-		appuntamento.setNutrizionista(nutrizionista);
-		appuntamento.setCliente(cliente); // Può essere null per clienti non registrati
-
-		// Se il cliente non è registrato, popola i campi temporanei
-		if (cliente == null) {
-			appuntamento.setClienteNomeTemp(formDTO.getClienteNome());
-			appuntamento.setClienteCognomeTemp(formDTO.getClienteCognome());
-
-		}
-
-		appuntamento.setDescrizioneAppuntamento(formDTO.getDescrizioneAppuntamento());
-		appuntamento.setData(formDTO.getData());
-		appuntamento.setOra(formDTO.getOra());
-		appuntamento.setModalita(formDTO.getModalita());
-		appuntamento
-				.setStato(formDTO.getStato() != null ? formDTO.getStato() : Appuntamento.StatoAppuntamento.PROGRAMMATO);
-		appuntamento.setLuogo(formDTO.getLuogo());
-
-		// Gestione email cliente
-		String emailCliente;
-		if (formDTO.getEmailCliente() != null) {
-			emailCliente = formDTO.getEmailCliente();
-		} else if (cliente != null) {
-			emailCliente = cliente.getEmail();
-		} else {
-			emailCliente = null; // Verrà validato nel service
-		}
-		appuntamento.setEmailCliente(emailCliente);
-
-		return appuntamento;
-	}
-
-	public static void updateAppuntamentoFromFormDto(Appuntamento appuntamento, AppuntamentoFormDto formDto) {
-
-		// Aggiorna data
-		if (formDto.getData() != null) {
-			appuntamento.setData(formDto.getData());
-		}
-
-		// Aggiorna ora
-		if (formDto.getOra() != null) {
-			appuntamento.setOra(formDto.getOra());
-		}
-
-		// Aggiorna descrizione appuntamento
-		if (formDto.getDescrizioneAppuntamento() != null) {
-			appuntamento.setDescrizioneAppuntamento(formDto.getDescrizioneAppuntamento());
-		}
-
-		// Aggiorna modalità (ONLINE/IN_PRESENZA)
-		if (formDto.getModalita() != null) {
-			appuntamento.setModalita(formDto.getModalita());
-		}
-
-		// Aggiorna stato (PROGRAMMATO/CONFERMATO/ANNULLATO)
-		if (formDto.getStato() != null) {
-			appuntamento.setStato(formDto.getStato());
-		}
-
-		// Aggiorna luogo
-		if (formDto.getLuogo() != null) {
-			appuntamento.setLuogo(formDto.getLuogo());
-		}
-
-		// Aggiorna email cliente
-		if (formDto.getEmailCliente() != null) {
-			appuntamento.setEmailCliente(formDto.getEmailCliente());
-		}
-
-		// Aggiorna dati cliente temporaneo (se non è un cliente registrato)
-		if (formDto.getClienteId() == null) {
-			// Cliente non registrato - aggiorna i campi temporanei
-			appuntamento.setClienteNomeTemp(formDto.getClienteNome());
-			appuntamento.setClienteCognomeTemp(formDto.getClienteCognome());
-		}
-	}
 
 	// ===================== ALIMENTO PASTO =====================
 
@@ -1219,8 +1251,10 @@ public class DtoMapper {
 		dto.setNomeVisualizzato(aa.getNomeCustom() != null ? aa.getNomeCustom() : nomeAlt);
 		return dto;
 	}
-
+	
+	// ==========================================
 	// MAPPER PER ORARIO STUDIO
+	// ==========================================
 
 	public static OrariStudioDto toOrariStudioDto(OrariStudio orari) {
 		if (orari == null) {
@@ -1234,13 +1268,12 @@ public class DtoMapper {
 			dto.setNutrizionistaId(orari.getNutrizionista().getId());
 		}
 
+		dto.setGiornoSettimana(orari.getGiornoSettimana());
+		dto.setGiornoLavorativo(orari.isGiornoLavorativo());
 		dto.setOraApertura(orari.getOraApertura());
 		dto.setOraChiusura(orari.getOraChiusura());
-
-		dto.setPausaInizio(orari.getPausaInizio());
-		dto.setPausaFine(orari.getPausaFine());
-
-		dto.setLavoraSabato(orari.isLavoraSabato());
+		dto.setInizioPausaPranzo(orari.getInizioPausaPranzo());
+		dto.setFinePausaPranzo(orari.getFinePausaPranzo());
 
 		dto.setCreatedAt(orari.getCreatedAt());
 		dto.setUpdatedAt(orari.getUpdatedAt());
@@ -1255,14 +1288,12 @@ public class DtoMapper {
 
 		OrariStudio orari = new OrariStudio();
 		orari.setNutrizionista(nutrizionista);
-
+		orari.setGiornoSettimana(formDto.getGiornoSettimana());
+		orari.setGiornoLavorativo(formDto.isGiornoLavorativo());
 		orari.setOraApertura(formDto.getOraApertura());
 		orari.setOraChiusura(formDto.getOraChiusura());
-
-		orari.setPausaInizio(formDto.getPausaInizio());
-		orari.setPausaFine(formDto.getPausaFine());
-
-		orari.setLavoraSabato(formDto.isLavoraSabato());
+		orari.setInizioPausaPranzo(formDto.getInizioPausaPranzo());
+		orari.setFinePausaPranzo(formDto.getFinePausaPranzo());
 
 		return orari;
 	}
@@ -1272,6 +1303,11 @@ public class DtoMapper {
 			return;
 		}
 
+		if (formDto.getGiornoSettimana() != null) {
+			orari.setGiornoSettimana(formDto.getGiornoSettimana());
+		}
+		orari.setGiornoLavorativo(formDto.isGiornoLavorativo());
+
 		if (formDto.getOraApertura() != null) {
 			orari.setOraApertura(formDto.getOraApertura());
 		}
@@ -1279,11 +1315,8 @@ public class DtoMapper {
 			orari.setOraChiusura(formDto.getOraChiusura());
 		}
 
-		// Pausa: permetto di svuotarla inviando null
-		orari.setPausaInizio(formDto.getPausaInizio());
-		orari.setPausaFine(formDto.getPausaFine());
-
-		orari.setLavoraSabato(formDto.isLavoraSabato());
+		orari.setInizioPausaPranzo(formDto.getInizioPausaPranzo());
+		orari.setFinePausaPranzo(formDto.getFinePausaPranzo());
 	}
 
 	public static PastoTemplateDto toPastoTemplateDto(PastoTemplate t) {
