@@ -11,8 +11,8 @@ public class CalendarEventDto {
     private LocalDateTime end;
     private boolean allDay = false;
 
-    // tutto ciò che vuoi in FullCalendar extendedProps
-    private Map<String, Object> extendedProps;
+    // tutto ciò che vuoi in FullCalendar meta
+    private Map<String, Object> meta;
 
 	public Long getId() {
 		return id;
@@ -54,12 +54,12 @@ public class CalendarEventDto {
 		this.allDay = allDay;
 	}
 
-	public Map<String, Object> getExtendedProps() {
-		return extendedProps;
+	public Map<String, Object> getMeta() {
+		return meta;
 	}
 
-	public void setExtendedProps(Map<String, Object> extendedProps) {
-		this.extendedProps = extendedProps;
+	public void setMeta(Map<String, Object> meta) {
+		this.meta = meta;
 	}
 
    

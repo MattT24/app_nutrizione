@@ -1,16 +1,37 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import java.time.DayOfWeek;
 import java.time.LocalTime;
 
 public class OrariStudioFormDto {
 
+    private DayOfWeek giornoSettimana;
+    private boolean giornoLavorativo;
+    
     private LocalTime oraApertura;
     private LocalTime oraChiusura;
+    
+    private LocalTime inizioPausaPranzo;
+    private LocalTime finePausaPranzo;
 
-    private LocalTime pausaInizio;
-    private LocalTime pausaFine;
+    public OrariStudioFormDto() {
+    }
 
-    private boolean lavoraSabato;
+    public DayOfWeek getGiornoSettimana() {
+        return giornoSettimana;
+    }
+
+    public void setGiornoSettimana(DayOfWeek giornoSettimana) {
+        this.giornoSettimana = giornoSettimana;
+    }
+
+    public boolean isGiornoLavorativo() {
+        return giornoLavorativo;
+    }
+
+    public void setGiornoLavorativo(boolean giornoLavorativo) {
+        this.giornoLavorativo = giornoLavorativo;
+    }
 
     public LocalTime getOraApertura() {
         return oraApertura;
@@ -28,27 +49,19 @@ public class OrariStudioFormDto {
         this.oraChiusura = oraChiusura;
     }
 
-    public LocalTime getPausaInizio() {
-        return pausaInizio;
+    public LocalTime getInizioPausaPranzo() {
+        return inizioPausaPranzo;
     }
 
-    public void setPausaInizio(LocalTime pausaInizio) {
-        this.pausaInizio = pausaInizio;
+    public void setInizioPausaPranzo(LocalTime inizioPausaPranzo) {
+        this.inizioPausaPranzo = inizioPausaPranzo;
     }
 
-    public LocalTime getPausaFine() {
-        return pausaFine;
+    public LocalTime getFinePausaPranzo() {
+        return finePausaPranzo;
     }
 
-    public void setPausaFine(LocalTime pausaFine) {
-        this.pausaFine = pausaFine;
-    }
-
-    public boolean isLavoraSabato() {
-        return lavoraSabato;
-    }
-
-    public void setLavoraSabato(boolean lavoraSabato) {
-        this.lavoraSabato = lavoraSabato;
+    public void setFinePausaPranzo(LocalTime finePausaPranzo) {
+        this.finePausaPranzo = finePausaPranzo;
     }
 }

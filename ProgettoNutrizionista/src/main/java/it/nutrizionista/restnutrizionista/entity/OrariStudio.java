@@ -1,22 +1,13 @@
 package it.nutrizionista.restnutrizionista.entity;
 
-import java.time.Instant;
-import java.time.LocalTime;
-
+import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.OneToOne;
-import jakarta.persistence.Table;
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalTime;
 
 @Entity
 @Table(name = "orari_studio")
@@ -27,102 +18,67 @@ public class OrariStudio {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Un set di orari per ogni nutrizionista
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "utente_id", nullable = false, unique = true)
+    // Aggiunto collegamento obbligatorio al Nutrizionista!
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "nutrizionista_id", nullable = false)
     private Utente nutrizionista;
 
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private LocalTime oraApertura;
+    private DayOfWeek giornoSettimana;
 
     @Column(nullable = false)
+    private boolean giornoLavorativo;
+
+    // Legacy field to avoid 500 DB Constraint Error without dropping column via SQL
+    @Column(name = "lavora_sabato", nullable = false, columnDefinition = "boolean default false")
+    private boolean lavoraSabato = false;
+
+    private LocalTime oraApertura;
     private LocalTime oraChiusura;
 
-    // Pausa pranzo (opzionale)
-    private LocalTime pausaInizio;
-    private LocalTime pausaFine;
-
-    @Column(nullable = false)
-    private boolean lavoraSabato;
+    private LocalTime inizioPausaPranzo;
+    private LocalTime finePausaPranzo;
 
     @CreatedDate
-    @Column(nullable = false)
+    @Column(updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
-    @Column(nullable = false)
     private Instant updatedAt;
 
-    public Long getId() {
-        return id;
-    }
+    public OrariStudio() {}
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public Utente getNutrizionista() {
-        return nutrizionista;
-    }
-
-    public void setNutrizionista(Utente nutrizionista) {
-        this.nutrizionista = nutrizionista;
-    }
-
-    public LocalTime getOraApertura() {
-        return oraApertura;
-    }
-
-    public void setOraApertura(LocalTime oraApertura) {
-        this.oraApertura = oraApertura;
-    }
-
-    public LocalTime getOraChiusura() {
-        return oraChiusura;
-    }
-
-    public void setOraChiusura(LocalTime oraChiusura) {
-        this.oraChiusura = oraChiusura;
-    }
-
-    public LocalTime getPausaInizio() {
-        return pausaInizio;
-    }
-
-    public void setPausaInizio(LocalTime pausaInizio) {
-        this.pausaInizio = pausaInizio;
-    }
-
-    public LocalTime getPausaFine() {
-        return pausaFine;
-    }
-
-    public void setPausaFine(LocalTime pausaFine) {
-        this.pausaFine = pausaFine;
-    }
-
-    public boolean isLavoraSabato() {
-        return lavoraSabato;
-    }
-
-    public void setLavoraSabato(boolean lavoraSabato) {
-        this.lavoraSabato = lavoraSabato;
-    }
+    public Utente getNutrizionista() { return nutrizionista; }
+    public void setNutrizionista(Utente nutrizionista) { this.nutrizionista = nutrizionista; }
 
 
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
 
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
+    public DayOfWeek getGiornoSettimana() { return giornoSettimana; }
+    public void setGiornoSettimana(DayOfWeek giornoSettimana) { this.giornoSettimana = giornoSettimana; }
 
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
+    public boolean isGiornoLavorativo() { return giornoLavorativo; }
+    public void setGiornoLavorativo(boolean giornoLavorativo) { this.giornoLavorativo = giornoLavorativo; }
 
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-}
+    public LocalTime getOraApertura() { return oraApertura; }
+    public void setOraApertura(LocalTime oraApertura) { this.oraApertura = oraApertura; }
+
+    public LocalTime getOraChiusura() { return oraChiusura; }
+    public void setOraChiusura(LocalTime oraChiusura) { this.oraChiusura = oraChiusura; }
+
+    public LocalTime getInizioPausaPranzo() { return inizioPausaPranzo; }
+    public void setInizioPausaPranzo(LocalTime inizioPausaPranzo) { this.inizioPausaPranzo = inizioPausaPranzo; }
+
+    public LocalTime getFinePausaPranzo() { return finePausaPranzo; }
+    public void setFinePausaPranzo(LocalTime finePausaPranzo) { this.finePausaPranzo = finePausaPranzo; }
+
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
+
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+}

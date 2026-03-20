@@ -1,35 +1,16 @@
 package it.nutrizionista.restnutrizionista.entity;
 
-import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalTime;
-
+import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EntityListeners;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
-@Table(
-	    name = "appuntamenti",
-	    uniqueConstraints = {
-	        @jakarta.persistence.UniqueConstraint(
-	            columnNames = {"utente_id", "data", "ora"}			//questo serve per gestire bene le prenotazioni con data e ora
-	        )														//stesso giorno, ore diverse
-	    }															//stessa ora, giorni diversi
-	)
+@Table(name = "appuntamenti")
 @EntityListeners(AuditingEntityListener.class)
 public class Appuntamento {
 
@@ -37,45 +18,33 @@ public class Appuntamento {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "utente_id", nullable = false)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "nutrizionista_id")
     private Utente nutrizionista;
 
-    // Cliente - può essere null se il cliente non è registrato
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cliente_id", nullable = true)
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "cliente_id")
     private Cliente cliente;
 
-    // Campi per gestire clienti non registrati
-    @Column(name = "cliente_nome_temp")
-    private String clienteNomeTemp;
+    private String clienteNome;
+    private String clienteCognome;
+    private boolean clienteRegistrato;
 
-    @Column(name = "cliente_cognome_temp")
-    private String clienteCognomeTemp;
-
-
-    @Column(nullable = false, name = "descrizione_appuntamento")
+    @Column(length = 1000)
     private String descrizioneAppuntamento;
 
     @Column(nullable = false)
     private LocalDate data;
-
-    @Column(nullable = false)
+    
     private LocalTime ora;
 
-    //  Fine - necessaria per durata reale, resize, overlap
-    @Column(nullable = false, name = "end_data")
+    @Column(name = "end_data", nullable = false)
     private LocalDate endData;
-
-    @Column(nullable = false, name = "end_ora")
+    
+    @Column(name = "end_ora")
     private LocalTime endOra;
 
-    // Timezone  (es. "Europe/Rome")
-    @Column(nullable = false)
     private String timezone;
-
-    // All-day
-    @Column(nullable = false)
     private boolean allDay;
 
     @Enumerated(EnumType.STRING)
@@ -87,187 +56,81 @@ public class Appuntamento {
     private StatoAppuntamento stato;
 
     private String luogo;
-
-    @Column(nullable = false, name = "email_cliente")
     private String emailCliente;
 
     @CreatedDate
-    @Column(nullable = false)
+    @Column(updatable = false)
     private Instant createdAt;
 
     @LastModifiedDate
-    @Column(nullable = false)
     private Instant updatedAt;
 
-    // Enum per modalità
     public enum Modalita {
-        ONLINE,
-        IN_PRESENZA
+        IN_STUDIO, ONLINE, DOMICILIO
     }
 
-    // Enum per stato
     public enum StatoAppuntamento {
-        PROGRAMMATO,
-        CONFERMATO,
-        ANNULLATO
+        PRENOTATO, COMPLETATO, ANNULLATO, NON_PRESENTATO
     }
 
-    // Metodo helper per verificare se è un cliente registrato
-    public boolean isClienteRegistrato() {
-        return cliente != null;
+    public Appuntamento() {
     }
 
-    // Metodo helper per ottenere il nome del cliente
-    public String getClienteNomeCompleto() {
-        if (cliente != null) {
-            return cliente.getNome() + " " + cliente.getCognome();
-        }
-        return clienteNomeTemp + " " + clienteCognomeTemp;
-    }
+    // Getters and Setters
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    
-    public Long getId() {
-        return id;
-    }
+    public Utente getNutrizionista() { return nutrizionista; }
+    public void setNutrizionista(Utente nutrizionista) { this.nutrizionista = nutrizionista; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public Cliente getCliente() { return cliente; }
+    public void setCliente(Cliente cliente) { this.cliente = cliente; }
 
-    public Utente getNutrizionista() {
-        return nutrizionista;
-    }
+    public String getClienteNome() { return clienteNome; }
+    public void setClienteNome(String clienteNome) { this.clienteNome = clienteNome; }
 
-    public void setNutrizionista(Utente nutrizionista) {
-        this.nutrizionista = nutrizionista;
-    }
+    public String getClienteCognome() { return clienteCognome; }
+    public void setClienteCognome(String clienteCognome) { this.clienteCognome = clienteCognome; }
 
-    public Cliente getCliente() {
-        return cliente;
-    }
+    public boolean isClienteRegistrato() { return clienteRegistrato; }
+    public void setClienteRegistrato(boolean clienteRegistrato) { this.clienteRegistrato = clienteRegistrato; }
 
-    public void setCliente(Cliente cliente) {
-        this.cliente = cliente;
-    }
+    public String getDescrizioneAppuntamento() { return descrizioneAppuntamento; }
+    public void setDescrizioneAppuntamento(String descrizioneAppuntamento) { this.descrizioneAppuntamento = descrizioneAppuntamento; }
 
-    public String getClienteNomeTemp() {
-        return clienteNomeTemp;
-    }
+    public LocalDate getData() { return data; }
+    public void setData(LocalDate data) { this.data = data; }
 
-    public void setClienteNomeTemp(String clienteNomeTemp) {
-        this.clienteNomeTemp = clienteNomeTemp;
-    }
+    public LocalTime getOra() { return ora; }
+    public void setOra(LocalTime ora) { this.ora = ora; }
 
-    public String getClienteCognomeTemp() {
-        return clienteCognomeTemp;
-    }
+    public LocalDate getEndData() { return endData; }
+    public void setEndData(LocalDate endData) { this.endData = endData; }
 
-    public void setClienteCognomeTemp(String clienteCognomeTemp) {
-        this.clienteCognomeTemp = clienteCognomeTemp;
-    }
+    public LocalTime getEndOra() { return endOra; }
+    public void setEndOra(LocalTime endOra) { this.endOra = endOra; }
 
+    public String getTimezone() { return timezone; }
+    public void setTimezone(String timezone) { this.timezone = timezone; }
 
-    public String getDescrizioneAppuntamento() {
-        return descrizioneAppuntamento;
-    }
+    public boolean isAllDay() { return allDay; }
+    public void setAllDay(boolean allDay) { this.allDay = allDay; }
 
-    public void setDescrizioneAppuntamento(String descrizioneAppuntamento) {
-        this.descrizioneAppuntamento = descrizioneAppuntamento;
-    }
+    public Modalita getModalita() { return modalita; }
+    public void setModalita(Modalita modalita) { this.modalita = modalita; }
 
-    public LocalDate getData() {
-        return data;
-    }
+    public StatoAppuntamento getStato() { return stato; }
+    public void setStato(StatoAppuntamento stato) { this.stato = stato; }
 
-    public void setData(LocalDate data) {
-        this.data = data;
-    }
+    public String getLuogo() { return luogo; }
+    public void setLuogo(String luogo) { this.luogo = luogo; }
 
-    public LocalTime getOra() {
-        return ora;
-    }
+    public String getEmailCliente() { return emailCliente; }
+    public void setEmailCliente(String emailCliente) { this.emailCliente = emailCliente; }
 
-    public void setOra(LocalTime ora) {
-        this.ora = ora;
-    }
+    public Instant getCreatedAt() { return createdAt; }
+    public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 
-    public LocalDate getEndData() {
-        return endData;
-    }
-
-    public void setEndData(LocalDate endData) {
-        this.endData = endData;
-    }
-
-    public LocalTime getEndOra() {
-        return endOra;
-    }
-
-    public void setEndOra(LocalTime endOra) {
-        this.endOra = endOra;
-    }
-
-    public String getTimezone() {
-        return timezone;
-    }
-
-    public void setTimezone(String timezone) {
-        this.timezone = timezone;
-    }
-
-    public boolean isAllDay() {
-        return allDay;
-    }
-
-    public void setAllDay(boolean allDay) {
-        this.allDay = allDay;
-    }
-
-    public Modalita getModalita() {
-        return modalita;
-    }
-
-    public void setModalita(Modalita modalita) {
-        this.modalita = modalita;
-    }
-
-    public StatoAppuntamento getStato() {
-        return stato;
-    }
-
-    public void setStato(StatoAppuntamento stato) {
-        this.stato = stato;
-    }
-
-    public String getLuogo() {
-        return luogo;
-    }
-
-    public void setLuogo(String luogo) {
-        this.luogo = luogo;
-    }
-
-    public String getEmailCliente() {
-        return emailCliente;
-    }
-
-    public void setEmailCliente(String emailCliente) {
-        this.emailCliente = emailCliente;
-    }
-
-    public Instant getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Instant createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Instant getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Instant updatedAt) {
-        this.updatedAt = updatedAt;
-    }
+    public Instant getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
 }
