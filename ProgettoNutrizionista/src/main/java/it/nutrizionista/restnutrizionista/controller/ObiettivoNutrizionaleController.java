@@ -68,6 +68,19 @@ public class ObiettivoNutrizionaleController {
 	}
 
 	/**
+	 * POST /api/clienti/{clienteId}/obiettivo/storico
+	 * Archivia l'obiettivo attivo e ne crea uno nuovo (una riga in più nello storico).
+	 */
+	@PostMapping("/storico")
+	@PreAuthorize("hasAuthority('CLIENTE_UPDATE')")
+	public ResponseEntity<ObiettivoNutrizionaleDto> salvaNuovoStorico(
+			@PathVariable Long clienteId,
+			@Valid @RequestBody ObiettivoNutrizionaleFormDto form) {
+		ObiettivoNutrizionaleDto saved = service.salvaNuovoStorico(clienteId, form);
+		return ResponseEntity.ok(saved);
+	}
+
+	/**
 	 * POST /api/clienti/{clienteId}/obiettivo/calcola
 	 * Ricalcola BMR/TDEE e target macro dai dati del cliente.
 	 * Se mancano campi, restituisce 422 con la lista dei campi mancanti.

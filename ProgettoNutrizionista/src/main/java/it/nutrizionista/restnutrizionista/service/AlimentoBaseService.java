@@ -3,10 +3,12 @@ package it.nutrizionista.restnutrizionista.service;
 import java.time.Instant;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -191,7 +193,34 @@ public class AlimentoBaseService {
 	@Transactional(readOnly = true)
 	public List<AlimentoBaseDto> getTopAlimenti(int limit) {
 		Long utenteId = getCurrentUtente().getId();
-		return repo.findTopAlimentiByNutrizionista(utenteId, PageRequest.of(0, limit)).stream()
+		List<Long> ids = repo.findTopAlimentiIdsByNutrizionista(utenteId, PageRequest.of(0, limit));
+		if (ids.isEmpty()) return List.of();
+		// Carica entità con macro+tracce in una sola query, poi riordina come gli ID originali
+		List<AlimentoBase> entities = repo.findAllByIdInWithMacro(ids);
+		Map<Long, AlimentoBase> byId = entities.stream().collect(Collectors.toMap(AlimentoBase::getId, a -> a));
+		return ids.stream()
+				.map(byId::get)
+				.filter(java.util.Objects::nonNull)
+				.map(DtoMapper::toAlimentoBaseDtoLight)
+				.collect(Collectors.toList());
+	}
+
+	/**
+	 * [Task 18] Classifica globale degli alimenti più usati su tutta la piattaforma.
+	 * Risultato memorizzato in cache Spring ("topAlimentiGlobal") per evitare
+	 * Full Table Scan ad ogni richiesta. La cache è valida per l'intera sessione
+	 * del server (TTL configurabile aggiungendo Caffeine/Redis in futuro).
+	 */
+	@Cacheable("topAlimentiGlobal")
+	@Transactional(readOnly = true)
+	public List<AlimentoBaseDto> getTopAlimentiGlobal(int limit) {
+		List<Long> ids = repo.findTopAlimentiIdsGlobal(PageRequest.of(0, limit));
+		if (ids.isEmpty()) return List.of();
+		List<AlimentoBase> entities = repo.findAllByIdInWithMacro(ids);
+		Map<Long, AlimentoBase> byId = entities.stream().collect(Collectors.toMap(AlimentoBase::getId, a -> a));
+		return ids.stream()
+				.map(byId::get)
+				.filter(java.util.Objects::nonNull)
 				.map(DtoMapper::toAlimentoBaseDtoLight)
 				.collect(Collectors.toList());
 	}

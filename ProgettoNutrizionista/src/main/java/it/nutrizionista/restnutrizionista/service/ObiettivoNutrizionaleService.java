@@ -101,6 +101,56 @@ public class ObiettivoNutrizionaleService {
 	}
 
 	/**
+	 * Archivia l'obiettivo attivo corrente e ne crea uno NUOVO come attivo.
+	 * Ogni chiamata produce una nuova riga nel database, costruendo lo storico.
+	 * [SECURITY] ownershipValidator previene IDOR.
+	 */
+	@Transactional
+	public ObiettivoNutrizionaleDto salvaNuovoStorico(Long clienteId, @Valid ObiettivoNutrizionaleFormDto form) {
+		Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+
+		// 1. Archivia l'obiettivo attivo corrente
+		repo.findByCliente_IdAndAttivoTrue(clienteId).ifPresent(corrente -> {
+			corrente.setAttivo(false);
+			repo.save(corrente);
+		});
+
+		// 2. Crea il nuovo obiettivo come attivo
+		ObiettivoNutrizionale nuovo = new ObiettivoNutrizionale();
+		nuovo.setCliente(cliente);
+		nuovo.setAttivo(true);
+		nuovo.setDataCreazione(LocalDate.now());
+
+		nuovo.setObiettivo(form.getObiettivo());
+		nuovo.setNote(form.getNote());
+		nuovo.setTargetCalorie(form.getTargetCalorie());
+		nuovo.setTargetProteine(form.getTargetProteine());
+		nuovo.setTargetCarboidrati(form.getTargetCarboidrati());
+		nuovo.setTargetGrassi(form.getTargetGrassi());
+		nuovo.setTargetFibre(form.getTargetFibre());
+		nuovo.setPctProteine(form.getPctProteine());
+		nuovo.setPctCarboidrati(form.getPctCarboidrati());
+		nuovo.setPctGrassi(form.getPctGrassi());
+
+		// Lock states
+		nuovo.setLockedPctProteine(form.getLockedPctProteine() != null ? form.getLockedPctProteine() : false);
+		nuovo.setLockedPctCarboidrati(form.getLockedPctCarboidrati() != null ? form.getLockedPctCarboidrati() : false);
+		nuovo.setLockedPctGrassi(form.getLockedPctGrassi() != null ? form.getLockedPctGrassi() : false);
+		nuovo.setLockedGProteine(form.getLockedGProteine() != null ? form.getLockedGProteine() : false);
+		nuovo.setLockedGCarboidrati(form.getLockedGCarboidrati() != null ? form.getLockedGCarboidrati() : false);
+		nuovo.setLockedGGrassi(form.getLockedGGrassi() != null ? form.getLockedGGrassi() : false);
+
+		// Best-effort BMR/TDEE
+		try {
+			calcolaBmrTdee(nuovo, cliente);
+		} catch (Exception e) {
+			// BMR/TDEE rimangono null se dati insufficienti
+		}
+
+		return DtoMapper.toObiettivoNutrizionaleDto(repo.save(nuovo));
+	}
+
+	/**
 	 * Attiva un obiettivo specifico, disattivando quello corrente.
 	 */
 	@Transactional

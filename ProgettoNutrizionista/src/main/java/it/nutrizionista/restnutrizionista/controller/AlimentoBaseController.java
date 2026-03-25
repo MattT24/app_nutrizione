@@ -76,6 +76,13 @@ public class AlimentoBaseController {
         return ResponseEntity.ok(service.getTopAlimenti(limit));
     }
 
+    /** [Task 18] Classifica globale alimenti più usati su tutta la piattaforma (con cache). */
+    @GetMapping("/statistiche/globali")
+    @PreAuthorize("hasAuthority('ALIMENTO_READ')")
+    public ResponseEntity<List<AlimentoBaseDto>> getTopAlimentiGlobal(@RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(service.getTopAlimentiGlobal(limit));
+    }
+
 	/* ==========================================================
 	 * GESTIONE PREFERITI
 	 * ========================================================== */
