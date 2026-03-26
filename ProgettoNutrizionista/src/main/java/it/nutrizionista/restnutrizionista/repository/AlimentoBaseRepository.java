@@ -16,7 +16,7 @@ import jakarta.validation.Valid;
 public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long>{
 
 	@Override
-	@EntityGraph(attributePaths = {"macroNutrienti", "tracce"})
+	@EntityGraph(attributePaths = {"macroNutrienti"})
 	Page<AlimentoBase> findAll(Pageable pageable);
 
 	Optional<AlimentoBase> findByNome(@Valid String nome);
@@ -52,7 +52,10 @@ public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long
 	@Query("SELECT DISTINCT a.categoria FROM AlimentoBase a WHERE a.categoria IS NOT NULL ORDER BY a.categoria")
 	List<String> findDistinctCategorie();
 
-	/** Alimenti visibili: globali (createdBy IS NULL) + propri */
+	/** Alimenti visibili: globali (createdBy IS NULL) + propri.
+	 *  NB: NON includere collection (tracce) nell'EntityGraph con Pageable
+	 *  altrimenti Hibernate forza paginazione in-memoria (HHH90003004).
+	 */
 	@EntityGraph(attributePaths = {"macroNutrienti"})
 	@Query("SELECT a FROM AlimentoBase a WHERE a.createdBy IS NULL OR a.createdBy.id = :utenteId")
 	Page<AlimentoBase> findVisibleByUtente(@Param("utenteId") Long utenteId, Pageable pageable);
@@ -78,18 +81,39 @@ public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long
 	""")
 	List<AlimentoBase> searchByNomeRankedForUser(@Param("query") String query, @Param("utenteId") Long utenteId);
 
-	/** Più utilizzati per il nutrizionista corrente */
+	/** Più utilizzati per il nutrizionista corrente — restituisce solo gli ID
+	 *  perché @EntityGraph viene ignorato con GROUP BY */
 	@Query("""
-		SELECT a
+		SELECT a.id
 		FROM AlimentoPasto ap
 		JOIN ap.alimento a
 		JOIN ap.pasto p
 		JOIN p.scheda s
 		JOIN s.cliente c
 		WHERE c.nutrizionista.id = :utenteId
-		GROUP BY a
+		GROUP BY a.id
 		ORDER BY COUNT(ap.id) DESC
 	""")
-	List<AlimentoBase> findTopAlimentiByNutrizionista(@Param("utenteId") Long utenteId, Pageable pageable);
+	List<Long> findTopAlimentiIdsByNutrizionista(@Param("utenteId") Long utenteId, Pageable pageable);
+
+	/**
+	 * [Task 18] Classifica globale: alimenti più usati su TUTTA la piattaforma,
+	 * indipendentemente dal nutrizionista. Il risultato è pensato per essere
+	 * consumato con caching (@Cacheable) dato il costo della COUNT aggregata.
+	 */
+	@Query("""
+		SELECT a.id
+		FROM AlimentoPasto ap
+		JOIN ap.alimento a
+		GROUP BY a.id
+		ORDER BY COUNT(ap.id) DESC
+	""")
+	List<Long> findTopAlimentiIdsGlobal(Pageable pageable);
+
+	/** Carica entità per lista di ID con macro + tracce in una sola query */
+	@EntityGraph(attributePaths = {"macroNutrienti", "tracce"})
+	@Query("SELECT a FROM AlimentoBase a WHERE a.id IN :ids")
+	List<AlimentoBase> findAllByIdInWithMacro(@Param("ids") List<Long> ids);
 
 }
+
