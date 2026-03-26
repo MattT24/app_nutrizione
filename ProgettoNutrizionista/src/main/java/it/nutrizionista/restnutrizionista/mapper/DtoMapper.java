@@ -369,8 +369,8 @@ public class DtoMapper {
 		dto.setCognome(c.getCognome());
 		dto.setDataNascita(c.getDataNascita());
 		dto.setSesso(c.getSesso());
+		dto.setEmail(c.getEmail());
 		return dto;
-
 	}
 
 	// ─── ObiettivoNutrizionale ──────────────────────────────────────────

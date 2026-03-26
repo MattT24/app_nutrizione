@@ -18,7 +18,13 @@ import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.service.MisurazioneAntropometricaService;
+import it.nutrizionista.restnutrizionista.service.PdfService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PathVariable;
 import jakarta.validation.Valid;
+import it.nutrizionista.restnutrizionista.service.EmailService;
+import it.nutrizionista.restnutrizionista.dto.ShareRequest;
 
 @CrossOrigin(origins = "http://localhost:4200")
 @RestController
@@ -26,6 +32,8 @@ import jakarta.validation.Valid;
 public class MisurazioneAntropometricaController {
 
 	@Autowired private MisurazioneAntropometricaService service;
+	@Autowired private PdfService pdfService;
+	@Autowired private EmailService emailService;
 	
 	@PostMapping
 	@PreAuthorize("hasAuthority('MISURAZIONE_ANTROPOMETRICA_CREATE')")
@@ -51,8 +59,32 @@ public class MisurazioneAntropometricaController {
 	@GetMapping
 	@PreAuthorize("hasAuthority('MISURAZIONE_ANTROPOMETRICA_READ')")
 	public PageResponse<MisurazioneAntropometricaDto> allMisurazioniByCliente(
-	        @RequestParam Long clienteId, Pageable pageable){ 
+	        @RequestParam("clienteId") Long clienteId, Pageable pageable){ 
 	    return service.allMisurazioniCliente(clienteId, pageable);
+	}
+
+	@GetMapping("/{id}/pdf")
+	@PreAuthorize("hasAuthority('MISURAZIONE_ANTROPOMETRICA_READ')")
+	public ResponseEntity<byte[]> getPdf(@PathVariable("id") Long id) {
+		byte[] pdf = pdfService.generaPdfMisurazione(id);
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"misurazione_" + id + ".pdf\"")
+				.contentType(MediaType.APPLICATION_PDF)
+				.body(pdf);
+	}
+
+	@PostMapping("/{id}/share")
+	@PreAuthorize("hasAuthority('MISURAZIONE_ANTROPOMETRICA_READ')")
+	public ResponseEntity<java.util.Map<String, String>> sharePdfViaEmail(@PathVariable("id") Long id, @Valid @RequestBody ShareRequest req) {
+		byte[] pdf = pdfService.generaPdfMisurazione(id);
+		emailService.sendPdfEmail(
+				req.getEmail(),
+				"Il tuo report di Misurazione Antropometrica",
+				"In allegato trovi il tuo report di misurazione antropometrica in formato PDF.",
+				pdf,
+				"misurazione_" + id + ".pdf"
+		);
+		return ResponseEntity.ok(java.util.Map.of("message", "Email inviata con successo!"));
 	}
 
 }

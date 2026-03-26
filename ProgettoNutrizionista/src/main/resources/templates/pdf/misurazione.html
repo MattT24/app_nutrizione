@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Report Misurazione Antropometrica</title>
+    <style>
+        body { font-family: 'Helvetica', 'Arial', sans-serif; padding: 20px; color: #333; }
+        h1 { color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; }
+        .header-info { margin-bottom: 30px; }
+        .header-info p { margin: 5px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #bdc3c7; padding: 12px; text-align: left; }
+        th { background-color: #ecf0f1; color: #2c3e50; }
+    </style>
+</head>
+<body>
+
+    <h1>Misurazione Antropometrica</h1>
+    
+    <div class="header-info">
+        <p><strong>Cliente:</strong> <span th:text="${misurazione.cliente.nome + ' ' + misurazione.cliente.cognome}">Nome Cognome</span></p>
+        <p><strong>Data Misurazione:</strong> <span th:text="${#temporals.format(misurazione.dataMisurazione, 'dd/MM/yyyy')}">01/01/2026</span></p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Punto di Misurazione</th>
+                <th>Valore (cm)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>Spalle</td>
+                <td th:text="${misurazione.spalle != null ? misurazione.spalle : '-'}"></td>
+            </tr>
+            <tr>
+                <td>Vita</td>
+                <td th:text="${misurazione.vita != null ? misurazione.vita : '-'}"></td>
+            </tr>
+            <tr>
+                <td>Fianchi</td>
+                <td th:text="${misurazione.fianchi != null ? misurazione.fianchi : '-'}"></td>
+            </tr>
+            <tr>
+                <td>Torace</td>
+                <td th:text="${misurazione.torace != null ? misurazione.torace : '-'}"></td>
+            </tr>
+            <tr>
+                <td>Gamba Sinistra</td>
+                <td th:text="${misurazione.gambaS != null ? misurazione.gambaS : '-'}"></td>
+            </tr>
+            <tr>
+                <td>Gamba Destra</td>
+                <td th:text="${misurazione.gambaD != null ? misurazione.gambaD : '-'}"></td>
+            </tr>
+            <tr>
+                <td>Bicipite Sinistro</td>
+                <td th:text="${misurazione.bicipiteS != null ? misurazione.bicipiteS : '-'}"></td>
+            </tr>
+            <tr>
+                <td>Bicipite Destro</td>
+                <td th:text="${misurazione.bicipiteD != null ? misurazione.bicipiteD : '-'}"></td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>
