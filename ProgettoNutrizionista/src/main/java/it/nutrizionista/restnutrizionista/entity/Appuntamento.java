@@ -19,7 +19,7 @@ public class Appuntamento {
     private Long id;
 
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "nutrizionista_id")
+    @JoinColumn(name = "utente_id")
     private Utente nutrizionista;
 
     @ManyToOne(fetch = FetchType.EAGER)

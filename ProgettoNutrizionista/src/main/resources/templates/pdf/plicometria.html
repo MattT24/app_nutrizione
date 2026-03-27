@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Report Analisi Plicometrica</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm 12mm 10mm 12mm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #1a1a2e;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #fff;
+        }
+
+        /* ─── HEADER ─── */
+        .nutri-header {
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #2d6a4f;
+        }
+
+        .nutri-header table {
+            width: 100%;
+        }
+
+        .nutri-header td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        .nutri-logo {
+            width: 60px;
+            height: 60px;
+        }
+
+        .nutri-logo-cell {
+            width: 70px;
+        }
+
+        .nutri-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d6a4f;
+        }
+
+        .nutri-info {
+            font-size: 10px;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        /* ─── TITOLO DOCUMENTO ─── */
+        .doc-header {
+            margin-bottom: 22px;
+        }
+
+        .doc-header table {
+            width: 100%;
+        }
+
+        .doc-header td {
+            vertical-align: bottom;
+            border: none;
+            padding: 0;
+        }
+
+        .doc-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2d6a4f;
+        }
+
+        .doc-date {
+            text-align: right;
+            font-size: 11px;
+            color: #6c757d;
+        }
+
+        /* ─── INFO PAZIENTE ─── */
+        .patient-bar {
+            background: #f0faf4;
+            border-left: 4px solid #2d6a4f;
+            padding: 10px 16px;
+            margin-bottom: 20px;
+        }
+
+        .patient-bar table {
+            width: 100%;
+        }
+
+        .patient-bar td {
+            border: none;
+            padding: 2px 0;
+            font-size: 12px;
+        }
+
+        .patient-bar .lbl {
+            color: #6c757d;
+            text-transform: uppercase;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .patient-bar .val {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        /* ─── TABELLA DATI ─── */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #6c757d;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .data-table td {
+            padding: 10px 16px;
+            border-bottom: 1px solid #f1f3f5;
+            vertical-align: middle;
+            font-size: 12px;
+        }
+
+        .data-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .data-value {
+            text-align: right;
+            font-weight: 700;
+            color: #2d6a4f;
+            font-size: 13px;
+        }
+
+        .unit {
+            font-size: 10px;
+            font-weight: 400;
+            color: #6c757d;
+            margin-left: 4px;
+        }
+
+        /* ─── RISULTATI ─── */
+        .results-box {
+            background: #e8f5e9;
+            border-radius: 4px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+
+        .results-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #2d6a4f;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #c8e6c9;
+            padding-bottom: 4px;
+        }
+
+        .result-item {
+            margin-bottom: 6px;
+        }
+
+        .result-lbl {
+            font-size: 11px;
+            color: #495057;
+        }
+
+        .result-val {
+            font-size: 16px;
+            font-weight: 700;
+            color: #1b5e20;
+        }
+
+        .note-box {
+            font-size: 11px;
+            color: #6c757d;
+            font-style: italic;
+            padding: 10px 16px;
+            background: #fdfdfd;
+            border-left: 2px solid #dee2e6;
+            margin-bottom: 20px;
+        }
+
+        /* ─── FOOTER ─── */
+        .doc-footer {
+            margin-top: 20px;
+            padding-top: 8px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 8px;
+            color: #ced4da;
+        }
+
+        .doc-footer p {
+            margin: 2px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- INTESTAZIONE NUTRIZIONISTA -->
+    <div class="nutri-header" th:if="${nutrizionista != null}">
+        <table>
+            <tr>
+                <td class="nutri-logo-cell" th:if="${logoBase64 != null}">
+                    <img class="nutri-logo" th:src="${logoBase64}" alt="Logo" />
+                </td>
+                <td>
+                    <div class="nutri-name" th:text="${'Dott. ' + nutrizionista.nome + ' ' + nutrizionista.cognome}">Dott. Nome Cognome</div>
+                    <div class="nutri-info">
+                        <span th:if="${nutrizionista.email != null}" th:text="${nutrizionista.email}">email@example.com</span>
+                        <span th:if="${nutrizionista.telefono != null}"> &#160;|&#160; </span>
+                        <span th:if="${nutrizionista.telefono != null}" th:text="${nutrizionista.telefono}">333 1234567</span>
+                        <br th:if="${nutrizionista.indirizzo != null}" />
+                        <span th:if="${nutrizionista.indirizzo != null}" th:text="${nutrizionista.indirizzo}">Via Roma 1, Milano</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- TITOLO DOCUMENTO -->
+    <div class="doc-header">
+        <table>
+            <tr>
+                <td>
+                    <div class="doc-title">Analisi Plicometrica</div>
+                </td>
+                <td class="doc-date">
+                    <div th:if="${plicometria.dataMisurazione != null}" th:text="${#temporals.format(plicometria.dataMisurazione, 'dd/MM/yyyy')}">27/03/2026</div>
+                    <div th:text="'Metodo: ' + ${plicometria.metodo}">Metodo: JP3</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- INFO PAZIENTE -->
+    <div class="patient-bar" th:if="${plicometria.cliente != null}">
+        <table>
+            <tr>
+                <td>
+                    <span class="lbl">Paziente</span><br />
+                    <span class="val" th:text="${plicometria.cliente.nome + ' ' + plicometria.cliente.cognome}">Mario Rossi</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- TABELLA PLICHE -->
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>Plica</th>
+                <th style="text-align: right;">Misurazione</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr th:if="${plicometria.tricipite != null}">
+                <td class="data-label">Tricipite</td>
+                <td class="data-value"><span th:text="${plicometria.tricipite}"></span><span class="unit">mm</span></td>
+            </tr>
+            <tr th:if="${plicometria.bicipite != null}">
+                <td class="data-label">Bicipite</td>
+                <td class="data-value"><span th:text="${plicometria.bicipite}"></span><span class="unit">mm</span></td>
+            </tr>
+            <tr th:if="${plicometria.sottoscapolare != null}">
+                <td class="data-label">Sottoscapolare</td>
+                <td class="data-value"><span th:text="${plicometria.sottoscapolare}"></span><span class="unit">mm</span></td>
+            </tr>
+            <tr th:if="${plicometria.sovrailiaca != null}">
+                <td class="data-label">Sovrailiaca</td>
+                <td class="data-value"><span th:text="${plicometria.sovrailiaca}"></span><span class="unit">mm</span></td>
+            </tr>
+            <tr th:if="${plicometria.addominale != null}">
+                <td class="data-label">Addominale</td>
+                <td class="data-value"><span th:text="${plicometria.addominale}"></span><span class="unit">mm</span></td>
+            </tr>
+            <tr th:if="${plicometria.coscia != null}">
+                <td class="data-label">Coscia</td>
+                <td class="data-value"><span th:text="${plicometria.coscia}"></span><span class="unit">mm</span></td>
+            </tr>
+            <tr th:if="${plicometria.pettorale != null}">
+                <td class="data-label">Pettorale</td>
+                <td class="data-value"><span th:text="${plicometria.pettorale}"></span><span class="unit">mm</span></td>
+            </tr>
+            <tr th:if="${plicometria.ascellare != null}">
+                <td class="data-label">Ascellare</td>
+                <td class="data-value"><span th:text="${plicometria.ascellare}"></span><span class="unit">mm</span></td>
+            </tr>
+            <tr th:if="${plicometria.polpaccio != null}">
+                <td class="data-label">Polpaccio</td>
+                <td class="data-value"><span th:text="${plicometria.polpaccio}"></span><span class="unit">mm</span></td>
+            </tr>
+        </tbody>
+    </table>
+
+    <!-- RISULTATI CALCOLATI -->
+    <div class="results-box">
+        <div class="results-title">Risultati Elaborati</div>
+        <table style="width: 100%;">
+            <tr>
+                <td style="width: 33%; border: none;">
+                    <div class="result-lbl">Massa Grassa (%)</div>
+                    <div class="result-val" th:text="${plicometria.percentualeMassaGrassa != null ? T(java.lang.String).format('%.2f', plicometria.percentualeMassaGrassa) + '%' : '-'}">-</div>
+                </td>
+                <td style="width: 33%; border: none;">
+                    <div class="result-lbl">Massa Grassa (kg)</div>
+                    <div class="result-val" th:text="${plicometria.massaGrassaKg != null ? T(java.lang.String).format('%.2f', plicometria.massaGrassaKg) + ' kg' : '-'}">-</div>
+                </td>
+                <td style="width: 33%; border: none;">
+                    <div class="result-lbl">Massa Magra (kg)</div>
+                    <div class="result-val" th:text="${plicometria.massaMagraKg != null ? T(java.lang.String).format('%.2f', plicometria.massaMagraKg) + ' kg' : '-'}">-</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- NOTE -->
+    <div class="note-box" th:if="${plicometria.note != null && !plicometria.note.isEmpty()}">
+        <strong>Note:</strong> <span th:text="${plicometria.note}"></span>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="doc-footer">
+        <p>Documento riservato al destinatario — generato digitalmente da Statera Nutrition</p>
+        <p>I calcoli sono stime basate su modelli antropometrici standard</p>
+    </div>
+
+</body>
+
+</html>

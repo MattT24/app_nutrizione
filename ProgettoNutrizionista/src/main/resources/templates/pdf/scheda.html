@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Piano Alimentare</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 10mm 12mm 10mm 12mm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #1a1a2e;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #fff;
+        }
+
+        /* ─── HEADER ─── */
+        .doc-header {
+            border-bottom: 3px solid #2d6a4f;
+            padding-bottom: 14px;
+            margin-bottom: 20px;
+        }
+
+        .doc-header table {
+            width: 100%;
+        }
+
+        .doc-header td {
+            vertical-align: bottom;
+            border: none;
+            padding: 0;
+        }
+
+        .brand {
+            font-size: 10px;
+            color: #6c757d;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        .doc-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d6a4f;
+            margin-top: 2px;
+        }
+
+        .doc-date {
+            text-align: right;
+            font-size: 11px;
+            color: #6c757d;
+        }
+
+        /* ─── INFO PAZIENTE ─── */
+        .patient-bar {
+            background: #f0faf4;
+            border-left: 4px solid #2d6a4f;
+            padding: 10px 16px;
+            margin-bottom: 22px;
+        }
+
+        .patient-bar table {
+            width: 100%;
+        }
+
+        .patient-bar td {
+            border: none;
+            padding: 2px 0;
+            font-size: 12px;
+        }
+
+        .patient-bar .lbl {
+            color: #6c757d;
+            text-transform: uppercase;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .patient-bar .val {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        /* ─── PASTO ─── */
+        .pasto {
+            margin-bottom: 18px;
+            page-break-inside: avoid;
+        }
+
+        .pasto-head {
+            background: #2d6a4f;
+            color: #ffffff;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .pasto-head table {
+            width: 100%;
+        }
+
+        .pasto-head td {
+            border: none;
+            padding: 0;
+            color: #ffffff;
+        }
+
+        .pasto-time {
+            text-align: right;
+            font-size: 12px;
+            font-weight: 400;
+            opacity: 0.85;
+        }
+
+        .pasto-desc {
+            background: #f8f9fa;
+            padding: 6px 16px;
+            font-size: 11px;
+            color: #495057;
+            font-style: italic;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        /* ─── TABELLA ALIMENTI ─── */
+        .food-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .food-table th {
+            background: #f8f9fa;
+            text-align: left;
+            padding: 7px 16px;
+            font-size: 9px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #6c757d;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .food-table th.qty-col {
+            text-align: right;
+            width: 110px;
+        }
+
+        .food-table td {
+            padding: 8px 16px;
+            border-bottom: 1px solid #f1f3f5;
+            vertical-align: middle;
+        }
+
+        .food-name {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .food-cat {
+            font-size: 10px;
+            color: #adb5bd;
+            margin-top: 1px;
+        }
+
+        .food-qty {
+            text-align: right;
+            font-weight: 700;
+            color: #2d6a4f;
+            font-size: 13px;
+        }
+
+        /* ─── INTESTAZIONE NUTRIZIONISTA ─── */
+        .nutri-header {
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #2d6a4f;
+        }
+
+        .nutri-header table {
+            width: 100%;
+        }
+
+        .nutri-header td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        .nutri-logo {
+            width: 60px;
+            height: 60px;
+            border: 1px solid #dee2e6; /* Debug border */
+        }
+
+        .nutri-logo-cell {
+            width: 70px;
+        }
+
+        .nutri-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d6a4f;
+        }
+
+        .nutri-info {
+            font-size: 10px;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        /* ─── TITOLO SCHEDA ─── */
+        .doc-header {
+            margin-bottom: 20px;
+        }
+
+        .doc-header table {
+            width: 100%;
+        }
+
+        .doc-header td {
+            vertical-align: bottom;
+            border: none;
+            padding: 0;
+        }
+
+        .doc-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2d6a4f;
+        }
+
+        .doc-date {
+            text-align: right;
+            font-size: 11px;
+            color: #6c757d;
+        }
+
+        .food-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* ─── GIORNO LABEL ─── */
+        .giorno-label {
+            font-size: 10px;
+            font-weight: 400;
+            opacity: 0.85;
+            margin-left: 8px;
+        }
+
+        /* ─── FOOTER ─── */
+        .doc-footer {
+            margin-top: 14px;
+            padding-top: 8px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 8px;
+            color: #ced4da;
+        }
+
+        .doc-footer p {
+            margin: 2px 0;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- INTESTAZIONE NUTRIZIONISTA -->
+    <div class="nutri-header" th:if="${nutrizionista != null}">
+        <table>
+            <tr>
+                <td class="nutri-logo-cell" th:if="${logoBase64 != null}">
+                    <img class="nutri-logo" th:src="${logoBase64}" alt="Logo" />
+                </td>
+                <td>
+                    <div class="nutri-name" th:text="${'Dott. ' + nutrizionista.nome + ' ' + nutrizionista.cognome}">Dott. Nome Cognome</div>
+                    <div class="nutri-info">
+                        <span th:if="${nutrizionista.email != null}" th:text="${nutrizionista.email}">email@example.com</span>
+                        <span th:if="${nutrizionista.telefono != null}"> &#160;|&#160; </span>
+                        <span th:if="${nutrizionista.telefono != null}" th:text="${nutrizionista.telefono}">333 1234567</span>
+                        <br th:if="${nutrizionista.indirizzo != null}" />
+                        <span th:if="${nutrizionista.indirizzo != null}" th:text="${nutrizionista.indirizzo}">Via Roma 1, Milano</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- TITOLO SCHEDA -->
+    <div class="doc-header">
+        <table>
+            <tr>
+                <td>
+                    <div class="doc-title" th:text="${scheda.nome != null ? scheda.nome : 'Piano Alimentare'}">Piano Alimentare</div>
+                </td>
+                <td class="doc-date">
+                    <div th:if="${scheda.dataCreazione != null}" th:text="${#temporals.format(scheda.dataCreazione, 'dd/MM/yyyy')}">26/03/2026</div>
+                    <div th:text="'Tipo: ' + ${scheda.tipo}">Tipo: GIORNALIERA</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- INFO PAZIENTE -->
+    <div class="patient-bar" th:if="${scheda.cliente != null}">
+        <table>
+            <tr>
+                <td>
+                    <span class="lbl">Paziente</span><br />
+                    <span class="val" th:text="${scheda.cliente.nome + ' ' + scheda.cliente.cognome}">Mario Rossi</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- PASTI -->
+    <div th:each="pasto : ${scheda.pasti}" class="pasto">
+
+        <div class="pasto-head">
+            <table>
+                <tr>
+                    <td>
+                        <span th:text="${pasto.nome != null ? pasto.nome : 'Pasto'}">Colazione</span>
+                        <span class="giorno-label" th:if="${pasto.giorno != null}" th:text="'(' + ${pasto.giorno} + ')'"></span>
+                    </td>
+                    <td class="pasto-time">
+                        <span th:if="${pasto.orarioInizio != null}" th:text="${#temporals.format(pasto.orarioInizio, 'HH:mm')}">08:00</span>
+                        <span th:if="${pasto.orarioInizio != null and pasto.orarioFine != null}"> — </span>
+                        <span th:if="${pasto.orarioFine != null}" th:text="${#temporals.format(pasto.orarioFine, 'HH:mm')}">08:30</span>
+                    </td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="pasto-desc" th:if="${pasto.descrizione != null and !pasto.descrizione.isEmpty()}">
+            <span th:text="${pasto.descrizione}">Descrizione del pasto</span>
+        </div>
+
+        <table class="food-table">
+            <thead>
+                <tr>
+                    <th>Alimento</th>
+                    <th class="qty-col">Quantità</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="ap : ${pasto.alimentiPasto}">
+                    <td>
+                        <div class="food-name"
+                             th:text="${ap.nomeOverride != null ? ap.nomeOverride.nomeCustom : (ap.alimento != null ? ap.alimento.nome : 'N/D')}">
+                            Uova intere
+                        </div>
+                        <div class="food-cat"
+                             th:if="${ap.alimento != null and ap.alimento.categoria != null}"
+                             th:text="${ap.alimento.categoria}">Proteine</div>
+                    </td>
+                    <td class="food-qty"
+                        th:text="${ap.quantita > 0 ? ap.quantita + ' g' : 'A volontà'}">150 g</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="doc-footer">
+        <p>Documento riservato al destinatario — generato digitalmente da Statera Nutrition</p>
+        <p>Consultare il professionista prima di modificare il piano</p>
+    </div>
+
+</body>
+
+</html>

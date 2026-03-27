@@ -37,6 +37,8 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>{
     	      and (
     	        lower(c.nome) like lower(concat('%', :q, '%'))
     	        or lower(c.cognome) like lower(concat('%', :q, '%'))
+    	        or lower(concat(c.nome, ' ', c.cognome)) like lower(concat('%', :q, '%'))
+    	        or lower(concat(c.cognome, ' ', c.nome)) like lower(concat('%', :q, '%'))
     	      )
     	    order by c.cognome asc, c.nome asc
     	""")

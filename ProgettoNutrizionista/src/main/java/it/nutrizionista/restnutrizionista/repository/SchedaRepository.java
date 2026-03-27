@@ -8,20 +8,24 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import it.nutrizionista.restnutrizionista.entity.Scheda;
 
 public interface SchedaRepository extends JpaRepository<Scheda, Long> {
 
 	List<Scheda> findByCliente_IdAndAttivaTrue(Long id);
+	
+	@Query(value = "SELECT COUNT(*) FROM schede s JOIN clienti c ON s.cliente_id = c.id WHERE c.utente_id = :nutrizionistaId AND s.attiva = 1", nativeQuery = true)
+	long countByAttivaTrueAndCliente_Nutrizionista_Id(@Param("nutrizionistaId") Long nutrizionistaId);
 //TODO da ricontrollare
 	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto", "pasti.alimentiPasto.nomeOverride"})
     @Query("SELECT s FROM Scheda s WHERE s.id = :id")
-    Optional<Scheda> findByIdWithPastiAndAlimenti(Long id);
+    Optional<Scheda> findByIdWithPastiAndAlimenti(@Param("id") Long id);
 	
 	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto", "pasti.alimentiPasto.nomeOverride"})
     @Query("SELECT s FROM Scheda s WHERE s.id = :id AND s.cliente.nutrizionista.id = :nutrizionistaId")
-    Optional<Scheda> findByIdWithPastiAndAlimentiMine(Long id, Long nutrizionistaId);
+    Optional<Scheda> findByIdWithPastiAndAlimentiMine(@Param("id") Long id, @Param("nutrizionistaId") Long nutrizionistaId);
 	
 	Optional<Scheda> findByIdAndCliente_Nutrizionista_Id(Long id, Long nutrizionistaId);
 	List<Scheda> findByCliente_Id(Long id);
@@ -37,5 +41,5 @@ public interface SchedaRepository extends JpaRepository<Scheda, Long> {
 	    JOIN FETCH c.nutrizionista n
 	    WHERE s.id = :id AND n.id = :nutrizionistaId
 	    """)
-	Optional<Scheda> findByIdWithFullDetailsMine(Long id, Long nutrizionistaId);
+	Optional<Scheda> findByIdWithFullDetailsMine(@Param("id") Long id, @Param("nutrizionistaId") Long nutrizionistaId);
 }

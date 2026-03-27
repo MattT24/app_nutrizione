@@ -19,7 +19,13 @@ import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PlicometriaDto;
 import it.nutrizionista.restnutrizionista.dto.PlicometriaFormDto;
 import it.nutrizionista.restnutrizionista.service.PlicometriaService;
+import it.nutrizionista.restnutrizionista.service.PdfService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.PathVariable;
 import jakarta.validation.Valid;
+import it.nutrizionista.restnutrizionista.service.EmailService;
+import it.nutrizionista.restnutrizionista.dto.ShareRequest;
 
 @CrossOrigin(origins = "http://localhost:4200")
 @RestController
@@ -28,6 +34,10 @@ public class PlicometriaController {
 
     @Autowired 
     private PlicometriaService service;
+	@Autowired
+	private PdfService pdfService;
+	@Autowired
+	private EmailService emailService;
     
     @PostMapping
     @PreAuthorize("hasAuthority('PLICOMETRIA_CREATE')")
@@ -53,8 +63,32 @@ public class PlicometriaController {
     @GetMapping
     @PreAuthorize("hasAuthority('PLICOMETRIA_READ')")
     public PageResponse<PlicometriaDto> allPlicometrieByCliente(
-            @RequestParam Long clienteId, Pageable pageable){ 
+            @RequestParam("clienteId") Long clienteId, Pageable pageable){ 
         return service.allPlicometrieByCliente(clienteId, pageable);
     }
+
+	@GetMapping("/{id}/pdf")
+	@PreAuthorize("hasAuthority('PLICOMETRIA_READ')")
+	public ResponseEntity<byte[]> getPdf(@PathVariable("id") Long id) {
+		byte[] pdf = pdfService.generaPdfPlicometria(id);
+		return ResponseEntity.ok()
+				.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"plicometria_" + id + ".pdf\"")
+				.contentType(MediaType.APPLICATION_PDF)
+				.body(pdf);
+	}
+
+	@PostMapping("/{id}/share")
+	@PreAuthorize("hasAuthority('PLICOMETRIA_READ')")
+	public ResponseEntity<java.util.Map<String, String>> sharePdfViaEmail(@PathVariable("id") Long id, @Valid @RequestBody ShareRequest req) {
+		byte[] pdf = pdfService.generaPdfPlicometria(id);
+		emailService.sendPdfEmail(
+				req.getEmail(),
+				"Il tuo report di Plicometria",
+				"In allegato trovi il tuo report di plicometria in formato PDF.",
+				pdf,
+				"plicometria_" + id + ".pdf"
+		);
+		return ResponseEntity.ok(java.util.Map.of("message", "Email inviata con successo!"));
+	}
 
 }

@@ -35,47 +35,52 @@ public class AppuntamentoController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasAuthority('APPUNTAMENTO_UPDATE')")
-    public ResponseEntity<AppuntamentoDto> update(@PathVariable Long id, @Valid @RequestBody AppuntamentoFormDto form) {
+    public ResponseEntity<AppuntamentoDto> update(@PathVariable("id") Long id, @Valid @RequestBody AppuntamentoFormDto form) {
         return ResponseEntity.ok(service.update(id, form));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasAuthority('APPUNTAMENTO_READ')")
-    public ResponseEntity<AppuntamentoDto> getById(@PathVariable Long id) {
+    public ResponseEntity<AppuntamentoDto> getById(@PathVariable("id") Long id) {
         return ResponseEntity.ok(service.getById(id));
     }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAuthority('APPUNTAMENTO_DELETE')")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable("id") Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // FullCalendar range
     @GetMapping("/me")
     @PreAuthorize("hasAuthority('APPUNTAMENTO_READ')")
     public List<CalendarEventDto> myEvents(
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
+        @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+        @RequestParam("end") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end
     ) {
         return service.getMyCalendarEvents(start, end);
+    }
+
+    @GetMapping("/upcoming")
+    @PreAuthorize("hasAuthority('APPUNTAMENTO_READ')")
+    public List<AppuntamentoDto> getUpcoming() {
+        return service.getUpcoming();
     }
 
     // Drag & drop / resize
     @PatchMapping("/{id}/move")
     @PreAuthorize("hasAuthority('APPUNTAMENTO_UPDATE')")
     public ResponseEntity<AppuntamentoDto> move(
-        @PathVariable Long id,
-        @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
-        @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end
+        @PathVariable("id") Long id,
+        @RequestParam("start") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime start,
+        @RequestParam(value = "end", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime end
     ) {
         return ResponseEntity.ok(service.moveResize(id, start, end));
     }
     
     @GetMapping("/me/clienti/dropdown")
     @PreAuthorize("hasAuthority('APPUNTAMENTO_READ')")
-    public List<ClienteDropdownDto> dropdownClienti(@RequestParam String q) {
+    public List<ClienteDropdownDto> dropdownClienti(@RequestParam("q") String q) {
         return service.searchMyClientsForDropdown(q);
     }
 
