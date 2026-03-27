@@ -93,6 +93,16 @@ public class AppuntamentoService {
         appuntamentoRepository.save(esistente);
     }
 
+    public List<AppuntamentoDto> getUpcoming() {
+        Utente nutrizionista = currentUserService.getMe();
+        return appuntamentoRepository.findTop4ByNutrizionistaIdAndDataGreaterThanEqualOrderByDataAscOraAsc(
+                nutrizionista.getId(), LocalDate.now())
+                .stream()
+                .filter(a -> a.getStato() != Appuntamento.StatoAppuntamento.ANNULLATO)
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
     /**
      * Interfaccia Angular Calendar / Full Calendar: ritorna gli eventi di "/me" formattati
      */
@@ -113,9 +123,15 @@ public class AppuntamentoService {
             event.setAllDay(app.isAllDay());
             
             // Compone il titolo
-            String nomeCliente = app.isClienteRegistrato() && app.getCliente() != null 
-                    ? app.getCliente().getNome() + " " + app.getCliente().getCognome()
-                    : app.getClienteNome() + " " + app.getClienteCognome();
+            // Compone il titolo: priorità al nome manuale (se presente), altrimenti al cliente registrato
+            String manualName = (app.getClienteNome() != null && !app.getClienteNome().isBlank()) 
+                    ? app.getClienteNome() + " " + app.getClienteCognome() 
+                    : null;
+            
+            String nomeCliente = manualName != null 
+                    ? manualName 
+                    : (app.getCliente() != null ? app.getCliente().getNome() + " " + app.getCliente().getCognome() : "Anonimo");
+            
             event.setTitle(nomeCliente + (app.getModalita() != null ? " - " + app.getModalita() : ""));
             
             // Imposta start e end formattati ISO per Angular

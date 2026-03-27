@@ -32,4 +32,7 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
             @Param("start") LocalDate start, 
             @Param("end") LocalDate end
     );
+
+    List<Appuntamento> findTop4ByNutrizionistaIdAndDataGreaterThanEqualOrderByDataAscOraAsc(
+            @Param("nutrizionistaId") Long nutrizionistaId, @Param("data") LocalDate data);
 }

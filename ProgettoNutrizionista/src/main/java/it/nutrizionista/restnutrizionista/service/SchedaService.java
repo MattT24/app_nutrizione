@@ -42,6 +42,12 @@ public class SchedaService {
 	@Autowired private OwnershipValidator ownershipValidator;
 	@Autowired private DefaultMealTimesService defaultMealTimesService;
 	@Autowired private AlimentoPastoRepository repoAlimentoPasto;
+	@Autowired private CurrentUserService currentUserService;
+	
+	@Transactional(readOnly = true)
+	public long countAttive() {
+		return repo.countByAttivaTrueAndCliente_Nutrizionista_Id(currentUserService.getMe().getId());
+	}
 	
 
 	@Transactional

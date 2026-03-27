@@ -36,8 +36,15 @@ public class PdfService {
     public byte[] generaPdfMisurazione(Long id) {
         MisurazioneAntropometrica misurazione = misurazioneRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Misurazione non trovata"));
+        
         Context context = new Context();
         context.setVariable("misurazione", misurazione);
+        
+        // Carica dati nutrizionista e logo
+        if (misurazione.getCliente() != null) {
+            addProfessionalHeaderData(context, misurazione.getCliente());
+        }
+
         String html = templateEngine.process("pdf/misurazione", context);
         return renderPdf(html);
     }
@@ -46,8 +53,15 @@ public class PdfService {
     public byte[] generaPdfPlicometria(Long id) {
         Plicometria plicometria = plicometriaRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Plicometria non trovata"));
+        
         Context context = new Context();
         context.setVariable("plicometria", plicometria);
+        
+        // Carica dati nutrizionista e logo
+        if (plicometria.getCliente() != null) {
+            addProfessionalHeaderData(context, plicometria.getCliente());
+        }
+
         String html = templateEngine.process("pdf/plicometria", context);
         return renderPdf(html);
     }
@@ -77,8 +91,17 @@ public class PdfService {
         context.setVariable("scheda", scheda);
 
         // Carica dati nutrizionista e logo
-        if (scheda.getCliente() != null && scheda.getCliente().getNutrizionista() != null) {
-            var nutrizionista = scheda.getCliente().getNutrizionista();
+        if (scheda.getCliente() != null) {
+            addProfessionalHeaderData(context, scheda.getCliente());
+        }
+
+        String html = templateEngine.process("pdf/scheda", context);
+        return renderPdf(html);
+    }
+
+    private void addProfessionalHeaderData(Context context, it.nutrizionista.restnutrizionista.entity.Cliente cliente) {
+        if (cliente.getNutrizionista() != null) {
+            var nutrizionista = cliente.getNutrizionista();
             nutrizionista.getNome(); // force fetching
             context.setVariable("nutrizionista", nutrizionista);
 
@@ -87,10 +110,9 @@ public class PdfService {
                 try {
                     String logoPathStr = nutrizionista.getFilePathLogo();
                     java.nio.file.Path logoPath = java.nio.file.Paths.get(logoPathStr);
-                    
+
                     // Se il path è relativo, assicuriamoci che sia corretto
                     if (!logoPath.isAbsolute()) {
-                        // Proviamo a cercarlo nella cartella di lavoro corrente o relativa a 'uploads'
                         if (!java.nio.file.Files.exists(logoPath)) {
                             logoPath = java.nio.file.Paths.get(System.getProperty("user.dir"), logoPathStr);
                         }
@@ -110,9 +132,6 @@ public class PdfService {
                 }
             }
         }
-
-        String html = templateEngine.process("pdf/scheda", context);
-        return renderPdf(html);
     }
 
     private byte[] renderPdf(String html) {

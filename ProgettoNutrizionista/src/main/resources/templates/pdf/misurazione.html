@@ -1,69 +1,285 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
+
 <head>
-    <meta charset="UTF-8"/>
+    <meta charset="UTF-8" />
     <title>Report Misurazione Antropometrica</title>
     <style>
-        body { font-family: 'Helvetica', 'Arial', sans-serif; padding: 20px; color: #333; }
-        h1 { color: #2c3e50; border-bottom: 2px solid #2c3e50; padding-bottom: 10px; }
-        .header-info { margin-bottom: 30px; }
-        .header-info p { margin: 5px 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        th, td { border: 1px solid #bdc3c7; padding: 12px; text-align: left; }
-        th { background-color: #ecf0f1; color: #2c3e50; }
+        @page {
+            size: A4;
+            margin: 10mm 12mm 10mm 12mm;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Helvetica, Arial, sans-serif;
+            color: #1a1a2e;
+            font-size: 13px;
+            line-height: 1.5;
+            background: #fff;
+        }
+
+        /* ─── HEADER ─── */
+        .nutri-header {
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 3px solid #2d6a4f;
+        }
+
+        .nutri-header table {
+            width: 100%;
+        }
+
+        .nutri-header td {
+            border: none;
+            padding: 0;
+            vertical-align: middle;
+        }
+
+        .nutri-logo {
+            width: 60px;
+            height: 60px;
+        }
+
+        .nutri-logo-cell {
+            width: 70px;
+        }
+
+        .nutri-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: #2d6a4f;
+        }
+
+        .nutri-info {
+            font-size: 10px;
+            color: #6c757d;
+            line-height: 1.6;
+        }
+
+        /* ─── TITOLO DOCUMENTO ─── */
+        .doc-header {
+            margin-bottom: 22px;
+        }
+
+        .doc-header table {
+            width: 100%;
+        }
+
+        .doc-header td {
+            vertical-align: bottom;
+            border: none;
+            padding: 0;
+        }
+
+        .doc-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #2d6a4f;
+        }
+
+        .doc-date {
+            text-align: right;
+            font-size: 11px;
+            color: #6c757d;
+        }
+
+        /* ─── INFO PAZIENTE ─── */
+        .patient-bar {
+            background: #f0faf4;
+            border-left: 4px solid #2d6a4f;
+            padding: 10px 16px;
+            margin-bottom: 25px;
+        }
+
+        .patient-bar table {
+            width: 100%;
+        }
+
+        .patient-bar td {
+            border: none;
+            padding: 2px 0;
+            font-size: 12px;
+        }
+
+        .patient-bar .lbl {
+            color: #6c757d;
+            text-transform: uppercase;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .patient-bar .val {
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        /* ─── TABELLA MISURAZIONI ─── */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #6c757d;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .data-table td {
+            padding: 12px 16px;
+            border-bottom: 1px solid #f1f3f5;
+            vertical-align: middle;
+            font-size: 13px;
+        }
+
+        .data-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .data-value {
+            text-align: right;
+            font-weight: 700;
+            color: #2d6a4f;
+            font-size: 14px;
+        }
+
+        .unit {
+            font-size: 11px;
+            font-weight: 400;
+            color: #6c757d;
+            margin-left: 4px;
+        }
+
+        /* ─── FOOTER ─── */
+        .doc-footer {
+            margin-top: 30px;
+            padding-top: 8px;
+            border-top: 1px solid #dee2e6;
+            text-align: center;
+            font-size: 8px;
+            color: #ced4da;
+        }
+
+        .doc-footer p {
+            margin: 2px 0;
+        }
     </style>
 </head>
+
 <body>
 
-    <h1>Misurazione Antropometrica</h1>
-    
-    <div class="header-info">
-        <p><strong>Cliente:</strong> <span th:text="${misurazione.cliente.nome + ' ' + misurazione.cliente.cognome}">Nome Cognome</span></p>
-        <p><strong>Data Misurazione:</strong> <span th:text="${#temporals.format(misurazione.dataMisurazione, 'dd/MM/yyyy')}">01/01/2026</span></p>
+    <!-- INTESTAZIONE NUTRIZIONISTA -->
+    <div class="nutri-header" th:if="${nutrizionista != null}">
+        <table>
+            <tr>
+                <td class="nutri-logo-cell" th:if="${logoBase64 != null}">
+                    <img class="nutri-logo" th:src="${logoBase64}" alt="Logo" />
+                </td>
+                <td>
+                    <div class="nutri-name" th:text="${'Dott. ' + nutrizionista.nome + ' ' + nutrizionista.cognome}">Dott. Nome Cognome</div>
+                    <div class="nutri-info">
+                        <span th:if="${nutrizionista.email != null}" th:text="${nutrizionista.email}">email@example.com</span>
+                        <span th:if="${nutrizionista.telefono != null}"> &#160;|&#160; </span>
+                        <span th:if="${nutrizionista.telefono != null}" th:text="${nutrizionista.telefono}">333 1234567</span>
+                        <br th:if="${nutrizionista.indirizzo != null}" />
+                        <span th:if="${nutrizionista.indirizzo != null}" th:text="${nutrizionista.indirizzo}">Via Roma 1, Milano</span>
+                    </div>
+                </td>
+            </tr>
+        </table>
     </div>
 
-    <table>
+    <!-- TITOLO DOCUMENTO -->
+    <div class="doc-header">
+        <table>
+            <tr>
+                <td>
+                    <div class="doc-title">Misurazioni Antropometriche</div>
+                </td>
+                <td class="doc-date">
+                    <div th:if="${misurazione.dataMisurazione != null}" th:text="${#temporals.format(misurazione.dataMisurazione, 'dd/MM/yyyy')}">27/03/2026</div>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- INFO PAZIENTE -->
+    <div class="patient-bar" th:if="${misurazione.cliente != null}">
+        <table>
+            <tr>
+                <td>
+                    <span class="lbl">Paziente</span><br />
+                    <span class="val" th:text="${misurazione.cliente.nome + ' ' + misurazione.cliente.cognome}">Mario Rossi</span>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- TABELLA DATI -->
+    <table class="data-table">
         <thead>
             <tr>
                 <th>Punto di Misurazione</th>
-                <th>Valore (cm)</th>
+                <th style="text-align: right;">Valore</th>
             </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>Spalle</td>
-                <td th:text="${misurazione.spalle != null ? misurazione.spalle : '-'}"></td>
+            <tr th:if="${misurazione.spalle != null}">
+                <td class="data-label">Spalle</td>
+                <td class="data-value"><span th:text="${misurazione.spalle}"></span><span class="unit">cm</span></td>
             </tr>
-            <tr>
-                <td>Vita</td>
-                <td th:text="${misurazione.vita != null ? misurazione.vita : '-'}"></td>
+            <tr th:if="${misurazione.vita != null}">
+                <td class="data-label">Vita</td>
+                <td class="data-value"><span th:text="${misurazione.vita}"></span><span class="unit">cm</span></td>
             </tr>
-            <tr>
-                <td>Fianchi</td>
-                <td th:text="${misurazione.fianchi != null ? misurazione.fianchi : '-'}"></td>
+            <tr th:if="${misurazione.fianchi != null}">
+                <td class="data-label">Fianchi</td>
+                <td class="data-value"><span th:text="${misurazione.fianchi}"></span><span class="unit">cm</span></td>
             </tr>
-            <tr>
-                <td>Torace</td>
-                <td th:text="${misurazione.torace != null ? misurazione.torace : '-'}"></td>
+            <tr th:if="${misurazione.torace != null}">
+                <td class="data-label">Torace</td>
+                <td class="data-value"><span th:text="${misurazione.torace}"></span><span class="unit">cm</span></td>
             </tr>
-            <tr>
-                <td>Gamba Sinistra</td>
-                <td th:text="${misurazione.gambaS != null ? misurazione.gambaS : '-'}"></td>
+            <tr th:if="${misurazione.gambaS != null}">
+                <td class="data-label">Gamba Sinistra</td>
+                <td class="data-value"><span th:text="${misurazione.gambaS}"></span><span class="unit">cm</span></td>
             </tr>
-            <tr>
-                <td>Gamba Destra</td>
-                <td th:text="${misurazione.gambaD != null ? misurazione.gambaD : '-'}"></td>
+            <tr th:if="${misurazione.gambaD != null}">
+                <td class="data-label">Gamba Destra</td>
+                <td class="data-value"><span th:text="${misurazione.gambaD}"></span><span class="unit">cm</span></td>
             </tr>
-            <tr>
-                <td>Bicipite Sinistro</td>
-                <td th:text="${misurazione.bicipiteS != null ? misurazione.bicipiteS : '-'}"></td>
+            <tr th:if="${misurazione.bicipiteS != null}">
+                <td class="data-label">Bicipite Sinistro</td>
+                <td class="data-value"><span th:text="${misurazione.bicipiteS}"></span><span class="unit">cm</span></td>
             </tr>
-            <tr>
-                <td>Bicipite Destro</td>
-                <td th:text="${misurazione.bicipiteD != null ? misurazione.bicipiteD : '-'}"></td>
+            <tr th:if="${misurazione.bicipiteD != null}">
+                <td class="data-label">Bicipite Destro</td>
+                <td class="data-value"><span th:text="${misurazione.bicipiteD}"></span><span class="unit">cm</span></td>
             </tr>
         </tbody>
     </table>
 
+    <!-- FOOTER -->
+    <div class="doc-footer">
+        <p>Documento riservato al destinatario — generato digitalmente da Statera Nutrition</p>
+        <p>Consultare il professionista per l'interpretazione dei dati</p>
+    </div>
+
 </body>
+
 </html>

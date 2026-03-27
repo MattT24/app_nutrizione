@@ -29,6 +29,9 @@ public class DocumentoFascicolo {
     @Column(name = "percorso_file", nullable = false, length = 1000)
     private String percorsoFile;
 
+    @Column(name = "riferimento_id")
+    private Long riferimentoId;
+
     @CreatedDate
     @Column(name = "data_creazione", nullable = false, updatable = false)
     private Instant dataCreazione;
@@ -71,6 +74,14 @@ public class DocumentoFascicolo {
 
     public void setPercorsoFile(String percorsoFile) {
         this.percorsoFile = percorsoFile;
+    }
+
+    public Long getRiferimentoId() {
+        return riferimentoId;
+    }
+
+    public void setRiferimentoId(Long riferimentoId) {
+        this.riferimentoId = riferimentoId;
     }
 
     public Instant getDataCreazione() {

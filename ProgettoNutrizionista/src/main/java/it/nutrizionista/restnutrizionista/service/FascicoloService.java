@@ -48,6 +48,14 @@ public class FascicoloService {
     }
 
     public DocumentoFascicoloDto salvaDocumento(SalvaDocumentoRequest request) {
+        // Controllo se esiste già
+        var esistente = fascicoloRepository.findByClienteIdAndTipoDocumentoAndRiferimentoId(
+                request.getClienteId(), request.getTipoDocumento(), request.getRiferimentoId());
+        
+        if (esistente.isPresent()) {
+            return toDto(esistente.get());
+        }
+
         Cliente cliente = clienteRepository.findById(request.getClienteId())
                 .orElseThrow(() -> new IllegalArgumentException("Cliente non trovato"));
 
@@ -92,6 +100,7 @@ public class FascicoloService {
             doc.setCliente(cliente);
             doc.setTitolo(titoloBase);
             doc.setTipoDocumento(request.getTipoDocumento());
+            doc.setRiferimentoId(request.getRiferimentoId());
             doc.setPercorsoFile(filepath.toString());
             
             doc = fascicoloRepository.save(doc);
@@ -143,6 +152,7 @@ public class FascicoloService {
         dto.setClienteId(entity.getCliente().getId());
         dto.setTitolo(entity.getTitolo());
         dto.setTipoDocumento(entity.getTipoDocumento());
+        dto.setRiferimentoId(entity.getRiferimentoId());
         dto.setDataCreazione(entity.getDataCreazione());
         return dto;
     }

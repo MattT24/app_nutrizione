@@ -125,4 +125,10 @@ public class SchedaController {
 		);
 		return ResponseEntity.ok(java.util.Map.of("message", "Email inviata con successo!"));
 	}
+
+	@GetMapping("/count-attive")
+	@PreAuthorize("hasAuthority('SCHEDA_READ')")
+	public ResponseEntity<Long> countAttive() {
+		return ResponseEntity.ok(service.countAttive());
+	}
 }

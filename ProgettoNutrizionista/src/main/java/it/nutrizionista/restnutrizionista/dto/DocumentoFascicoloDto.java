@@ -8,6 +8,7 @@ public class DocumentoFascicoloDto {
     private Long clienteId;
     private String titolo;
     private TipoDocumento tipoDocumento;
+    private Long riferimentoId;
     private Instant dataCreazione;
 
     public Long getId() {
@@ -40,6 +41,14 @@ public class DocumentoFascicoloDto {
 
     public void setTipoDocumento(TipoDocumento tipoDocumento) {
         this.tipoDocumento = tipoDocumento;
+    }
+
+    public Long getRiferimentoId() {
+        return riferimentoId;
+    }
+
+    public void setRiferimentoId(Long riferimentoId) {
+        this.riferimentoId = riferimentoId;
     }
 
     public Instant getDataCreazione() {
