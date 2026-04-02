@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import it.nutrizionista.restnutrizionista.dto.CopyBulkRequest;
+import it.nutrizionista.restnutrizionista.dto.CopyBulkResultDto;
 import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
@@ -70,6 +72,18 @@ public class SchedaController {
         return ResponseEntity.ok(service.schedeByCliente(clienteId, pageable));
     }
 
+	// ===== COPY BULK — Endpoint unificato per duplicate e import =====
+	@PostMapping("/{id}/copy-bulk")
+	@PreAuthorize("hasAuthority('SCHEDA_CREATE')")
+	public ResponseEntity<CopyBulkResultDto> copyBulk(
+			@PathVariable("id") Long schedaId,
+			@Valid @RequestBody CopyBulkRequest request) {
+		return ResponseEntity.ok(service.copyBulk(schedaId, request));
+	}
+
+	// ===== Endpoint legacy — mantenuti per retrocompatibilità =====
+
+	@Deprecated
 	// 1. Duplica la scheda PER LO STESSO CLIENTE (Clone rapido)
     @PostMapping("/{id}/duplicate")
     @PreAuthorize("hasAuthority('SCHEDA_CREATE')")
@@ -77,6 +91,7 @@ public class SchedaController {
         return ResponseEntity.ok(service.duplicateScheda(id));
     }
 
+    @Deprecated
     // 2. Importa la scheda SU UN ALTRO CLIENTE (Clone con controlli)
     // POST /api/schede/import?sourceId=123&targetClienteId=45
     @PostMapping("/import")

@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -54,4 +55,11 @@ public interface PastoRepository extends JpaRepository<Pasto, Long> {
 	 */
 	@Query("SELECT s.cliente.id FROM Pasto p JOIN p.scheda s WHERE p.id = :pastoId")
 	Optional<Long> findClienteIdByPastoId(@Param("pastoId") Long pastoId);
+
+	/**
+	 * Elimina in bulk tutti i pasti di una scheda.
+	 */
+	@Modifying
+	@Query(value = "DELETE FROM pasti WHERE scheda_id = :schedaId", nativeQuery = true)
+	void bulkDeleteBySchedaId(@Param("schedaId") Long schedaId);
 }

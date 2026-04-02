@@ -1,8 +1,11 @@
 package it.nutrizionista.restnutrizionista.service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -12,10 +15,14 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import it.nutrizionista.restnutrizionista.dto.CopyBulkRequest;
+import it.nutrizionista.restnutrizionista.dto.CopyBulkResultDto;
 import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
+import it.nutrizionista.restnutrizionista.dto.CopyResultItemDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
+import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
 import it.nutrizionista.restnutrizionista.entity.AlimentoDaEvitare;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
@@ -27,6 +34,7 @@ import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoDaEvitareRepository;
+import it.nutrizionista.restnutrizionista.repository.AlimentoPastoNomeOverrideRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
@@ -42,6 +50,7 @@ public class SchedaService {
 	@Autowired private OwnershipValidator ownershipValidator;
 	@Autowired private DefaultMealTimesService defaultMealTimesService;
 	@Autowired private AlimentoPastoRepository repoAlimentoPasto;
+	@Autowired private AlimentoPastoNomeOverrideRepository repoNomeOverride;
 	@Autowired private CurrentUserService currentUserService;
 	
 	@Transactional(readOnly = true)
@@ -146,11 +155,29 @@ public class SchedaService {
 		return DtoMapper.toSchedaDtoLight(repo.save(s));
 	}
 
+	/**
+	 * Eliminazione ottimizzata: bulk DELETE native SQL in ordine FK
+	 * (figli prima, genitori dopo) al posto del cascade Hibernate
+	 * che genera N DELETE individuali + N SELECT per lazy loading.
+	 *
+	 * Ordine: alternative → nome_override → alimenti_pasto → pasti → scheda
+	 */
 	@Transactional
 	public void delete(Long id) {
 		if (id == null) throw new RuntimeException("Id scheda obbligatorio per il delete");
+		// Verifica ownership (senza caricare l'albero)
 		Scheda s = ownershipValidator.getOwnedScheda(id);
-		repo.delete(s);
+
+		// 1. Elimina alternative (dipendono da alimenti_pasto E pasti)
+		repoAlternative.bulkDeleteBySchedaId(id);
+		// 2. Elimina nome_override (dipendono da alimenti_pasto)
+		repoNomeOverride.bulkDeleteBySchedaId(id);
+		// 3. Elimina alimenti_pasto (dipendono da pasti)
+		repoAlimentoPasto.bulkDeleteBySchedaId(id);
+		// 4. Elimina pasti (dipendono da scheda)
+		repoPasto.bulkDeleteBySchedaId(id);
+		// 5. Elimina la scheda
+		repo.deleteById(id);
 	}
 
 	@Transactional(readOnly = true)
@@ -167,50 +194,103 @@ public class SchedaService {
 	    return PageResponse.from(dtoPage);
 	}
 
-	@Transactional
-	public SchedaDto duplicateScheda(Long schedaId) {
-		Scheda originale = ownershipValidator.getOwnedSchedaWithPastiAndAlimenti(schedaId);
+	// ============================================================
+	// COPY BULK — Orchestratore unificato per duplicate e import
+	// ============================================================
 
-		// Crea il guscio della nuova scheda
+	/**
+	 * Copia bulk della scheda su N clienti.
+	 *
+	 * NOTA TRANSAZIONALE: l'intera operazione è in un'unica transazione.
+	 * - I conflitti di sicurezza (alimenti da evitare) sono gestiti application-level con `continue`,
+	 *   quindi non causano rollback.
+	 * - Se un errore imprevisto interrompe il loop (es. eccezione DB non attesa), l'intera
+	 *   transazione viene annullata — scelta intenzionale per garantire consistenza.
+	 * - Se in futuro si necessita di commit parziali (ogni copia indipendente), estrarre la singola
+	 *   copia in un metodo @Transactional(propagation = REQUIRES_NEW) su un bean separato.
+	 */
+	@Transactional
+	public CopyBulkResultDto copyBulk(Long schedaId, CopyBulkRequest request) {
+		Scheda originale = ownershipValidator.getOwnedSchedaFullDetails(schedaId);
+		Long sourceClienteId = originale.getCliente().getId();
+
+		CopyBulkResultDto result = new CopyBulkResultDto();
+		result.setTotaleRichiesti(request.getTargetClienteIds().size());
+
+		for (Long targetId : request.getTargetClienteIds()) {
+			Cliente targetCliente = ownershipValidator.getOwnedCliente(targetId);
+			String nomeCompleto = (targetCliente.getNome() + " " + targetCliente.getCognome()).trim();
+
+			if (targetId.equals(sourceClienteId)) {
+				// Duplica per lo stesso cliente — nessun safety check
+				SchedaDto cloneDto = duplicateForSameCliente(originale);
+				result.addSuccesso(CopyResultItemDto.successo(targetId, nomeCompleto, cloneDto.getId(), true));
+			} else {
+				// Import su altro cliente — verifica conflitti
+				if (!request.isForce()) {
+					List<String> conflitti = findSafetyConflicts(originale, targetId);
+					if (!conflitti.isEmpty()) {
+						result.addConflitto(CopyResultItemDto.conflitto(targetId, nomeCompleto, conflitti));
+						continue;
+					}
+				}
+				SchedaDto cloneDto = duplicateToCliente(originale, targetCliente);
+				result.addSuccesso(CopyResultItemDto.successo(targetId, nomeCompleto, cloneDto.getId(), false));
+			}
+		}
+
+		return result;
+	}
+
+	// ============================================================
+	// Metodi privati di clonazione — usati solo da copyBulk()
+	// ============================================================
+
+	/** Duplica la scheda per lo stesso cliente (clone rapido) */
+	private SchedaDto duplicateForSameCliente(Scheda originale) {
 		Scheda clone = new Scheda();
 		clone.setCliente(originale.getCliente());
-		clone.setAttiva(false); // Nasce disattivata per sicurezza
-		clone.setNome(originale.getNome()+ " (Copia)"); 
-        clone.setDataCreazione(LocalDate.now());
+		clone.setAttiva(false);
+		clone.setNome(originale.getNome() + " (Copia)");
+		clone.setDataCreazione(LocalDate.now());
 		clone.setTipo(originale.getTipo());
-		// Copia dei Pasti
 		clone.setPasti(clonePastiList(originale.getPasti(), clone, null));
 		Scheda savedClone = repo.save(clone);
-		// Deep clone: copia anche le alternative
 		deepCloneAlternatives(originale.getPasti(), savedClone);
 		return DtoMapper.toSchedaDtoLight(savedClone);
 	}
 
+	/** Importa la scheda su un altro cliente (senza safety check — già verificato dal chiamante) */
+	private SchedaDto duplicateToCliente(Scheda originale, Cliente targetCliente) {
+		Scheda clone = new Scheda();
+		clone.setCliente(targetCliente);
+		clone.setNome(originale.getNome());
+		clone.setDataCreazione(LocalDate.now());
+		clone.setAttiva(false);
+		clone.setTipo(originale.getTipo());
+		clone.setPasti(clonePastiList(originale.getPasti(), clone, null));
+		Scheda savedClone = repo.save(clone);
+		deepCloneAlternatives(originale.getPasti(), savedClone);
+		return DtoMapper.toSchedaDtoLight(savedClone);
+	}
+
+	// ============================================================
+	// Endpoint legacy — mantenuti per retrocompatibilità
+	// ============================================================
+
 	@Transactional
-    public SchedaDto duplicateFromCliente(Long schedaId, Long targetClienteId) {
-        
+	public SchedaDto duplicateScheda(Long schedaId) {
 		Scheda originale = ownershipValidator.getOwnedSchedaWithPastiAndAlimenti(schedaId);
-        Cliente targetCliente = ownershipValidator.getOwnedCliente(targetClienteId);
+		return duplicateForSameCliente(originale);
+	}
 
-        // 2. CONTROLLO SICUREZZA (Solo qui!)
-        checkSafetyRestrictions(originale, targetClienteId);
-
-        // 3. Prepara il clone (Nuovo Cliente)
-        Scheda clone = new Scheda();
-        clone.setCliente(targetCliente); // <--- Nuovo cliente
-        clone.setNome(originale.getNome()); 
-        clone.setDataCreazione(LocalDate.now());
-        clone.setAttiva(false);
-        clone.setTipo(originale.getTipo());
-
-        // 4. Copia i pasti (uso metodo helper)
-        clone.setPasti(clonePastiList(originale.getPasti(), clone, null));
-
-        Scheda savedClone = repo.save(clone);
-        // Deep clone: copia anche le alternative
-        deepCloneAlternatives(originale.getPasti(), savedClone);
-        return DtoMapper.toSchedaDto(savedClone);
-    }
+	@Transactional
+	public SchedaDto duplicateFromCliente(Long schedaId, Long targetClienteId) {
+		Scheda originale = ownershipValidator.getOwnedSchedaWithPastiAndAlimenti(schedaId);
+		Cliente targetCliente = ownershipValidator.getOwnedCliente(targetClienteId);
+		checkSafetyRestrictions(originale, targetClienteId);
+		return duplicateToCliente(originale, targetCliente);
+	}
 
     @Transactional
     public SchedaDto copyDay(Long schedaId, CopyDayRequest request) {
@@ -363,25 +443,44 @@ public class SchedaService {
     /**
      * Dopo aver salvato la scheda clonata, clona anche le alternative per ogni alimento pasto.
      * Deve essere chiamato DOPO repo.save(clone) per avere gli ID assegnati.
+     *
+     * OTTIMIZZATO: una sola query bulk (IN clause) + saveAll() batch
+     * al posto di N query individuali + N save() singoli.
      */
     private void deepCloneAlternatives(Set<Pasto> sourcePasti, Scheda savedClone) {
         if (sourcePasti == null || savedClone.getPasti() == null) return;
 
-        // Mappa: defaultCode+nome+giorno -> pasto clonato (per collegare le alternative)
+        // 1. Raccoglie tutti gli alimentoPasto.id originali
+        List<Long> allSourceApIds = sourcePasti.stream()
+                .filter(p -> p.getAlimentiPasto() != null)
+                .flatMap(p -> p.getAlimentiPasto().stream())
+                .map(AlimentoPasto::getId)
+                .filter(id -> id != null)
+                .collect(Collectors.toList());
+
+        if (allSourceApIds.isEmpty()) return;
+
+        // 2. Una sola query bulk: carica TUTTE le alternative con JOIN FETCH
+        List<AlimentoAlternativo> allAlternatives = repoAlternative.findAllByAlimentoPastoIds(allSourceApIds);
+        if (allAlternatives.isEmpty()) return;
+
+        // 3. Raggruppa per alimentoPasto.id originale → O(1) lookup
+        Map<Long, List<AlimentoAlternativo>> altByApId = allAlternatives.stream()
+                .collect(Collectors.groupingBy(aa -> aa.getAlimentoPasto().getId()));
+
+        // 4. Itera e crea i cloni, collezionandoli per il batch insert
+        List<AlimentoAlternativo> allClones = new ArrayList<>();
+
         for (Pasto pastoOriginale : sourcePasti) {
             if (pastoOriginale.getAlimentiPasto() == null) continue;
 
             for (AlimentoPasto apOriginale : pastoOriginale.getAlimentiPasto()) {
-                List<AlimentoAlternativo> altOriginali = repoAlternative.findByAlimentoPasto_IdOrderByPrioritaAsc(apOriginale.getId());
+                List<AlimentoAlternativo> altOriginali = altByApId.getOrDefault(apOriginale.getId(), Collections.emptyList());
                 if (altOriginali.isEmpty()) continue;
 
-                // Trova l'AlimentoPasto clonato corrispondente. 
-                // fix: in caso di override giorno (copia giorno), il defaultCode potrebbe essere uguale ma il giorno diverso.
-                // Per semplificare, il wrapping temporaneo contiene solo i pasti di quel target day.
                 AlimentoPasto apClonato = findClonedAlimentoPasto(savedClone, pastoOriginale, apOriginale);
                 if (apClonato == null) continue;
 
-                // Trova il pasto clonato corrispondente
                 Pasto pastoClonato = apClonato.getPasto();
 
                 for (AlimentoAlternativo altOrig : altOriginali) {
@@ -395,9 +494,14 @@ public class SchedaService {
                     altNuovo.setManual(altOrig.getManual());
                     altNuovo.setNote(altOrig.getNote());
                     altNuovo.setNomeCustom(altOrig.getNomeCustom());
-                    repoAlternative.save(altNuovo);
+                    allClones.add(altNuovo);
                 }
             }
+        }
+
+        // 5. Batch insert: Hibernate raggruppa in blocchi di batch_size=30
+        if (!allClones.isEmpty()) {
+            repoAlternative.saveAll(allClones);
         }
     }
 
@@ -423,27 +527,31 @@ public class SchedaService {
         return null;
     }
 
-    /** Logica di controllo sicurezza centralizzata */
-    private void checkSafetyRestrictions(Scheda source, Long targetClienteId) {
-        // Estrai tutti gli ID univoci degli alimenti nella scheda originale
+    /** Restituisce la lista dei nomi degli alimenti in conflitto (vuota se nessun conflitto) */
+    private List<String> findSafetyConflicts(Scheda source, Long targetClienteId) {
         List<Long> foodIdsInScheda = source.getPasti().stream()
                 .flatMap(p -> p.getAlimentiPasto().stream())
                 .map(ap -> ap.getAlimento().getId())
                 .distinct()
                 .collect(Collectors.toList());
 
-        if (foodIdsInScheda.isEmpty()) return;
+        if (foodIdsInScheda.isEmpty()) return new ArrayList<>();
 
-        // Cerca conflitti nel DB
         List<AlimentoDaEvitare> conflitti = repoRestrizioni.findByCliente_IdAndAlimento_IdIn(targetClienteId, foodIdsInScheda);
 
+        return conflitti.stream()
+                .map(c -> c.getAlimento().getNome() + " (" + c.getTipo() + ")")
+                .collect(Collectors.toList());
+    }
+
+    /** Logica di controllo sicurezza centralizzata — usata dagli endpoint legacy */
+    private void checkSafetyRestrictions(Scheda source, Long targetClienteId) {
+        List<String> conflitti = findSafetyConflicts(source, targetClienteId);
         if (!conflitti.isEmpty()) {
-            StringBuilder sb = new StringBuilder("Impossibile importare la scheda. Conflitti con alimenti da evitare:\n");
-            for (AlimentoDaEvitare c : conflitti) {
-                sb.append("- ").append(c.getAlimento().getNome())
-                  .append(" (").append(c.getTipo()).append(")\n");
-            }
-            throw new RuntimeException(sb.toString());
+            throw new ConflictException(
+                "Impossibile importare la scheda. Conflitti con alimenti da evitare.",
+                conflitti
+            );
         }
     }
     @Transactional
