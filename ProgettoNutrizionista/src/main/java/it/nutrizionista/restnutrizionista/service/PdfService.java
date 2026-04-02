@@ -7,12 +7,17 @@ import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
 import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
+import it.nutrizionista.restnutrizionista.entity.Pasto;
+import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
+import it.nutrizionista.restnutrizionista.entity.TipoScheda;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 
 import java.io.ByteArrayOutputStream;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class PdfService {
@@ -83,19 +88,42 @@ public class PdfService {
                     if(alimentoPasto.getNomeOverride() != null) {
                         alimentoPasto.getNomeOverride().getNomeCustom(); // force fetching
                     }
+                    // Fetch alternatives
+                    if (alimentoPasto.getAlternative() != null) {
+                        alimentoPasto.getAlternative().size();
+                        alimentoPasto.getAlternative().forEach(alt -> {
+                            if (alt.getAlimentoAlternativo() != null) {
+                                alt.getAlimentoAlternativo().getNome(); // force fetching
+                            }
+                        });
+                    }
                 });
             }
         });
 
+        // Sorting for PDF: by Giorno (enum ordinal) then by ordineVisualizzazione (null-safe)
+        List<Pasto> sortedPastiList = scheda.getPasti().stream()
+                .sorted(Comparator.comparing((Pasto p) -> p.getGiorno() != null ? p.getGiorno().ordinal() : -1)
+                        .thenComparing(Pasto::getOrdineVisualizzazione, Comparator.nullsLast(Comparator.naturalOrder())))
+                .collect(Collectors.toList());
+
+        // Grouping for Weekly layout (maintains day order and meal order within day)
+        Map<GiornoSettimana, List<Pasto>> groupedPasti = sortedPastiList.stream()
+                .filter(p -> p.getGiorno() != null)
+                .collect(Collectors.groupingBy(Pasto::getGiorno, LinkedHashMap::new, Collectors.toList()));
+
         Context context = new Context();
         context.setVariable("scheda", scheda);
+        context.setVariable("pastiOrdinati", sortedPastiList);
+        context.setVariable("groupedPasti", groupedPasti);
 
         // Carica dati nutrizionista e logo
         if (scheda.getCliente() != null) {
             addProfessionalHeaderData(context, scheda.getCliente());
         }
 
-        String html = templateEngine.process("pdf/scheda", context);
+        String templateName = (scheda.getTipo() == TipoScheda.SETTIMANALE) ? "pdf/scheda_settimanale" : "pdf/scheda_giornaliera";
+        String html = templateEngine.process(templateName, context);
         return renderPdf(html);
     }
 

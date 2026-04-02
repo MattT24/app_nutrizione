@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8" />
-    <title>Piano Alimentare</title>
+    <title>Piano Alimentare Giornaliero</title>
     <style>
         @page {
             size: A4;
@@ -39,13 +39,6 @@
             vertical-align: bottom;
             border: none;
             padding: 0;
-        }
-
-        .brand {
-            font-size: 10px;
-            color: #6c757d;
-            letter-spacing: 3px;
-            text-transform: uppercase;
         }
 
         .doc-title {
@@ -199,7 +192,7 @@
         .nutri-logo {
             width: 60px;
             height: 60px;
-            border: 1px solid #dee2e6; /* Debug border */
+            border: 1px solid #dee2e6;
         }
 
         .nutri-logo-cell {
@@ -218,21 +211,6 @@
             line-height: 1.6;
         }
 
-        /* ─── TITOLO SCHEDA ─── */
-        .doc-header {
-            margin-bottom: 20px;
-        }
-
-        .doc-header table {
-            width: 100%;
-        }
-
-        .doc-header td {
-            vertical-align: bottom;
-            border: none;
-            padding: 0;
-        }
-
         .doc-title {
             font-size: 22px;
             font-weight: 700;
@@ -245,19 +223,6 @@
             color: #6c757d;
         }
 
-        .food-table tr:last-child td {
-            border-bottom: none;
-        }
-
-        /* ─── GIORNO LABEL ─── */
-        .giorno-label {
-            font-size: 10px;
-            font-weight: 400;
-            opacity: 0.85;
-            margin-left: 8px;
-        }
-
-        /* ─── FOOTER ─── */
         .doc-footer {
             margin-top: 14px;
             padding-top: 8px;
@@ -267,8 +232,25 @@
             color: #ced4da;
         }
 
-        .doc-footer p {
-            margin: 2px 0;
+        .alt-row td {
+            padding: 4px 16px 8px 30px !important;
+            border-bottom: 1px solid #f8f9fa !important;
+            background-color: #fafdfb;
+        }
+
+        .alt-name {
+            font-size: 11px;
+            color: #495057;
+            font-style: italic;
+        }
+
+        .alt-prefix {
+            color: #2d6a4f;
+            font-weight: 700;
+            margin-right: 4px;
+            font-style: normal;
+            font-size: 10px;
+            text-transform: uppercase;
         }
     </style>
 </head>
@@ -283,13 +265,13 @@
                     <img class="nutri-logo" th:src="${logoBase64}" alt="Logo" />
                 </td>
                 <td>
-                    <div class="nutri-name" th:text="${'Dott. ' + nutrizionista.nome + ' ' + nutrizionista.cognome}">Dott. Nome Cognome</div>
+                    <div class="nutri-name" th:text="${'Dott. ' + (nutrizionista?.nome ?: '') + ' ' + (nutrizionista?.cognome ?: '')}">Dott. Nome Cognome</div>
                     <div class="nutri-info">
-                        <span th:if="${nutrizionista.email != null}" th:text="${nutrizionista.email}">email@example.com</span>
-                        <span th:if="${nutrizionista.telefono != null}"> &#160;|&#160; </span>
-                        <span th:if="${nutrizionista.telefono != null}" th:text="${nutrizionista.telefono}">333 1234567</span>
-                        <br th:if="${nutrizionista.indirizzo != null}" />
-                        <span th:if="${nutrizionista.indirizzo != null}" th:text="${nutrizionista.indirizzo}">Via Roma 1, Milano</span>
+                        <span th:if="${nutrizionista?.email != null}" th:text="${nutrizionista.email}">email@example.com</span>
+                        <span th:if="${nutrizionista?.telefono != null}"> &#160;|&#160; </span>
+                        <span th:if="${nutrizionista?.telefono != null}" th:text="${nutrizionista.telefono}">333 1234567</span>
+                        <br th:if="${nutrizionista?.indirizzo != null}" />
+                        <span th:if="${nutrizionista?.indirizzo != null}" th:text="${nutrizionista.indirizzo}">Via Roma 1, Milano</span>
                     </div>
                 </td>
             </tr>
@@ -301,11 +283,11 @@
         <table>
             <tr>
                 <td>
-                    <div class="doc-title" th:text="${scheda.nome != null ? scheda.nome : 'Piano Alimentare'}">Piano Alimentare</div>
+                    <div class="doc-title" th:text="${scheda?.nome ?: 'Piano Alimentare Giornaliero'}">Piano Alimentare</div>
                 </td>
                 <td class="doc-date">
                     <div th:if="${scheda.dataCreazione != null}" th:text="${#temporals.format(scheda.dataCreazione, 'dd/MM/yyyy')}">26/03/2026</div>
-                    <div th:text="'Tipo: ' + ${scheda.tipo}">Tipo: GIORNALIERA</div>
+                    <div th:text="'Giornaliero'">Tipo: GIORNALIERA</div>
                 </td>
             </tr>
         </table>
@@ -317,59 +299,78 @@
             <tr>
                 <td>
                     <span class="lbl">Paziente</span><br />
-                    <span class="val" th:text="${scheda.cliente.nome + ' ' + scheda.cliente.cognome}">Mario Rossi</span>
+                    <span class="val" th:text="${(scheda.cliente?.nome ?: '') + ' ' + (scheda.cliente?.cognome ?: '')}">Mario Rossi</span>
                 </td>
             </tr>
         </table>
     </div>
 
-    <!-- PASTI -->
-    <div th:each="pasto : ${scheda.pasti}" class="pasto">
+    <!-- PASTI GIORNALIERI -->
+    <th:block th:each="pasto : ${pastiOrdinati}">
+        <div th:replace="~{::pasto-content(pasto=${pasto})}"></div>
+    </th:block>
 
-        <div class="pasto-head">
-            <table>
-                <tr>
-                    <td>
-                        <span th:text="${pasto.nome != null ? pasto.nome : 'Pasto'}">Colazione</span>
-                        <span class="giorno-label" th:if="${pasto.giorno != null}" th:text="'(' + ${pasto.giorno} + ')'"></span>
-                    </td>
-                    <td class="pasto-time">
-                        <span th:if="${pasto.orarioInizio != null}" th:text="${#temporals.format(pasto.orarioInizio, 'HH:mm')}">08:00</span>
-                        <span th:if="${pasto.orarioInizio != null and pasto.orarioFine != null}"> — </span>
-                        <span th:if="${pasto.orarioFine != null}" th:text="${#temporals.format(pasto.orarioFine, 'HH:mm')}">08:30</span>
-                    </td>
-                </tr>
+    <!-- FRAGMENT PER IL CONTENUTO DEL PASTO -->
+    <th:block th:fragment="pasto-content(pasto)">
+        <div class="pasto" th:if="${pasto != null}">
+            <div class="pasto-head">
+                <table>
+                    <tr>
+                        <td>
+                            <span th:text="${pasto?.nome ?: 'Pasto'}">Colazione</span>
+                            <span class="giorno-label" th:if="${pasto?.giorno != null}" th:text="'(' + ${pasto.giorno} + ')'" style="font-size: 10px; font-weight: 400; opacity: 0.85; margin-left: 8px;"></span>
+                        </td>
+                        <td class="pasto-time">
+                            <span th:if="${pasto?.orarioInizio != null}" th:text="${#temporals.format(pasto.orarioInizio, 'HH:mm')}">08:00</span>
+                            <span th:if="${pasto?.orarioInizio != null and pasto?.orarioFine != null}"> — </span>
+                            <span th:if="${pasto?.orarioFine != null}" th:text="${#temporals.format(pasto.orarioFine, 'HH:mm')}">08:30</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="pasto-desc" th:if="${pasto?.descrizione != null and !pasto.descrizione.isEmpty()}">
+                <span th:text="${pasto.descrizione}">Descrizione del pasto</span>
+            </div>
+
+            <table class="food-table">
+                <thead>
+                    <tr>
+                        <th>Alimento</th>
+                        <th class="qty-col">Quantità</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <th:block th:each="ap : ${pasto.alimentiPasto}">
+                        <tr>
+                            <td>
+                                <div class="food-name"
+                                     th:text="${ap.nomeOverride != null ? ap.nomeOverride.nomeCustom : (ap.alimento != null ? ap.alimento.nome : 'N/D')}">
+                                    Alimento
+                                </div>
+                                <div class="food-cat"
+                                     th:if="${ap.alimento != null and ap.alimento.categoria != null}"
+                                     th:text="${ap.alimento.categoria}">Categoria</div>
+                            </td>
+                            <td class="food-qty"
+                                th:text="${ap.quantita > 0 ? ap.quantita + ' g' : 'A volontà'}">100 g</td>
+                        </tr>
+                        <!-- Alternative -->
+                        <tr th:each="alt : ${ap.alternative}" class="alt-row">
+                            <td>
+                                <div class="alt-name">
+                                    <span class="alt-prefix">Oppure:</span> 
+                                    <span th:text="${alt.nomeCustom != null ? alt.nomeCustom : (alt.alimentoAlternativo != null ? alt.alimentoAlternativo.nome : 'N/D')}">Alimento</span>
+                                    <span th:if="${alt.note != null and !alt.note.empty}" th:text="' (' + ${alt.note} + ')'"> (note)</span>
+                                </div>
+                            </td>
+                            <td class="food-qty" th:text="${alt.quantita > 0 ? alt.quantita + ' g' : 'A volontà'}">100 g</td>
+                        </tr>
+                    </th:block>
+                </tbody>
             </table>
         </div>
-
-        <div class="pasto-desc" th:if="${pasto.descrizione != null and !pasto.descrizione.isEmpty()}">
-            <span th:text="${pasto.descrizione}">Descrizione del pasto</span>
-        </div>
-
-        <table class="food-table">
-            <thead>
-                <tr>
-                    <th>Alimento</th>
-                    <th class="qty-col">Quantità</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr th:each="ap : ${pasto.alimentiPasto}">
-                    <td>
-                        <div class="food-name"
-                             th:text="${ap.nomeOverride != null ? ap.nomeOverride.nomeCustom : (ap.alimento != null ? ap.alimento.nome : 'N/D')}">
-                            Uova intere
-                        </div>
-                        <div class="food-cat"
-                             th:if="${ap.alimento != null and ap.alimento.categoria != null}"
-                             th:text="${ap.alimento.categoria}">Proteine</div>
-                    </td>
-                    <td class="food-qty"
-                        th:text="${ap.quantita > 0 ? ap.quantita + ' g' : 'A volontà'}">150 g</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    </th:block>
 
     <!-- FOOTER -->
     <div class="doc-footer">
@@ -378,5 +379,4 @@
     </div>
 
 </body>
-
 </html>
