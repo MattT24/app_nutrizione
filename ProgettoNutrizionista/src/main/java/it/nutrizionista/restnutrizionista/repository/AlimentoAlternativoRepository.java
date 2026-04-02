@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -44,5 +45,26 @@ public interface AlimentoAlternativoRepository extends JpaRepository<AlimentoAlt
     void deleteByPasto_Id(Long pastoId);
 
     boolean existsByPasto_IdAndAlimentoAlternativo_Id(Long pastoId, Long alimentoAlternativoId);
+
+    /**
+     * Carica in bulk tutte le alternative per una lista di alimento_pasto IDs.
+     * JOIN FETCH su alimentoAlternativo per evitare lazy loading successivo.
+     * Usato da deepCloneAlternatives() per eliminare il pattern N+1.
+     */
+    @Query("""
+        SELECT aa FROM AlimentoAlternativo aa
+        JOIN FETCH aa.alimentoAlternativo
+        WHERE aa.alimentoPasto.id IN :apIds
+        ORDER BY aa.alimentoPasto.id, aa.priorita
+    """)
+    List<AlimentoAlternativo> findAllByAlimentoPastoIds(@Param("apIds") List<Long> apIds);
+
+    /**
+     * Elimina in bulk tutte le alternative di una scheda (via subquery sui pasti).
+     * Usato dal delete ottimizzato per evitare N DELETE individuali.
+     */
+    @Modifying
+    @Query(value = "DELETE FROM alimenti_alternativi WHERE pasto_id IN (SELECT id FROM pasti WHERE scheda_id = :schedaId) OR alimento_pasto_id IN (SELECT ap.id FROM alimenti_pasto ap JOIN pasti p ON ap.pasto_id = p.id WHERE p.scheda_id = :schedaId)", nativeQuery = true)
+    void bulkDeleteBySchedaId(@Param("schedaId") Long schedaId);
 
 }
