@@ -46,7 +46,7 @@ public class ObiettivoNutrizionaleService {
 	@Transactional(readOnly = true)
 	public List<ObiettivoNutrizionaleDto> getStoricoByClienteId(Long clienteId) {
 		ownershipValidator.getOwnedCliente(clienteId);
-		return repo.findByCliente_IdOrderByDataCreazioneDesc(clienteId)
+		return repo.findByCliente_IdOrderByDataCreazioneDescCreatedAtDesc(clienteId)
 				.stream()
 				.map(DtoMapper::toObiettivoNutrizionaleDto)
 				.toList();
