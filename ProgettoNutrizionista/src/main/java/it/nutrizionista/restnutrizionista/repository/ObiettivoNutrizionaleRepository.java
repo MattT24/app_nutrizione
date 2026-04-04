@@ -11,7 +11,7 @@ public interface ObiettivoNutrizionaleRepository extends JpaRepository<Obiettivo
 
 	Optional<ObiettivoNutrizionale> findByCliente_IdAndAttivoTrue(Long clienteId);
 
-	List<ObiettivoNutrizionale> findByCliente_IdOrderByDataCreazioneDesc(Long clienteId);
+	List<ObiettivoNutrizionale> findByCliente_IdOrderByDataCreazioneDescCreatedAtDesc(Long clienteId);
 
 	void deleteByIdAndCliente_Id(Long id, Long clienteId);
 }
