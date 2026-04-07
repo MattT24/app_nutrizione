@@ -51,9 +51,9 @@ public class Cliente {
 	@Column(nullable = false, name = "data_nascita")
 	private LocalDate dataNascita;
 	@Column(nullable = false)
-	private double peso;
+	private Double peso;
 	@Column(nullable = false)
-	private int altezza;
+	private Integer altezza;
 	@Enumerated(EnumType.STRING)
 	@Column(name = "livello_attivita")
 	private LivelloDiAttivita livelloDiAttivita;
@@ -71,6 +71,12 @@ public class Cliente {
 	private Boolean beveAlcol;
 	@Column(nullable = false)
 	private Boolean fuma;
+
+	@Column(name = "peso_target")
+	private Double pesoTarget;
+
+	@Column(name = "altezza_target")
+	private Integer altezzaTarget;
 
 	@ManyToOne
 	@JoinColumn(name = "utente_id")
@@ -162,19 +168,19 @@ public class Cliente {
 		this.dataNascita = dataNascita;
 	}
 
-	public double getPeso() {
+	public Double getPeso() {
 		return peso;
 	}
 
-	public void setPeso(double peso) {
+	public void setPeso(Double peso) {
 		this.peso = peso;
 	}
 
-	public int getAltezza() {
+	public Integer getAltezza() {
 		return altezza;
 	}
 
-	public void setAltezza(int altezza) {
+	public void setAltezza(Integer altezza) {
 		this.altezza = altezza;
 	}
 
@@ -305,6 +311,22 @@ public class Cliente {
 
 	public void setSesso(Sesso sesso) {
 		this.sesso = sesso;
+	}
+
+	public Double getPesoTarget() {
+		return pesoTarget;
+	}
+
+	public void setPesoTarget(Double pesoTarget) {
+		this.pesoTarget = pesoTarget;
+	}
+
+	public Integer getAltezzaTarget() {
+		return altezzaTarget;
+	}
+
+	public void setAltezzaTarget(Integer altezzaTarget) {
+		this.altezzaTarget = altezzaTarget;
 	}
 
 }

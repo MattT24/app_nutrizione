@@ -8,6 +8,7 @@ import jakarta.validation.constraints.NotNull;
 public class MisurazioneAntropometricaFormDto {
 
 	private Long id;
+	private Double peso;
 	private Double spalle;
 	private Double vita;
 	private Double fianchi;
@@ -25,6 +26,12 @@ public class MisurazioneAntropometricaFormDto {
 	}
 	public void setId(Long id) {
 		this.id = id;
+	}
+	public Double getPeso() {
+		return peso;
+	}
+	public void setPeso(Double peso) {
+		this.peso = peso;
 	}
 	public Double getSpalle() {
 		return spalle;

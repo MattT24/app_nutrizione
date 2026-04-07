@@ -19,8 +19,8 @@ public class ClienteDto {
     private String email;
     private String telefono;
     private LocalDate dataNascita;
-    private double peso;
-    private int altezza;
+    private Double peso;
+    private Integer altezza;
     private LivelloDiAttivita livelloDiAttivita;
     private String intolleranze;
     private String funzioniIntestinali;
@@ -36,6 +36,8 @@ public class ClienteDto {
     private List<SchedaDto> schede;
     private Instant createdAt;
     private Instant updatedAt;
+    private Double pesoTarget;
+    private Integer altezzaTarget;
     
     
 	public Long getId() {
@@ -76,16 +78,16 @@ public class ClienteDto {
 	public void setDataNascita(LocalDate dataNascita) {
 		this.dataNascita = dataNascita;
 	}
-	public double getPeso() {
+	public Double getPeso() {
 		return peso;
 	}
-	public void setPeso(double peso) {
+	public void setPeso(Double peso) {
 		this.peso = peso;
 	}
-	public int getAltezza() {
+	public Integer getAltezza() {
 		return altezza;
 	}
-	public void setAltezza(int altezza) {
+	public void setAltezza(Integer altezza) {
 		this.altezza = altezza;
 	}
 	public LivelloDiAttivita getLivelloDiAttivita() {
@@ -184,6 +186,18 @@ public class ClienteDto {
 	}
 	public void setSesso(Sesso sesso) {
 		this.sesso = sesso;
+	}
+	public Double getPesoTarget() {
+		return pesoTarget;
+	}
+	public void setPesoTarget(Double pesoTarget) {
+		this.pesoTarget = pesoTarget;
+	}
+	public Integer getAltezzaTarget() {
+		return altezzaTarget;
+	}
+	public void setAltezzaTarget(Integer altezzaTarget) {
+		this.altezzaTarget = altezzaTarget;
 	}
 	public List<PlicometriaDto> getPlicometrie() {
 		return plicometrie;
