@@ -239,6 +239,10 @@
             </tr>
         </thead>
         <tbody>
+            <tr th:if="${misurazione.peso != null}">
+                <td class="data-label">Peso</td>
+                <td class="data-value"><span th:text="${misurazione.peso}"></span><span class="unit">kg</span></td>
+            </tr>
             <tr th:if="${misurazione.spalle != null}">
                 <td class="data-label">Spalle</td>
                 <td class="data-value"><span th:text="${misurazione.spalle}"></span><span class="unit">cm</span></td>

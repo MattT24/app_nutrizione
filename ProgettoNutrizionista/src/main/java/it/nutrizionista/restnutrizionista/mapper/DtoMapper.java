@@ -288,6 +288,8 @@ public class DtoMapper {
 		dto.setLivelloDiAttivita(c.getLivelloDiAttivita());
 		dto.setNutrizionista(toUtenteDto(c.getNutrizionista()));
 		dto.setPeso(c.getPeso());
+		dto.setPesoTarget(c.getPesoTarget());
+		dto.setAltezzaTarget(c.getAltezzaTarget());
 		dto.setQuantitaEQualitaDelSonno(c.getQuantitaEQualitaDelSonno());
 
 		if (c.getMisurazioni() != null) {
@@ -322,6 +324,8 @@ public class DtoMapper {
 		c.setDataNascita(form.getDataNascita());
 		c.setPeso(form.getPeso());
 		c.setAltezza(form.getAltezza());
+		c.setPesoTarget(form.getPesoTarget());
+		c.setAltezzaTarget(form.getAltezzaTarget());
 		c.setLivelloDiAttivita(form.getLivelloDiAttivita());
 		c.setIntolleranze(form.getIntolleranze());
 		c.setFunzioniIntestinali(form.getFunzioniIntestinali());
@@ -347,6 +351,8 @@ public class DtoMapper {
 		c.setDataNascita(form.getDataNascita());
 		c.setPeso(form.getPeso());
 		c.setAltezza(form.getAltezza());
+		c.setPesoTarget(form.getPesoTarget());
+		c.setAltezzaTarget(form.getAltezzaTarget());
 		c.setLivelloDiAttivita(form.getLivelloDiAttivita());
 		c.setIntolleranze(form.getIntolleranze() != null ? form.getIntolleranze() : "");
 		c.setFunzioniIntestinali(form.getFunzioniIntestinali() != null ? form.getFunzioniIntestinali() : "");
@@ -841,6 +847,7 @@ public class DtoMapper {
 		dto.setBicipiteS(m.getBicipiteS());
 		dto.setCliente(toClienteDtoLight(m.getCliente()));
 		dto.setDataMisurazione(m.getDataMisurazione());
+		dto.setPeso(m.getPeso());
 		dto.setFianchi(m.getFianchi());
 		dto.setGambaD(m.getGambaD());
 		dto.setGambaS(m.getGambaS());
@@ -859,6 +866,7 @@ public class DtoMapper {
 		dto.setBicipiteD(m.getBicipiteD());
 		dto.setBicipiteS(m.getBicipiteS());
 		dto.setDataMisurazione(m.getDataMisurazione());
+		dto.setPeso(m.getPeso());
 		dto.setFianchi(m.getFianchi());
 		dto.setGambaD(m.getGambaD());
 		dto.setGambaS(m.getGambaS());
@@ -877,6 +885,7 @@ public class DtoMapper {
 		m.setBicipiteD(form.getBicipiteD());
 		m.setBicipiteS(form.getBicipiteS());
 		m.setDataMisurazione(form.getDataMisurazione());
+		m.setPeso(form.getPeso());
 		m.setFianchi(form.getFianchi());
 		m.setGambaD(form.getGambaD());
 		m.setGambaS(form.getGambaS());
@@ -897,6 +906,7 @@ public class DtoMapper {
 		m.setBicipiteD(form.getBicipiteD());
 		m.setBicipiteS(form.getBicipiteS());
 		m.setDataMisurazione(form.getDataMisurazione());
+		m.setPeso(form.getPeso());
 		m.setFianchi(form.getFianchi());
 		m.setGambaD(form.getGambaD());
 		m.setGambaS(form.getGambaS());

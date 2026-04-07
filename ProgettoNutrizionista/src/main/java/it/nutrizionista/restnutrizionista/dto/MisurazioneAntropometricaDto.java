@@ -6,6 +6,7 @@ import java.time.LocalDate;
 public class MisurazioneAntropometricaDto {
 
 	private Long id;
+	private Double peso;
 	private Double spalle;
 	private Double vita;
 	private Double fianchi;
@@ -24,6 +25,12 @@ public class MisurazioneAntropometricaDto {
 	}
 	public void setId(Long id) {
 		this.id = id;
+	}
+	public Double getPeso() {
+		return peso;
+	}
+	public void setPeso(Double peso) {
+		this.peso = peso;
 	}
 	public Double getSpalle() {
 		return spalle;

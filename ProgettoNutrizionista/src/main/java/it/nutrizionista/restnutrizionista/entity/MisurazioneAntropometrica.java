@@ -27,6 +27,9 @@ public class MisurazioneAntropometrica {
     private Long id;
 	
 	@Column
+	private Double peso;
+
+	@Column
 	private Double spalle;
 	
 	@Column
@@ -71,6 +74,14 @@ public class MisurazioneAntropometrica {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public Double getPeso() {
+		return peso;
+	}
+
+	public void setPeso(Double peso) {
+		this.peso = peso;
 	}
 
 	public Double getSpalle() {
