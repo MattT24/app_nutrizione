@@ -40,6 +40,9 @@ public class OffProductDto {
 
         private String code;
 
+        @JsonProperty("product_name_it")
+        private String productNameIt;
+
         private Nutriments nutriments;
 
         public String getProductName() { return productName; }
@@ -52,6 +55,8 @@ public class OffProductDto {
         public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
         public String getCode() { return code; }
         public void setCode(String code) { this.code = code; }
+        public String getProductNameIt() { return productNameIt; }
+        public void setProductNameIt(String productNameIt) { this.productNameIt = productNameIt; }
         public Nutriments getNutriments() { return nutriments; }
         public void setNutriments(Nutriments nutriments) { this.nutriments = nutriments; }
     }
