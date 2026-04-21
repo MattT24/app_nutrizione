@@ -1,19 +1,20 @@
 package it.nutrizionista.restnutrizionista.mapper;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import it.nutrizionista.restnutrizionista.dto.ObiettivoNutrizionaleDto;
+import it.nutrizionista.restnutrizionista.dto.AlimentoAlternativoDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
-import it.nutrizionista.restnutrizionista.dto.AlimentoAlternativoDto;
-import it.nutrizionista.restnutrizionista.dto.AlimentoDaEvitareDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoPastoDto;
+import it.nutrizionista.restnutrizionista.dto.AlimentoPastoSchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaDto;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoDto;
 import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
+import it.nutrizionista.restnutrizionista.dto.AvversionePersonaleDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
 import it.nutrizionista.restnutrizionista.dto.GruppoDto;
@@ -21,9 +22,11 @@ import it.nutrizionista.restnutrizionista.dto.MacroDto;
 import it.nutrizionista.restnutrizionista.dto.MicroDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaFormDto;
+import it.nutrizionista.restnutrizionista.dto.ObiettivoNutrizionaleDto;
 import it.nutrizionista.restnutrizionista.dto.OrariStudioDto;
 import it.nutrizionista.restnutrizionista.dto.OrariStudioFormDto;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
+import it.nutrizionista.restnutrizionista.dto.PastoSchedaTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.PastoTemplateAlternativaDto;
 import it.nutrizionista.restnutrizionista.dto.PastoTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.PastoTemplateItemDto;
@@ -34,40 +37,36 @@ import it.nutrizionista.restnutrizionista.dto.PlicometriaFormDto;
 import it.nutrizionista.restnutrizionista.dto.RuoloDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.ValoreMicroDto;
-import it.nutrizionista.restnutrizionista.dto.ValoreMicroFormDto;
-import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
-import it.nutrizionista.restnutrizionista.entity.AlimentoDaEvitare;
+import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
+import it.nutrizionista.restnutrizionista.entity.AlimentoPastoSchedaTemplate;
+import it.nutrizionista.restnutrizionista.entity.AlimentoSchedaTemplateAlternativa;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
+import it.nutrizionista.restnutrizionista.entity.AvversionePersonale;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Gruppo;
 import it.nutrizionista.restnutrizionista.entity.Macro;
 import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
+import it.nutrizionista.restnutrizionista.entity.ObiettivoNutrizionale;
 import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
+import it.nutrizionista.restnutrizionista.entity.PastoSchedaTemplate;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplate;
-import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlternativo;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlimento;
-import it.nutrizionista.restnutrizionista.entity.ObiettivoNutrizionale;
+import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlternativo;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.RuoloPermesso;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.SchedaTemplate;
-import it.nutrizionista.restnutrizionista.entity.PastoSchedaTemplate;
-import it.nutrizionista.restnutrizionista.entity.AlimentoPastoSchedaTemplate;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.entity.ValoreMicro;
-import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
-import it.nutrizionista.restnutrizionista.dto.PastoSchedaTemplateDto;
-import it.nutrizionista.restnutrizionista.dto.AlimentoPastoSchedaTemplateDto;
-import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaDto;
-import it.nutrizionista.restnutrizionista.entity.AlimentoSchedaTemplateAlternativa;
 
 /**
  * Mapper Entity -> DTO con metodi ESPLICITI (niente overload con booleani),
@@ -315,6 +314,20 @@ public class DtoMapper {
 			dto.setPlicometrie(new ArrayList<>());
 		}
 
+		// ── Tags clinici MDSS (EAGER — già in RAM, zero query extra) ──
+		dto.setTagStandard(c.getTagStandard() != null
+				? new HashSet<>(c.getTagStandard())
+				: new HashSet<>());
+
+		// Blacklist personale (LAZY — esporre solo se già inizializzato nella transazione)
+		if (c.getBlacklistManuale() != null) {
+			dto.setBlacklistManuale(
+					c.getBlacklistManuale().stream()
+							.map(DtoMapper::toAvversionePersonaleDto)
+							.collect(Collectors.toSet())
+			);
+		}
+
 		return dto;
 	}
 
@@ -385,6 +398,24 @@ public class DtoMapper {
 		dto.setSesso(c.getSesso());
 		dto.setEmail(c.getEmail());
 		return dto;
+	}
+
+	// ── AvversionePersonale (Record piatto — Fase 3) ──────────────────────
+
+	/**
+	 * Mappa AvversionePersonale → AvversionePersonaleDto (struttura piatta).
+	 * Usa alimentoId + alimentoNome per minimizzare il payload JSON.
+	 * Il frontend Angular necessita solo del nome per badge di visualizzazione.
+	 */
+	public static AvversionePersonaleDto toAvversionePersonaleDto(AvversionePersonale ap) {
+		if (ap == null) return null;
+		return new AvversionePersonaleDto(
+				ap.getId(),
+				ap.getAlimento() != null ? ap.getAlimento().getId() : null,
+				ap.getAlimento() != null ? ap.getAlimento().getNome() : null,
+				ap.getGravita(),
+				ap.getNote()
+		);
 	}
 
 	// ─── ObiettivoNutrizionale ──────────────────────────────────────────
@@ -540,28 +571,7 @@ public class DtoMapper {
 		// NON settiamo Macro né Micro qui!
 		return dto;
 	}
-	// Mapper per l'entità AlimentoDaEvitare
 
-	public static AlimentoDaEvitareDto toAlimentoDaEvitareDtoLight(AlimentoDaEvitare a) {
-		if (a == null) {
-			return null;
-		}
-		AlimentoDaEvitareDto dto = new AlimentoDaEvitareDto();
-		dto.setId(a.getId());
-		dto.setAlimento(toAlimentoBaseDtoMinimal(a.getAlimento()));
-		return dto;
-	}
-
-	public static AlimentoDaEvitareDto toAlimentoDaEvitareDto(AlimentoDaEvitare a) {
-		if (a == null) {
-			return null;
-		}
-		AlimentoDaEvitareDto dto = new AlimentoDaEvitareDto();
-		dto.setId(a.getId());
-		dto.setAlimento(toAlimentoBaseDtoMinimal(a.getAlimento()));
-		dto.setCliente(toClienteDtoLight(a.getCliente()));
-		return dto;
-	}
 
 	// Mapper per l'entità Macro
 

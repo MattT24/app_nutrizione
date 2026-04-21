@@ -1,7 +1,8 @@
 package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.LocalDate;
-
+import java.util.Set;
+import it.nutrizionista.restnutrizionista.enums.TagStandard;
 import it.nutrizionista.restnutrizionista.entity.LivelloDiAttivita;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import jakarta.validation.constraints.NotBlank;
@@ -33,6 +34,8 @@ public class ClienteFormDto {
     private UtenteDto nutrizionista;
     private Double pesoTarget;
     private Integer altezzaTarget;
+    private Set<TagStandard> tagStandard;
+    private Set<AvversionePersonaleFormDto> blacklistManuale;
     
 	public Sesso getSesso() {
 		return sesso;
@@ -160,7 +163,18 @@ public class ClienteFormDto {
 	public void setAltezzaTarget(Integer altezzaTarget) {
 		this.altezzaTarget = altezzaTarget;
 	}
+	public Set<TagStandard> getTagStandard() {
+		return tagStandard;
+	}
+	public void setTagStandard(Set<TagStandard> tagStandard) {
+		this.tagStandard = tagStandard;
+	}
+	public Set<AvversionePersonaleFormDto> getBlacklistManuale() {
+		return blacklistManuale;
+	}
+	public void setBlacklistManuale(Set<AvversionePersonaleFormDto> blacklistManuale) {
+		this.blacklistManuale = blacklistManuale;
+	}
 
-    
     
 }

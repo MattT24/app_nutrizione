@@ -61,8 +61,12 @@ public class PastoController {
 	
 	@GetMapping("/{id}")
 	@PreAuthorize("hasAuthority('PASTO_READ')")
-	public ResponseEntity<PastoDto> getById(@PathVariable Long id){
-		var dto = service.dettaglio(id); // Uso dettaglio per avere tutto
+	public ResponseEntity<PastoDto> getById(
+			@PathVariable Long id,
+			@RequestParam(required = false) Long clienteId){
+		var dto = (clienteId != null)
+				? service.dettaglioConValutazione(id, clienteId)
+				: service.dettaglio(id);
 		return ResponseEntity.ok(dto);
 	}
 

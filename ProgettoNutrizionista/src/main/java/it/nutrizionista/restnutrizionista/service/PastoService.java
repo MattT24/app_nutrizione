@@ -1,5 +1,8 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -8,6 +11,10 @@ import org.springframework.transaction.annotation.Transactional;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PastoFormDto;
+import it.nutrizionista.restnutrizionista.dto.ValutazioneClinicaDto;
+import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
+import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
+import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
 import it.nutrizionista.restnutrizionista.entity.TipoScheda;
@@ -26,6 +33,7 @@ public class PastoService {
 	@Autowired private SchedaRepository schedaRepo;
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private ClinicalEngineService clinicalEngineService;
 
 	private boolean isDefaultMealName(String nome) {
 		return "Colazione".equalsIgnoreCase(nome)
@@ -164,6 +172,42 @@ public class PastoService {
 	public PastoDto dettaglio(Long id) {
 		Pasto p = ownershipValidator.getOwnedPasto(id);
 		return DtoMapper.toPastoDto(p);
+	}
+
+	/**
+	 * Dettaglio pasto con arricchimento clinico MDSS (post-mapping).
+	 * Se clienteId è presente, inietta la valutazioneClinica in ogni AlimentoBaseDto annidato.
+	 * Usa ownershipValidator per garantire la sicurezza dell'ownership.
+	 */
+	@Transactional(readOnly = true)
+	public PastoDto dettaglioConValutazione(Long id, Long clienteId) {
+		Pasto p = ownershipValidator.getOwnedPasto(id);
+		PastoDto dto = DtoMapper.toPastoDto(p);
+
+		if (clienteId == null || dto.getAlimentiPasto() == null || dto.getAlimentiPasto().isEmpty()) {
+			return dto;
+		}
+
+		// [SECURITY] ownershipValidator lancia NotFoundException se il cliente non è del nutrizionista
+		Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+
+		// Estrai gli alimenti dal Pasto entity (non dal DTO) per passarli al motore
+		List<AlimentoBase> alimenti = p.getAlimentiPasto().stream()
+				.map(AlimentoPasto::getAlimento)
+				.collect(Collectors.toList());
+
+		// Valutazione clinica in batch: pre-fetch blacklist UNA SOLA VOLTA (Anti N+1)
+		List<ValutazioneClinicaDto> valutazioni = clinicalEngineService.valutaInBatch(alimenti, cliente);
+
+		// Arricchimento post-mapping: inietta la valutazione in ogni AlimentoBaseDto annidato
+		for (int i = 0; i < dto.getAlimentiPasto().size(); i++) {
+			if (dto.getAlimentiPasto().get(i).getAlimento() != null && i < valutazioni.size()) {
+				dto.getAlimentiPasto().get(i).getAlimento()
+						.setValutazioneClinica(valutazioni.get(i));
+			}
+		}
+
+		return dto;
 	}
 
 

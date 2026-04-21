@@ -24,7 +24,7 @@ import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
-import it.nutrizionista.restnutrizionista.entity.AlimentoDaEvitare;
+import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPastoNomeOverride;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
@@ -33,7 +33,6 @@ import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
-import it.nutrizionista.restnutrizionista.repository.AlimentoDaEvitareRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoNomeOverrideRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
@@ -44,7 +43,7 @@ import jakarta.validation.Valid;
 public class SchedaService {
 
 	@Autowired private SchedaRepository repo;
-	@Autowired private AlimentoDaEvitareRepository repoRestrizioni;
+	@Autowired private ClinicalEngineService clinicalEngineService;
 	@Autowired private PastoRepository repoPasto;
 	@Autowired private AlimentoAlternativoRepository repoAlternative;
 	@Autowired private OwnershipValidator ownershipValidator;
@@ -532,19 +531,24 @@ public class SchedaService {
 
     /** Restituisce la lista dei nomi degli alimenti in conflitto (vuota se nessun conflitto) */
     private List<String> findSafetyConflicts(Scheda source, Long targetClienteId) {
-        List<Long> foodIdsInScheda = source.getPasti().stream()
+        List<AlimentoBase> foodInScheda = source.getPasti().stream()
                 .flatMap(p -> p.getAlimentiPasto().stream())
-                .map(ap -> ap.getAlimento().getId())
+                .map(ap -> ap.getAlimento())
                 .distinct()
                 .collect(Collectors.toList());
 
-        if (foodIdsInScheda.isEmpty()) return new ArrayList<>();
+        if (foodInScheda.isEmpty()) return new ArrayList<>();
 
-        List<AlimentoDaEvitare> conflitti = repoRestrizioni.findByCliente_IdAndAlimento_IdIn(targetClienteId, foodIdsInScheda);
+        Cliente target = ownershipValidator.getOwnedCliente(targetClienteId);
+        List<it.nutrizionista.restnutrizionista.dto.ValutazioneClinicaDto> results = clinicalEngineService.valutaInBatch(foodInScheda, target);
 
-        return conflitti.stream()
-                .map(c -> c.getAlimento().getNome() + " (" + c.getTipo() + ")")
-                .collect(Collectors.toList());
+        List<String> conflitti = new ArrayList<>();
+        for (int i=0; i<foodInScheda.size(); i++) {
+            if (results.get(i).stato() == it.nutrizionista.restnutrizionista.enums.LivelloAllerta.ALERT_GRAVE) {
+                conflitti.add(foodInScheda.get(i).getNome() + " (Rischio Grave, controllare referto)");
+            }
+        }
+        return conflitti;
     }
 
     /** Logica di controllo sicurezza centralizzata — usata dagli endpoint legacy */

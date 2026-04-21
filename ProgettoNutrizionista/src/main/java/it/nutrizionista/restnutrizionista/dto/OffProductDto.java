@@ -1,5 +1,7 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -45,6 +47,15 @@ public class OffProductDto {
 
         private Nutriments nutriments;
 
+        @JsonProperty("allergens_tags")
+        private List<String> allergensTags;
+
+        @JsonProperty("traces_tags")
+        private List<String> tracesTags;
+
+        @JsonProperty("labels_tags")
+        private List<String> labelsTags;
+
         public String getProductName() { return productName; }
         public void setProductName(String productName) { this.productName = productName; }
         public String getBrands() { return brands; }
@@ -59,6 +70,12 @@ public class OffProductDto {
         public void setProductNameIt(String productNameIt) { this.productNameIt = productNameIt; }
         public Nutriments getNutriments() { return nutriments; }
         public void setNutriments(Nutriments nutriments) { this.nutriments = nutriments; }
+        public List<String> getAllergensTags() { return allergensTags; }
+        public void setAllergensTags(List<String> allergensTags) { this.allergensTags = allergensTags; }
+        public List<String> getTracesTags() { return tracesTags; }
+        public void setTracesTags(List<String> tracesTags) { this.tracesTags = tracesTags; }
+        public List<String> getLabelsTags() { return labelsTags; }
+        public void setLabelsTags(List<String> labelsTags) { this.labelsTags = labelsTags; }
     }
 
     // ── Inner: Nutriments ──
