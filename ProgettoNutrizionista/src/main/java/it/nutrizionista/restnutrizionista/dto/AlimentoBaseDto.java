@@ -9,7 +9,7 @@ public class AlimentoBaseDto {
     private Long id;
 	private String nome;
     private List<AlimentoPastoDto> alimentiScelti;
-    private List<AlimentoDaEvitareDto> alimentiEvitati;
+
     private MacroDto macroNutrienti;
     private List<ValoreMicroDto> micronutrienti;
     private Double misuraInGrammi;
@@ -19,6 +19,7 @@ public class AlimentoBaseDto {
     private boolean personale;
     private Instant createdAt;
     private Instant updatedAt;
+    private ValutazioneClinicaDto valutazioneClinica;
 	public Long getId() {
 		return id;
 	}
@@ -37,12 +38,7 @@ public class AlimentoBaseDto {
 	public void setAlimentiScelti(List<AlimentoPastoDto> alimentiScelti) {
 		this.alimentiScelti = alimentiScelti;
 	}
-	public List<AlimentoDaEvitareDto> getAlimentiEvitati() {
-		return alimentiEvitati;
-	}
-	public void setAlimentiEvitati(List<AlimentoDaEvitareDto> alimentiEvitati) {
-		this.alimentiEvitati = alimentiEvitati;
-	}
+
 	public MacroDto getMacroNutrienti() {
 		return macroNutrienti;
 	}
@@ -111,4 +107,7 @@ public class AlimentoBaseDto {
     public void setSenzaLattosio(Boolean senzaLattosio) { this.senzaLattosio = senzaLattosio; }
     public Boolean getVegano() { return vegano; }
     public void setVegano(Boolean vegano) { this.vegano = vegano; }
+
+    public ValutazioneClinicaDto getValutazioneClinica() { return valutazioneClinica; }
+    public void setValutazioneClinica(ValutazioneClinicaDto valutazioneClinica) { this.valutazioneClinica = valutazioneClinica; }
 }
