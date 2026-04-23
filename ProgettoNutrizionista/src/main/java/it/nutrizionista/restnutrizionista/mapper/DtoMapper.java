@@ -38,6 +38,7 @@ import it.nutrizionista.restnutrizionista.dto.RuoloDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.SystemTagDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.ValoreMicroDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
@@ -67,6 +68,7 @@ import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.SchedaTemplate;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.entity.ValoreMicro;
+import it.nutrizionista.restnutrizionista.enums.TagStandard;
 
 /**
  * Mapper Entity -> DTO con metodi ESPLICITI (niente overload con booleani),
@@ -356,6 +358,11 @@ public class DtoMapper {
 		c.setBeveAlcol(form.getBeveAlcol() != null ? form.getBeveAlcol() : false);
 		c.setFuma(form.getFuma() != null ? form.getFuma() : false);
 
+		// ── Tags clinici MDSS ──
+		if (form.getTagStandard() != null) {
+			c.setTagStandard(new HashSet<>(form.getTagStandard()));
+		}
+
 		return c;
 	}
 
@@ -383,6 +390,12 @@ public class DtoMapper {
 		c.setAssunzioneFarmaci(form.getAssunzioneFarmaci() != null ? form.getAssunzioneFarmaci() : "");
 		c.setBeveAlcol(form.getBeveAlcol() != null ? form.getBeveAlcol() : false);
 		c.setFuma(form.getFuma() != null ? form.getFuma() : false);
+
+		// ── Tags clinici MDSS: overwrite completo (clean & merge) ──
+		if (form.getTagStandard() != null) {
+			c.getTagStandard().clear();
+			c.getTagStandard().addAll(form.getTagStandard());
+		}
 	}
 
 	// mapper cliente con solo le cose essenziali, vedete se aggiungere info
@@ -1565,4 +1578,43 @@ public class DtoMapper {
 				nomeVis
 		);
 	}
+
+	/**
+	 * Trasforma un valore dell'Enum TagStandard in un SystemTagDto leggibile.
+	 * Rimuove il prefisso tecnico (ALL_, PAT_, FISIO_, STILE_) e aggiunge
+	 * un suffisso descrittivo per la visualizzazione UI del nutrizionista.
+	 * Esempio: ALL_GLUTINE -> "Glutine (Allergia)"
+	 */
+	public static SystemTagDto toTagDto(TagStandard tag) {
+		if (tag == null) return null;
+
+		String id = tag.name();
+		String rawLabel = tag.name().replace("_", " ");
+
+		if (id.startsWith("ALL_")) {
+			rawLabel = rawLabel.replace("ALL ", "") + " (Allergia)";
+		} else if (id.startsWith("PAT_")) {
+			rawLabel = rawLabel.replace("PAT ", "") + " (Patologia)";
+		} else if (id.startsWith("FISIO_")) {
+			rawLabel = rawLabel.replace("FISIO ", "") + " (Stato Fisiologico)";
+		} else if (id.startsWith("STILE_")) {
+			rawLabel = rawLabel.replace("STILE ", "");
+		} else if (id.startsWith("REL_")) {
+			rawLabel = rawLabel.replace("REL ", "") + " (Religioso)";
+		} else if (id.startsWith("FARM_")) {
+			rawLabel = rawLabel.replace("FARM ", "") + " (Farmacologico)";
+		} else if (id.startsWith("INT_")) {
+			rawLabel = rawLabel.replace("INT ", "") + " (Intolleranza)";
+		}
+
+		// Capitalizza solo la prima lettera, resto in minuscolo
+		String formattedLabel = rawLabel.substring(0, 1).toUpperCase() + rawLabel.substring(1).toLowerCase();
+
+		// Preserva acronimi clinici noti
+		formattedLabel = formattedLabel.replace("Ncgs", "NCGS");
+
+		return new SystemTagDto(id, formattedLabel);
+	}
+
 }
+
