@@ -28,5 +28,10 @@ public enum TagStandard {
     
     // ── Interazioni Farmacologiche ──
     FARM_ANTICOAGULANTI,
-    FARM_STATINE
+    FARM_STATINE,
+
+    // ── Intolleranze Sistemiche (WARNING nel Rule Engine) ──
+    INT_LATTOSIO,
+    INT_GLUTINE_NCGS,
+    INT_ISTAMINA
 }

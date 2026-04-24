@@ -216,9 +216,21 @@ public class SchedaTemplateService {
 		Scheda scheda = new Scheda();
 		scheda.setNome(schedaForm.getNome() != null ? schedaForm.getNome().trim() : st.getNome());
 		scheda.setCliente(cliente);
-		scheda.setAttiva(schedaForm.getAttiva() != null ? schedaForm.getAttiva() : true);
 		scheda.setDataCreazione(LocalDate.now());
 		scheda.setTipo(st.getTipo());
+
+		// Determina se la nuova scheda sarà attiva (default true se null)
+		boolean nuovaSchedaAttiva = schedaForm.getAttiva() == null || Boolean.TRUE.equals(schedaForm.getAttiva());
+
+		// Se la nuova scheda sarà attiva, disattiva tutte le altre del cliente
+		if (nuovaSchedaAttiva) {
+			List<Scheda> schedeAttive = schedaRepository.findByCliente_IdAndAttivaTrue(cliente.getId());
+			for (Scheda vecchia : schedeAttive) {
+				vecchia.setAttiva(false);
+			}
+			schedaRepository.saveAll(schedeAttive);
+		}
+		scheda.setAttiva(nuovaSchedaAttiva);
 
 		Scheda savedScheda = schedaRepository.save(scheda);
 		clonaPastiSuScheda(st, savedScheda, false);
