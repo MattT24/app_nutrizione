@@ -21,6 +21,7 @@ import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateMetadataPatchDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.service.SchedaTemplateService;
@@ -34,10 +35,10 @@ public class SchedaTemplateController {
 	@Autowired
 	private SchedaTemplateService service;
 
-	/** GET /api/schede-template — Lista template completi */
+	/** GET /api/schede-template — Lista template leggera (solo metadati per card) */
 	@GetMapping
 	@PreAuthorize("hasAuthority('SCHEDA_READ')")
-	public ResponseEntity<List<SchedaTemplateDto>> listMine() {
+	public ResponseEntity<List<SchedaTemplateListDto>> listMine() {
 		return ResponseEntity.ok(service.listMine());
 	}
 

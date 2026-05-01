@@ -20,6 +20,7 @@ import it.nutrizionista.restnutrizionista.dto.PastoSchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateMetadataPatchDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
@@ -71,10 +72,10 @@ public class SchedaTemplateService {
 	// ═══════════════════════════════════════════
 
 	@Transactional(readOnly = true)
-	public List<SchedaTemplateDto> listMine() {
+	public List<SchedaTemplateListDto> listMine() {
 		var me = currentUserService.getMe();
-		return repo.findByCreatedByIdWithFullTree(me.getId()).stream()
-				.map(DtoMapper::toSchedaTemplateDto)
+		return repo.findAllByCreatedByIdOrderByUpdatedAtDesc(me.getId()).stream()
+				.map(DtoMapper::toSchedaTemplateListDto)
 				.collect(Collectors.toList());
 	}
 
