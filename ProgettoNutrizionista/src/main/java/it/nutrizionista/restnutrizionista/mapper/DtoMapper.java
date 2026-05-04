@@ -38,6 +38,7 @@ import it.nutrizionista.restnutrizionista.dto.RuoloDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
 import it.nutrizionista.restnutrizionista.dto.SystemTagDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.ValoreMicroDto;
@@ -1480,6 +1481,18 @@ public class DtoMapper {
 	private static double round1(double v)    { return Math.round(v * 10.0) / 10.0; }
 
 	// ── SchedaTemplate ──────────────────────────────────────────
+
+	/** Mappatura ultra-leggera per la vista lista card (zero pasti/alimenti). */
+	public static SchedaTemplateListDto toSchedaTemplateListDto(SchedaTemplate st) {
+		if (st == null) return null;
+		return new SchedaTemplateListDto(
+			st.getId(),
+			st.getNome(),
+			st.getDescrizione(),
+			st.getTipo() != null ? st.getTipo().name() : "GIORNALIERA",
+			st.getPasti() != null ? st.getPasti().size() : 0
+		);
+	}
 
 	public static SchedaTemplateDto toSchedaTemplateDtoLight(SchedaTemplate st) {
 		if (st == null) return null;
