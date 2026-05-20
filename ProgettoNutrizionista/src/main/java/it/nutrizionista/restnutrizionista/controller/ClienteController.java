@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,6 +23,7 @@ import it.nutrizionista.restnutrizionista.dto.CognomeRequest;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
 import it.nutrizionista.restnutrizionista.dto.NomeRequest;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
 import it.nutrizionista.restnutrizionista.service.ClienteService;
 import jakarta.validation.Valid;
 
@@ -44,6 +46,13 @@ public class ClienteController {
 	public ResponseEntity<ClienteDto> update(@Valid @RequestBody ClienteFormDto form){
 		var updated = service.update(form);
         return ResponseEntity.status(201).body(updated);
+    }
+
+	@PatchMapping("/peso-altezza")
+    @PreAuthorize("hasAuthority('CLIENTE_UPDATE')")
+	public ResponseEntity<ClienteDto> updatePesoAltezza(@Valid @RequestBody PesoAltezzaRequest req){
+		var updated = service.updatePesoAltezza(req);
+        return ResponseEntity.ok(updated);
     }
 
 	@DeleteMapping("/mio")
