@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
@@ -44,6 +45,17 @@ public class ClienteService {
 		if (form.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
 		Cliente c = ownershipValidator.getOwnedCliente(form.getId());
 		DtoMapper.updateClienteFromForm(c, form);
+		return DtoMapper.toClienteDto(repo.save(c));
+	}
+
+	@Transactional
+	public ClienteDto updatePesoAltezza(@Valid PesoAltezzaRequest req) {
+		if (req.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
+		Cliente c = ownershipValidator.getOwnedCliente(req.getId());
+		if (req.getPeso() != null) c.setPeso(req.getPeso());
+		if (req.getAltezza() != null) c.setAltezza(req.getAltezza());
+		// Permettiamo di impostare anche a null il pesoTarget se inviato, se serve
+		c.setPesoTarget(req.getPesoTarget());
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
 
