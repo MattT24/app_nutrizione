@@ -512,10 +512,13 @@ public class SchedaService {
                 ? pClonato.getDefaultCode().equals(pastoOriginale.getDefaultCode())
                 : pClonato.getNome().equals(pastoOriginale.getNome());
 
-            // Non controlliamo pClonato.getGiorno() == pastoOriginale.getGiorno()
-            // in modo che se la Scheda salvata contiene i cloni del giorno B generati dal giorno A, matcheranno.
+            // Controlla anche il giorno per schede settimanali:
+            // senza questo check, "Colazione Lunedì" matcha anche "Colazione Martedì"
+            // causando duplicati nel vincolo uk_pasto_alternativo
+            boolean matchGiorno = java.util.Objects.equals(
+                pClonato.getGiorno(), pastoOriginale.getGiorno());
             
-            if (matchPasto && pClonato.getAlimentiPasto() != null) {
+            if (matchPasto && matchGiorno && pClonato.getAlimentiPasto() != null) {
                 for (AlimentoPasto apClonato : pClonato.getAlimentiPasto()) {
                     if (apClonato.getAlimento() != null && apOriginale.getAlimento() != null
                         && java.util.Objects.equals(apClonato.getAlimento().getId(), apOriginale.getAlimento().getId())) {

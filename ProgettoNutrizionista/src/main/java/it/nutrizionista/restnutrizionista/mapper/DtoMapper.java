@@ -58,8 +58,16 @@ import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.RuoloPermesso;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
+import it.nutrizionista.restnutrizionista.entity.SchedaTemplate;
+import it.nutrizionista.restnutrizionista.entity.PastoSchedaTemplate;
+import it.nutrizionista.restnutrizionista.entity.AlimentoPastoSchedaTemplate;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.entity.ValoreMicro;
+import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.PastoSchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.AlimentoPastoSchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaDto;
+import it.nutrizionista.restnutrizionista.entity.AlimentoSchedaTemplateAlternativa;
 
 /**
  * Mapper Entity -> DTO con metodi ESPLICITI (niente overload con booleani),
@@ -1447,4 +1455,104 @@ public class DtoMapper {
 
 	private static double safeValue(Double v) { return v != null ? v : 0.0; }
 	private static double round1(double v)    { return Math.round(v * 10.0) / 10.0; }
+
+	// ── SchedaTemplate ──────────────────────────────────────────
+
+	public static SchedaTemplateDto toSchedaTemplateDtoLight(SchedaTemplate st) {
+		if (st == null) return null;
+		SchedaTemplateDto dto = new SchedaTemplateDto();
+		dto.setId(st.getId());
+		dto.setNome(st.getNome());
+		dto.setDescrizione(st.getDescrizione());
+		dto.setTipo(st.getTipo() != null ? st.getTipo().name() : "GIORNALIERA");
+		dto.setNumeroPasti(st.getPasti() != null ? st.getPasti().size() : 0);
+		dto.setCreatedAt(st.getCreatedAt());
+		dto.setUpdatedAt(st.getUpdatedAt());
+		return dto;
+	}
+
+	public static SchedaTemplateDto toSchedaTemplateDto(SchedaTemplate st) {
+		if (st == null) return null;
+		SchedaTemplateDto dto = new SchedaTemplateDto();
+		dto.setId(st.getId());
+		dto.setNome(st.getNome());
+		dto.setDescrizione(st.getDescrizione());
+		dto.setTipo(st.getTipo() != null ? st.getTipo().name() : "GIORNALIERA");
+		dto.setNumeroPasti(st.getPasti() != null ? st.getPasti().size() : 0);
+		dto.setCreatedAt(st.getCreatedAt());
+		dto.setUpdatedAt(st.getUpdatedAt());
+		if (st.getPasti() != null) {
+			dto.setPasti(st.getPasti().stream()
+					.map(DtoMapper::toPastoSchedaTemplateDto)
+					.collect(Collectors.toList()));
+		}
+		return dto;
+	}
+
+	public static PastoSchedaTemplateDto toPastoSchedaTemplateDto(PastoSchedaTemplate p) {
+		if (p == null) return null;
+		PastoSchedaTemplateDto dto = new PastoSchedaTemplateDto();
+		dto.setId(p.getId());
+		dto.setNome(p.getNome());
+		dto.setDescrizione(p.getDescrizione());
+		dto.setGiorno(p.getGiorno() != null ? p.getGiorno().name() : null);
+		dto.setOrdineVisualizzazione(p.getOrdineVisualizzazione());
+		dto.setOrarioInizio(p.getOrarioInizio() != null ? p.getOrarioInizio().toString() : null);
+		dto.setOrarioFine(p.getOrarioFine() != null ? p.getOrarioFine().toString() : null);
+		if (p.getAlimenti() != null) {
+			dto.setAlimentiPasto(p.getAlimenti().stream()
+					.map(DtoMapper::toAlimentoPastoSchedaTemplateDto)
+					.collect(Collectors.toList()));
+		}
+		return dto;
+	}
+
+	public static AlimentoPastoSchedaTemplateDto toAlimentoPastoSchedaTemplateDto(AlimentoPastoSchedaTemplate a) {
+		if (a == null) return null;
+		AlimentoPastoSchedaTemplateDto dto = new AlimentoPastoSchedaTemplateDto();
+		dto.setId(a.getId());
+		dto.setQuantita(a.getQuantita());
+		AlimentoBase alim = a.getAlimento();
+		if (alim != null) {
+			dto.setAlimento(toAlimentoBaseDtoMacro(alim));
+		}
+		dto.setNomeCustom(a.getNomeCustom());
+		dto.setNomeVisualizzato(a.getNomeCustom() != null && !a.getNomeCustom().isBlank()
+				? a.getNomeCustom()
+				: (alim != null ? alim.getNome() : null));
+		if (a.getAlternative() != null) {
+			dto.setAlternative(a.getAlternative().stream()
+					.sorted((x, y) -> {
+						int px = x.getPriorita() != null ? x.getPriorita() : Integer.MAX_VALUE;
+						int py = y.getPriorita() != null ? y.getPriorita() : Integer.MAX_VALUE;
+						return Integer.compare(px, py);
+					})
+					.map(DtoMapper::toAlimentoSchedaTemplateAlternativaDto)
+					.collect(Collectors.toList()));
+		}
+		return dto;
+	}
+
+	// ── AlimentoSchedaTemplateAlternativa ────────────────────────
+
+	public static AlimentoSchedaTemplateAlternativaDto toAlimentoSchedaTemplateAlternativaDto(
+			AlimentoSchedaTemplateAlternativa alt) {
+		if (alt == null) return null;
+		AlimentoBase alim = alt.getAlimentoAlternativo();
+		String nomeVis = (alt.getNomeCustom() != null && !alt.getNomeCustom().isBlank())
+				? alt.getNomeCustom()
+				: (alim != null ? alim.getNome() : null);
+		return new AlimentoSchedaTemplateAlternativaDto(
+				alt.getId(),
+				alt.getAlimentoPastoSchedaTemplate() != null
+						? alt.getAlimentoPastoSchedaTemplate().getId() : null,
+				alim != null ? toAlimentoBaseDtoMacro(alim) : null,
+				alt.getQuantita(),
+				alt.getPriorita(),
+				alt.getMode() != null ? alt.getMode().name() : "CALORIE",
+				alt.getManual(),
+				alt.getNomeCustom(),
+				nomeVis
+		);
+	}
 }
