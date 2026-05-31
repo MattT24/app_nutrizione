@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteLightDto;
 import it.nutrizionista.restnutrizionista.dto.CognomeRequest;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
 import it.nutrizionista.restnutrizionista.dto.NomeRequest;
@@ -70,7 +71,7 @@ public class ClienteController {
 	
 	@GetMapping("/lista-completa")
 	@PreAuthorize("hasAuthority('CLIENTE_READ')")
-	public List<ClienteDto> getListaCompleta(){
+	public List<ClienteLightDto> getListaCompleta(){
 		return service.allMyClientiList();
 	}
 	

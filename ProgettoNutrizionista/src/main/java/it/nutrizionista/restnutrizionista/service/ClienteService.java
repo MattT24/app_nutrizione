@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteLightDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
@@ -83,12 +84,12 @@ public class ClienteService {
 	}
 	
 	@Transactional(readOnly = true)
-	public List<ClienteDto> allMyClientiList() {
+	public List<ClienteLightDto> allMyClientiList() {
 		Utente u = currentUserService.getMe();
 		// Assicurati di avere questo metodo nel tuo ClienteRepository:
 		// List<Cliente> findByNutrizionista_Id(Long id);
 		return repo.findByNutrizionista_Id(u.getId()).stream()
-				.map(DtoMapper::toClienteDtoLight)
+				.map(DtoMapper::toClienteLightDto)
 				.toList();
 	}
 

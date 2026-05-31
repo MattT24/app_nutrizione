@@ -17,6 +17,7 @@ import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
 import it.nutrizionista.restnutrizionista.dto.AvversionePersonaleDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteLightDto;
 import it.nutrizionista.restnutrizionista.dto.GruppoDto;
 import it.nutrizionista.restnutrizionista.dto.MacroDto;
 import it.nutrizionista.restnutrizionista.dto.MicroDto;
@@ -412,6 +413,23 @@ public class DtoMapper {
 		dto.setSesso(c.getSesso());
 		dto.setEmail(c.getEmail());
 		return dto;
+	}
+
+	// mapper leggero per la lista-completa: record immutabile, nessuna relazione
+	public static ClienteLightDto toClienteLightDto(Cliente c) {
+		if (c == null) {
+			return null;
+		}
+		return new ClienteLightDto(
+				c.getId(),
+				c.getNome(),
+				c.getCognome(),
+				c.getSesso(),
+				c.getEmail(),
+				c.getDataNascita(),
+				c.getCreatedAt(),
+				c.getUpdatedAt()
+		);
 	}
 
 	// ── AvversionePersonale (Record piatto — Fase 3) ──────────────────────

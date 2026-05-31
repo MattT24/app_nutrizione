@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
 import it.nutrizionista.restnutrizionista.dto.LogoRequestDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.dto.ProfiloLightDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteFormDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteProfileUpdateDto;
@@ -86,6 +87,13 @@ public class UtenteController {
     public ResponseEntity<UtenteDto> profile() {
     	var dto = service.getProfile();
     	return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
+    }
+
+    /** Profilo leggero per navbar/home (id, nome, cognome, logo). */
+    @GetMapping("/profilo/light")
+    @PreAuthorize("hasAuthority('UTENTE_PROFILE')")
+    public ResponseEntity<ProfiloLightDto> profileLight() {
+    	return ResponseEntity.ok(service.getProfileLight());
     }
     
   
