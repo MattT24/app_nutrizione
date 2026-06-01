@@ -72,6 +72,12 @@ public class SchedaController {
         return ResponseEntity.ok(service.schedeByCliente(clienteId, pageable));
     }
 
+	@GetMapping("/cliente/attiva")
+    @PreAuthorize("hasAuthority('SCHEDA_READ')")
+    public ResponseEntity<SchedaDto> schedaAttivaByCliente(@RequestParam("clienteId") Long clienteId){
+        return ResponseEntity.ok(service.schedaAttivaByCliente(clienteId));
+    }
+
 	// ===== COPY BULK — Endpoint unificato per duplicate e import =====
 	@PostMapping("/{id}/copy-bulk")
 	@PreAuthorize("hasAuthority('SCHEDA_CREATE')")

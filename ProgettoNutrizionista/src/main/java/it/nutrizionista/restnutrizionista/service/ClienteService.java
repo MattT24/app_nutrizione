@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteInfoDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteLightDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
@@ -113,9 +114,9 @@ public class ClienteService {
 	}
 	
 	@Transactional(readOnly = true)
-    public ClienteDto dettaglio(Long id) {
+    public ClienteInfoDto dettaglio(Long id) {
         Cliente c = ownershipValidator.getOwnedCliente(id);
-        return DtoMapper.toClienteDto(c);
+        return DtoMapper.toClienteInfoDto(c);
     }
 	//manca cliente Fabbisogno, da studiare un attimo
 }

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteInfoDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteLightDto;
 import it.nutrizionista.restnutrizionista.dto.CognomeRequest;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
@@ -97,7 +98,7 @@ public class ClienteController {
 	
 	@PostMapping("/dettaglio")
 	@PreAuthorize("hasAuthority('CLIENTE_DETTAGLIO')")
-	public ResponseEntity<ClienteDto> dettaglio(@RequestBody IdRequest id){
+	public ResponseEntity<ClienteInfoDto> dettaglio(@RequestBody IdRequest id){
 		var dto = service.dettaglio(id.getId());
 		return (dto == null) ? ResponseEntity.notFound().build() : ResponseEntity.ok(dto);
 	}

@@ -193,6 +193,16 @@ public class SchedaService {
 	    return PageResponse.from(dtoPage);
 	}
 
+	/** Scheda attiva del cliente (al più una per regola di business), o null. */
+	@Transactional(readOnly = true)
+	public SchedaDto schedaAttivaByCliente(Long clienteId) {
+        ownershipValidator.getOwnedCliente(clienteId);
+	    return repo.findByCliente_IdAndAttivaTrue(clienteId).stream()
+	            .findFirst()
+	            .map(DtoMapper::toSchedaDtoLista)
+	            .orElse(null);
+	}
+
 	// ============================================================
 	// COPY BULK — Orchestratore unificato per duplicate e import
 	// ============================================================
