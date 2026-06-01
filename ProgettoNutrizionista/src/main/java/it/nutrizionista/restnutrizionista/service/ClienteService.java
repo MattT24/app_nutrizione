@@ -74,13 +74,13 @@ public class ClienteService {
 	}
 
 	@Transactional(readOnly = true)
-	public PageResponse<ClienteDto> allMyClienti( Pageable pageable) {
+	public PageResponse<ClienteLightDto> allMyClienti( Pageable pageable) {
 		Utente u = currentUserService.getMe();
 	    int maxSize = 12;
 	    if (pageable.getPageSize() > maxSize) {
 	        pageable = PageRequest.of(pageable.getPageNumber(), maxSize, pageable.getSort());
-	    }		
-		return PageResponse.from(repo.findByNutrizionista_Id(u.getId(),pageable).map(DtoMapper::toClienteDtoLight));
+	    }
+		return PageResponse.from(repo.findByNutrizionista_Id(u.getId(),pageable).map(DtoMapper::toClienteLightDto));
 	}
 	
 	@Transactional(readOnly = true)
