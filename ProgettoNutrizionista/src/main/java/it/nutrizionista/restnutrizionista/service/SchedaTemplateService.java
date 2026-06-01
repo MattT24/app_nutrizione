@@ -21,6 +21,7 @@ import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaTemplateSummaryDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateMetadataPatchDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
@@ -81,18 +82,13 @@ public class SchedaTemplateService {
 
 	/** Lista leggera — solo metadati (id, nome, tipo), senza caricare pasti/alimenti */
 	@Transactional(readOnly = true)
-	public List<SchedaTemplateDto> listMineSummary() {
+	public List<SchedaTemplateSummaryDto> listMineSummary() {
 		var me = currentUserService.getMe();
 		return repo.findAllByCreatedByIdOrderByUpdatedAtDesc(me.getId()).stream()
-				.map(st -> {
-					SchedaTemplateDto dto = new SchedaTemplateDto();
-					dto.setId(st.getId());
-					dto.setNome(st.getNome());
-					dto.setDescrizione(st.getDescrizione());
-					dto.setTipo(st.getTipo() != null ? st.getTipo().name() : null);
-					dto.setPasti(List.of()); // lista vuota — non serve per la dropdown
-					return dto;
-				})
+				.map(st -> new SchedaTemplateSummaryDto(
+						st.getId(),
+						st.getNome(),
+						st.getTipo() != null ? st.getTipo().name() : null))
 				.collect(Collectors.toList());
 	}
 

@@ -39,6 +39,7 @@ import it.nutrizionista.restnutrizionista.dto.PlicometriaFormDto;
 import it.nutrizionista.restnutrizionista.dto.RuoloDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaListItemDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
 import it.nutrizionista.restnutrizionista.dto.SystemTagDto;
@@ -917,6 +918,20 @@ public class DtoMapper {
 		dto.setTipo(s.getTipo() != null ? s.getTipo().name() : "GIORNALIERA");
 
 		return dto;
+	}
+
+	// mapper per la riga della lista schede: record leggero, niente cliente/pasti/timestamp
+	public static SchedaListItemDto toSchedaListItemDto(Scheda s) {
+		if (s == null) {
+			return null;
+		}
+		return new SchedaListItemDto(
+				s.getId(),
+				s.getNome(),
+				s.getDataCreazione(),
+				s.getTipo() != null ? s.getTipo().name() : "GIORNALIERA",
+				s.getAttiva(),
+				s.getNumeroPasti());
 	}
 
 	// mapper per l' entità misurazioneAntrometrica
