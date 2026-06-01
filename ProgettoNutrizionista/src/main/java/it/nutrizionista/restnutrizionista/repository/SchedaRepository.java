@@ -29,6 +29,13 @@ public interface SchedaRepository extends JpaRepository<Scheda, Long> {
 	
 	Optional<Scheda> findByIdAndCliente_Nutrizionista_Id(Long id, Long nutrizionistaId);
 	List<Scheda> findByCliente_Id(Long id);
+
+	/**
+	 * Restituisce solo gli id delle schede di un cliente, senza caricarne l'albero.
+	 * Usato dal delete del cliente per pulire bottom-up ogni scheda.
+	 */
+	@Query("SELECT s.id FROM Scheda s WHERE s.cliente.id = :clienteId")
+	List<Long> findIdsByCliente_Id(@Param("clienteId") Long clienteId);
 	Page<Scheda> findByCliente_IdOrderByDataCreazioneDescIdDesc(Long clienteId, Pageable pageable);	
 	@Query("""
 	    SELECT DISTINCT s FROM Scheda s

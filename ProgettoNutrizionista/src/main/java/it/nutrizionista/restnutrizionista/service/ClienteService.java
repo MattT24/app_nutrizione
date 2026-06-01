@@ -17,8 +17,14 @@ import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
+import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
+import it.nutrizionista.restnutrizionista.repository.AlimentoPastoNomeOverrideRepository;
+import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
+import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
 import it.nutrizionista.restnutrizionista.repository.CalcoloTdeeRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
+import it.nutrizionista.restnutrizionista.repository.PastoRepository;
+import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 import jakarta.validation.Valid;
 
 @Service
@@ -28,6 +34,12 @@ public class ClienteService {
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private OwnershipValidator ownershipValidator;
 	@Autowired private CalcoloTdeeRepository calcoloTdeeRepository;
+	@Autowired private SchedaRepository schedaRepository;
+	@Autowired private PastoRepository pastoRepository;
+	@Autowired private AlimentoPastoRepository alimentoPastoRepository;
+	@Autowired private AlimentoPastoNomeOverrideRepository alimentoPastoNomeOverrideRepository;
+	@Autowired private AlimentoAlternativoRepository alimentoAlternativoRepository;
+	@Autowired private AppuntamentoRepository appuntamentoRepository;
 
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
@@ -64,13 +76,31 @@ public class ClienteService {
 	@Transactional
 	public void deleteMyCliente(Long id) {
 	    if (id == null) throw new RuntimeException("Id cliente obbligatorio per il delete");
-        
+
+	    // Verifica ownership (carica solo il cliente, non l'albero delle schede)
 	    Cliente c = ownershipValidator.getOwnedCliente(id);
-		
-	    // 1. Elimina prima tutto lo storico dei calcoli TDEE associati a questo cliente
+
+	    // 1. Svuota in modo robusto l'albero profondo di OGNI scheda del cliente.
+	    //    Non ci si può affidare al solo cascade ORM: AlimentoAlternativo ha due FK
+	    //    (alimento_pasto_id + pasto_id) ma solo alimento_pasto_id è coperta da
+	    //    orphanRemoval; con il batching JDBC questo genera StaleStateException
+	    //    ("row count 0; expected 1") sulla delete delle alternative.
+	    //    Stesso ordine bottom-up di SchedaService.delete().
+	    for (Long schedaId : schedaRepository.findIdsByCliente_Id(id)) {
+	        alimentoAlternativoRepository.bulkDeleteBySchedaId(schedaId);        // alternative (dipendono da alimenti_pasto E pasti)
+	        alimentoPastoNomeOverrideRepository.bulkDeleteBySchedaId(schedaId);  // nome_override
+	        alimentoPastoRepository.bulkDeleteBySchedaId(schedaId);              // alimenti_pasto
+	        pastoRepository.bulkDeleteBySchedaId(schedaId);                      // pasti
+	    }
+
+	    // 2. Appuntamenti: la FK cliente_id NON è in cascade dal Cliente.
+	    appuntamentoRepository.deleteByCliente_Id(id);
+
+	    // 3. Storico dei calcoli TDEE associati a questo cliente.
 	    calcoloTdeeRepository.deleteByClienteId(id);
-	    
-	    // 2. Infine elimina il cliente stesso
+
+	    // 4. Infine il cliente: il cascade ORM gestisce ora solo le collezioni mono-FK
+	    //    (schede ormai vuote, misurazioni, plicometrie, obiettivi, blacklist, tag).
 	    repo.delete(c);
 	}
 
