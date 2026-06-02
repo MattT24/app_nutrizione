@@ -16,6 +16,7 @@ import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoNomeOverrideRepository;
@@ -44,10 +45,13 @@ public class ClienteService {
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
 		Utente u = currentUserService.getMe();
-		//controllo se è già presente un cliente con quel CF
-		if(repo.existsByCodiceFiscale(form.getCodiceFiscale())) {
-            throw new RuntimeException("Cliente già esistente (CF duplicato)");
-       }
+		// Controllo duplicati su vincoli univoci, con messaggi chiari (409 Conflict)
+		if (repo.existsByCodiceFiscale(form.getCodiceFiscale())) {
+			throw new ConflictException("Esiste già un cliente con questo codice fiscale");
+		}
+		if (repo.existsByEmail(form.getEmail())) {
+			throw new ConflictException("Esiste già un cliente con questa email");
+		}
 		Cliente c = DtoMapper.toCliente(form);
 		c.setNutrizionista(u);
 		return DtoMapper.toClienteDtoLight(repo.save(c));
@@ -58,6 +62,13 @@ public class ClienteService {
 	public ClienteDto update(@Valid ClienteFormDto form) {
 		if (form.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
 		Cliente c = ownershipValidator.getOwnedCliente(form.getId());
+		// Controllo duplicati escludendo il cliente stesso
+		if (repo.existsByCodiceFiscaleAndIdNot(form.getCodiceFiscale(), form.getId())) {
+			throw new ConflictException("Esiste già un cliente con questo codice fiscale");
+		}
+		if (repo.existsByEmailAndIdNot(form.getEmail(), form.getId())) {
+			throw new ConflictException("Esiste già un cliente con questa email");
+		}
 		DtoMapper.updateClienteFromForm(c, form);
 		return DtoMapper.toClienteDto(repo.save(c));
 	}

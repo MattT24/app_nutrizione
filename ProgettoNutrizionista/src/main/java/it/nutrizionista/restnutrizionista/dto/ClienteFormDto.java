@@ -5,6 +5,7 @@ import java.util.Set;
 import it.nutrizionista.restnutrizionista.enums.TagStandard;
 import it.nutrizionista.restnutrizionista.entity.LivelloDiAttivita;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
 public class ClienteFormDto {
@@ -18,7 +19,12 @@ public class ClienteFormDto {
     @NotBlank(message = "Il cognome è obbligatorio")
     private String cognome;
     private String telefono;
+
+    @NotBlank(message = "Il codice fiscale è obbligatorio")
     private String codiceFiscale;
+
+    @NotBlank(message = "L'email è obbligatoria")
+    @Email(message = "Email non valida")
     private String email;
     private LocalDate dataNascita;
     private Double peso;

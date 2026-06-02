@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
@@ -40,6 +41,20 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AuthorizationDeniedException.class)
     public ResponseEntity<String> handleAuthorizationDenied(AuthorizationDeniedException ex) {
     	return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access Denied");
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<String> handleDataIntegrity(DataIntegrityViolationException ex) {
+        // Rete di sicurezza per violazioni di vincoli DB. I duplicati di codice fiscale/email
+        // sono già intercettati a monte con messaggi specifici (ConflictException); qui finiscono
+        // gli altri casi (es. campo NOT NULL non valorizzato), quindi il messaggio resta neutro.
+        String causa = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : "";
+        if (causa != null && (causa.toLowerCase().contains("duplicate") || causa.toLowerCase().contains("unique"))) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("Esiste già un cliente con questo codice fiscale o questa email.");
+        }
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body("Impossibile salvare: alcuni dati obbligatori non sono validi o mancanti.");
     }
 
     @ExceptionHandler(RuntimeException.class)
