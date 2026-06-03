@@ -506,6 +506,7 @@ public class DtoMapper {
 		dto.setPctProteine(ob.getPctProteine());
 		dto.setPctCarboidrati(ob.getPctCarboidrati());
 		dto.setPctGrassi(ob.getPctGrassi());
+		dto.setNome(ob.getNome());
 		dto.setNote(ob.getNote());
 		dto.setLockedPctProteine(ob.getLockedPctProteine());
 		dto.setLockedPctCarboidrati(ob.getLockedPctCarboidrati());

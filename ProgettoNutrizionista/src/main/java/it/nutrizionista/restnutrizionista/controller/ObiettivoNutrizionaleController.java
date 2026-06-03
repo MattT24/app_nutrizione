@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.ObiettivoNutrizionaleDto;
 import it.nutrizionista.restnutrizionista.dto.ObiettivoNutrizionaleFormDto;
+import it.nutrizionista.restnutrizionista.dto.RinominaRequest;
 import it.nutrizionista.restnutrizionista.service.ObiettivoNutrizionaleService;
 import it.nutrizionista.restnutrizionista.service.ObiettivoNutrizionaleService.CalcoloResult;
 import jakarta.validation.Valid;
@@ -107,6 +108,19 @@ public class ObiettivoNutrizionaleController {
 			@PathVariable Long obiettivoId) {
 		ObiettivoNutrizionaleDto dto = service.attivaObiettivo(clienteId, obiettivoId);
 		return ResponseEntity.ok(dto);
+	}
+
+	/**
+	 * PUT /api/clienti/{clienteId}/obiettivo/{obiettivoId}/nome
+	 * Rinomina (titolo della fase) un obiettivo dello storico.
+	 */
+	@PutMapping("/{obiettivoId}/nome")
+	@PreAuthorize("hasAuthority('CLIENTE_UPDATE')")
+	public ResponseEntity<ObiettivoNutrizionaleDto> rinomina(
+			@PathVariable Long clienteId,
+			@PathVariable Long obiettivoId,
+			@RequestBody RinominaRequest req) {
+		return ResponseEntity.ok(service.rinomina(clienteId, obiettivoId, req.nome()));
 	}
 
 	/**

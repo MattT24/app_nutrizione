@@ -82,6 +82,9 @@ public class ObiettivoNutrizionale {
 	@Column(name = "locked_g_grassi")
 	private Boolean lockedGGrassi = false;
 
+	@Column(length = 60)
+	private String nome;
+
 	@Column(columnDefinition = "TEXT")
 	private String note;
 
@@ -204,6 +207,14 @@ public class ObiettivoNutrizionale {
 
 	public void setPctGrassi(Double pctGrassi) {
 		this.pctGrassi = pctGrassi;
+	}
+
+	public String getNome() {
+		return nome;
+	}
+
+	public void setNome(String nome) {
+		this.nome = nome;
 	}
 
 	public String getNote() {

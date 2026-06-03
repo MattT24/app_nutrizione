@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.PastoTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.PastoTemplateNameDto;
 import it.nutrizionista.restnutrizionista.dto.PastoTemplateAlternativaUpsertDto;
 import it.nutrizionista.restnutrizionista.dto.PastoTemplateItemUpsertDto;
 import it.nutrizionista.restnutrizionista.dto.PastoTemplateUpsertDto;
@@ -39,6 +40,16 @@ public class PastoTemplateService {
 		return repo.findByCreatedByIdWithFullTree(me.getId()).stream()
 				.map(DtoMapper::toPastoTemplateDto)
 				.collect(Collectors.toList());
+	}
+
+	/**
+	 * Lista leggera (solo id + nome) per il dropdown di selezione template.
+	 * Evita il caricamento dell'intero albero richiesto da {@link #listMine()}.
+	 */
+	@Transactional(readOnly = true)
+	public List<PastoTemplateNameDto> listMineSummary() {
+		var me = currentUserService.getMe();
+		return repo.findNamesByCreatedById(me.getId());
 	}
 
 	@Transactional
