@@ -20,8 +20,11 @@ import it.nutrizionista.restnutrizionista.dto.CopyBulkResultDto;
 import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
 import it.nutrizionista.restnutrizionista.dto.CopyResultItemDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.dto.PastoPreviewDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaListItemDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaPreviewDto;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
@@ -29,6 +32,7 @@ import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPastoNomeOverride;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
+import it.nutrizionista.restnutrizionista.entity.Macro;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
@@ -186,12 +190,68 @@ public class SchedaService {
 	}
 
 	@Transactional(readOnly = true)
-	public PageResponse<SchedaDto> schedeByCliente(Long clienteId, Pageable pageable) {
+	public PageResponse<SchedaListItemDto> schedeByCliente(Long clienteId, Pageable pageable) {
         ownershipValidator.getOwnedCliente(clienteId);
 	    Page<Scheda> page = repo.findByCliente_IdOrderByDataCreazioneDescIdDesc(clienteId, pageable);
-	    Page<SchedaDto> dtoPage = page.map(DtoMapper::toSchedaDtoLista);
+	    Page<SchedaListItemDto> dtoPage = page.map(DtoMapper::toSchedaListItemDto);
 	    return PageResponse.from(dtoPage);
 	}
+
+	/** Scheda attiva del cliente (al più una per regola di business), o null. */
+	@Transactional(readOnly = true)
+	public SchedaDto schedaAttivaByCliente(Long clienteId) {
+        ownershipValidator.getOwnedCliente(clienteId);
+	    return repo.findByCliente_IdAndAttivaTrue(clienteId).stream()
+	            .findFirst()
+	            .map(DtoMapper::toSchedaDtoLista)
+	            .orElse(null);
+	}
+
+	/**
+	 * Anteprima scheda: totali nutrizionali precalcolati lato server (kcal/macro
+	 * per pasto), senza trasferire l'albero pasti→alimenti. Carica il full tree
+	 * in una query (fetch join) per evitare N+1.
+	 */
+	@Transactional(readOnly = true)
+	public SchedaPreviewDto preview(Long id) {
+		Scheda s = ownershipValidator.getOwnedSchedaFullDetails(id);
+		List<PastoPreviewDto> pasti = s.getPasti().stream()
+				.map(this::toPastoPreview)
+				.collect(java.util.stream.Collectors.toList());
+		return new SchedaPreviewDto(
+				s.getId(),
+				s.getNome(),
+				s.getAttiva(),
+				s.getTipo() != null ? s.getTipo().name() : null,
+				pasti);
+	}
+
+	private PastoPreviewDto toPastoPreview(Pasto p) {
+		double kcal = 0, prot = 0, carb = 0, gras = 0;
+		if (p.getAlimentiPasto() != null) {
+			for (AlimentoPasto ap : p.getAlimentiPasto()) {
+				AlimentoBase alim = ap.getAlimento();
+				if (alim == null) continue;
+				Macro macro = alim.getMacroNutrienti();
+				if (macro == null) continue;
+				double ref = (alim.getMisuraInGrammi() != null && alim.getMisuraInGrammi() > 0)
+						? alim.getMisuraInGrammi() : 100.0;
+				double qty = ap.getQuantita();
+				kcal += nz(macro.getCalorie()) * qty / ref;
+				prot += nz(macro.getProteine()) * qty / ref;
+				carb += nz(macro.getCarboidrati()) * qty / ref;
+				gras += nz(macro.getGrassi()) * qty / ref;
+			}
+		}
+		return new PastoPreviewDto(
+				p.getNome(),
+				p.getGiorno() != null ? p.getGiorno().name() : null,
+				round1(kcal), round1(prot), round1(carb), round1(gras));
+	}
+
+	private static double nz(Double v) { return v != null ? v : 0.0; }
+
+	private static double round1(double v) { return Math.round(v * 10.0) / 10.0; }
 
 	// ============================================================
 	// COPY BULK — Orchestratore unificato per duplicate e import

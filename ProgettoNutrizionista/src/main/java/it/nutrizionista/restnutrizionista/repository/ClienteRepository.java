@@ -30,6 +30,14 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>{
     
     // Verifica duplicati codice fiscale
     boolean existsByCodiceFiscale(String codiceFiscale);
+
+    // Verifica duplicati email
+    boolean existsByEmail(String email);
+
+    // Varianti per l'update: escludono il cliente stesso
+    boolean existsByCodiceFiscaleAndIdNot(String codiceFiscale, Long id);
+
+    boolean existsByEmailAndIdNot(String email, Long id);
     
     @Query("""
     	    select c from Cliente c

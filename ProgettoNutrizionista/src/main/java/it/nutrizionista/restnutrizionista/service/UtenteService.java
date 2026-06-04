@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import it.nutrizionista.restnutrizionista.dto.LogoRequestDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.dto.ProfiloLightDto;
 import it.nutrizionista.restnutrizionista.dto.ResetPasswordDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteFormDto;
@@ -100,6 +101,19 @@ public class UtenteService {
     public UtenteDto getProfile() {
         Utente u = currentUserService.getMe();
         return DtoMapper.toUtenteDto(u);
+    }
+
+    /** Profilo leggero per navbar/home: solo id, nome, cognome, logo. */
+    @Transactional(readOnly = true)
+    public ProfiloLightDto getProfileLight() {
+        Utente u = currentUserService.getMe();
+        return new ProfiloLightDto(
+                u.getId(),
+                u.getNome(),
+                u.getCognome(),
+                u.getFilePathLogo(),
+                u.getRuolo() != null ? u.getRuolo().getNome() : null
+        );
     }
     /** Copia campi dal form, gestendo password e ruolo. */
     private void apply(Utente u, UtenteFormDto form, boolean encodePasswordAlways) {

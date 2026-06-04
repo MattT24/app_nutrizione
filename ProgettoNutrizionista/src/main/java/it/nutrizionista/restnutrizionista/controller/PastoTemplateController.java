@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.PastoTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.PastoTemplateNameDto;
 import it.nutrizionista.restnutrizionista.dto.PastoTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.service.PastoTemplateService;
 import jakarta.validation.Valid;
@@ -30,6 +31,16 @@ public class PastoTemplateController {
 	@PreAuthorize("hasAuthority('PASTI_TEMPLATE_MANAGE')")
 	public ResponseEntity<List<PastoTemplateDto>> listMine() {
 		return ResponseEntity.ok(service.listMine());
+	}
+
+	/**
+	 * Lista leggera (id + nome) per il dropdown di selezione template,
+	 * senza l'albero completo restituito da {@link #listMine()}.
+	 */
+	@GetMapping("/summary")
+	@PreAuthorize("hasAuthority('PASTI_TEMPLATE_MANAGE')")
+	public ResponseEntity<List<PastoTemplateNameDto>> listMineSummary() {
+		return ResponseEntity.ok(service.listMineSummary());
 	}
 
 	@PostMapping

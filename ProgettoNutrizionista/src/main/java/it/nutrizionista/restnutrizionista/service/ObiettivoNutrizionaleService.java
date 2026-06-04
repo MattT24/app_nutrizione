@@ -70,6 +70,7 @@ public class ObiettivoNutrizionaleService {
 				});
 
 		ob.setObiettivo(form.getObiettivo());
+		ob.setNome(form.getNome());
 		ob.setNote(form.getNote());
 
 		// Copia i macro target dal form
@@ -122,6 +123,7 @@ public class ObiettivoNutrizionaleService {
 		nuovo.setDataCreazione(LocalDate.now());
 
 		nuovo.setObiettivo(form.getObiettivo());
+		nuovo.setNome(form.getNome());
 		nuovo.setNote(form.getNote());
 		nuovo.setTargetCalorie(form.getTargetCalorie());
 		nuovo.setTargetProteine(form.getTargetProteine());
@@ -170,6 +172,21 @@ public class ObiettivoNutrizionaleService {
 
 		target.setAttivo(true);
 		return DtoMapper.toObiettivoNutrizionaleDto(repo.save(target));
+	}
+
+	/**
+	 * Rinomina (titolo della fase) un obiettivo specifico del cliente.
+	 * Nome vuoto/blank azzera il titolo. [SECURITY] ownership + verifica appartenenza.
+	 */
+	@Transactional
+	public ObiettivoNutrizionaleDto rinomina(Long clienteId, Long obiettivoId, String nome) {
+		ownershipValidator.getOwnedCliente(clienteId);
+		ObiettivoNutrizionale ob = repo.findById(obiettivoId)
+				.filter(o -> o.getCliente().getId().equals(clienteId))
+				.orElseThrow(() -> new RuntimeException("Obiettivo non trovato"));
+		String trimmed = nome != null ? nome.trim() : null;
+		ob.setNome(trimmed == null || trimmed.isEmpty() ? null : trimmed);
+		return DtoMapper.toObiettivoNutrizionaleDto(repo.save(ob));
 	}
 
 	/**
@@ -244,6 +261,13 @@ public class ObiettivoNutrizionaleService {
 	// ─── Calcolo Mifflin-St Jeor ─────────────────────────────────────────
 
 	private void calcolaBmrTdee(ObiettivoNutrizionale ob, Cliente cliente) {
+		// Guard: con dati antropometrici incompleti BMR/TDEE non sono calcolabili.
+		// Nel path /calcola questo non scatta mai (verificaCampiCalcolo ha già validato);
+		// nel path creaOAggiorna/salvaNuovoStorico evita una NullPointerException silenziosa.
+		if (cliente.getDataNascita() == null || cliente.getPeso() == null
+				|| cliente.getAltezza() == null || cliente.getSesso() == null) {
+			return;
+		}
 		int eta = Period.between(cliente.getDataNascita(), LocalDate.now()).getYears();
 		double peso = cliente.getPeso();
 		int altezza = cliente.getAltezza();
@@ -268,9 +292,11 @@ public class ObiettivoNutrizionaleService {
 
 	private List<String> verificaCampiCalcolo(Cliente c) {
 		List<String> mancanti = new ArrayList<>();
-		if (c.getPeso() <= 0)
+		// peso (Double) e altezza (Integer) sono nullable: il null-check precede il
+		// confronto per evitare un NullPointerException da auto-unboxing.
+		if (c.getPeso() == null || c.getPeso() <= 0)
 			mancanti.add("peso");
-		if (c.getAltezza() <= 0)
+		if (c.getAltezza() == null || c.getAltezza() <= 0)
 			mancanti.add("altezza");
 		if (c.getSesso() == null)
 			mancanti.add("sesso");

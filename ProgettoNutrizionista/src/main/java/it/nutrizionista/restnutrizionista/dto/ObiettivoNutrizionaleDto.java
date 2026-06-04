@@ -25,6 +25,8 @@ public class ObiettivoNutrizionaleDto {
 	private Double pctCarboidrati;
 	private Double pctGrassi;
 
+	private String nome;
+
 	private String note;
 
 	private Boolean lockedPctProteine;
@@ -151,6 +153,14 @@ public class ObiettivoNutrizionaleDto {
 
 	public void setPctGrassi(Double pctGrassi) {
 		this.pctGrassi = pctGrassi;
+	}
+
+	public String getNome() {
+		return nome;
+	}
+
+	public void setNome(String nome) {
+		this.nome = nome;
 	}
 
 	public String getNote() {

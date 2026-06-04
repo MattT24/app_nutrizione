@@ -38,7 +38,6 @@ public class Cliente {
 	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
-	@Column(nullable = false)
 	@Enumerated(EnumType.STRING)
 	private Sesso sesso;
 	@Column(nullable = false)
@@ -54,11 +53,9 @@ public class Cliente {
 
 	private String telefono;
 
-	@Column(nullable = false, name = "data_nascita")
+	@Column(name = "data_nascita")
 	private LocalDate dataNascita;
-	@Column(nullable = false)
 	private Double peso;
-	@Column(nullable = false)
 	private Integer altezza;
 	@Enumerated(EnumType.STRING)
 	@Column(name = "livello_attivita")
