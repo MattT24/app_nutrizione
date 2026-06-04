@@ -43,6 +43,13 @@ public class PastoTemplateController {
 		return ResponseEntity.ok(service.listMineSummary());
 	}
 
+	/** Singolo template-pasto completo, per l'applicazione on-demand a un pasto. */
+	@GetMapping("/{id}")
+	@PreAuthorize("hasAuthority('PASTI_TEMPLATE_MANAGE')")
+	public ResponseEntity<PastoTemplateDto> getById(@PathVariable Long id) {
+		return ResponseEntity.ok(service.getById(id));
+	}
+
 	@PostMapping
 	@PreAuthorize("hasAuthority('PASTI_TEMPLATE_MANAGE')")
 	public ResponseEntity<PastoTemplateDto> create(@Valid @RequestBody PastoTemplateUpsertDto req) {

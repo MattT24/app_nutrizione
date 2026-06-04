@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaFormDto;
+import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaUpsertDto;
 import it.nutrizionista.restnutrizionista.dto.DisplayNameRequest;
 import it.nutrizionista.restnutrizionista.service.AlimentoSchedaTemplateAlternativaService;
 import jakarta.validation.Valid;
@@ -37,6 +38,17 @@ public class AlimentoSchedaTemplateAlternativaController {
 			@PathVariable Long templateId,
 			@PathVariable Long aptId) {
 		return ResponseEntity.ok(service.listByAlimentoPasto(templateId, aptId));
+	}
+
+	/** PUT — Upsert in blocco (diff insert/update/delete) delle alternative di un alimento.
+	 *  Sostituisce le N chiamate granulari del client con una sola, transazionale. */
+	@PutMapping
+	@PreAuthorize("hasAuthority('SCHEDA_UPDATE')")
+	public ResponseEntity<List<AlimentoSchedaTemplateAlternativaDto>> bulkUpsert(
+			@PathVariable Long templateId,
+			@PathVariable Long aptId,
+			@Valid @RequestBody List<AlimentoSchedaTemplateAlternativaUpsertDto> items) {
+		return ResponseEntity.ok(service.bulkUpsert(templateId, aptId, items));
 	}
 
 	/** POST — Aggiunge una nuova alternativa */

@@ -80,7 +80,10 @@ public class SchedaTemplateService {
 				.collect(Collectors.toList());
 	}
 
-	/** Lista leggera — solo metadati (id, nome, tipo), senza caricare pasti/alimenti */
+	/** Lista leggera — metadati (id, nome, tipo) + numeroPasti, senza caricare l'albero
+	 *  alimenti/alternative. Il conteggio pasti usa il lazy-load in transazione: con
+	 *  default_batch_fetch_size=50 le collection vengono inizializzate in batch
+	 *  (~1 query ogni 50 template), evitando l'N+1. */
 	@Transactional(readOnly = true)
 	public List<SchedaTemplateSummaryDto> listMineSummary() {
 		var me = currentUserService.getMe();
@@ -88,7 +91,8 @@ public class SchedaTemplateService {
 				.map(st -> new SchedaTemplateSummaryDto(
 						st.getId(),
 						st.getNome(),
-						st.getTipo() != null ? st.getTipo().name() : null))
+						st.getTipo() != null ? st.getTipo().name() : null,
+						st.getPasti() != null ? st.getPasti().size() : 0))
 				.collect(Collectors.toList());
 	}
 
@@ -511,7 +515,11 @@ public class SchedaTemplateService {
 				pasto.setGiorno(pt.getGiorno());
 				maxOrdine++;
 				pasto.setOrdineVisualizzazione(maxOrdine);
-				pasto.setEliminabile(true);
+				// I pasti base (Colazione/Pranzo/Merenda/Cena) restano non eliminabili anche
+				// nelle schede create da template, coerentemente con SchedaService.ensureDefaultMeals.
+				String defaultCode = defaultCodeFor(pt.getNome());
+				pasto.setDefaultCode(defaultCode);
+				pasto.setEliminabile(defaultCode == null);
 				pasto.setOrarioInizio(pt.getOrarioInizio());
 				pasto.setOrarioFine(pt.getOrarioFine());
 				scheda.getPasti().add(pasto);
@@ -547,6 +555,18 @@ public class SchedaTemplateService {
 				}
 			}
 		}
+	}
+
+	/** Nomi dei pasti base (in minuscolo) — devono restare non eliminabili come in SchedaService.ensureDefaultMeals. */
+	private static final java.util.Set<String> DEFAULT_PASTO_NAMES =
+			java.util.Set.of("colazione", "pranzo", "merenda", "cena");
+
+	/** defaultCode canonico (capitalizzato) se il nome è un pasto base, altrimenti null. */
+	private String defaultCodeFor(String nome) {
+		if (nome == null) return null;
+		String n = nome.trim();
+		if (n.isEmpty() || !DEFAULT_PASTO_NAMES.contains(n.toLowerCase())) return null;
+		return n.substring(0, 1).toUpperCase() + n.substring(1).toLowerCase();
 	}
 
 	private String normalizeString(String value) {

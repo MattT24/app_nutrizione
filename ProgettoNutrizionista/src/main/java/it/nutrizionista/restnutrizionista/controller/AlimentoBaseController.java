@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*; // Importa tutto
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.service.AlimentoBaseService;
 import jakarta.validation.Valid;
 
@@ -56,12 +57,30 @@ public class AlimentoBaseController {
 		return ResponseEntity.noContent().build();
 	}
 	
+	/** Dimensione massima di pagina accettata dall'endpoint paginato. */
+	private static final int MAX_PAGE_SIZE = 100;
+	/** Limite massimo accettato dagli endpoint "più utilizzati". */
+	private static final int MAX_TOP_LIMIT = 50;
+
 	@GetMapping
 	@PreAuthorize("hasAuthority('ALIMENTO_READ')")
 	public ResponseEntity<PageResponse<AlimentoBaseDto>> allAlimentiBase(
 			Pageable pageable,
 			@RequestParam(required = false) Long clienteId){
+		if (pageable.getPageSize() > MAX_PAGE_SIZE) {
+			throw new BadRequestException("Dimensione pagina massima consentita: " + MAX_PAGE_SIZE
+					+ ". Per il catalogo completo usare GET /api/alimenti_base/index.");
+		}
 		return ResponseEntity.ok(service.listAll(pageable, clienteId));
+	}
+
+	/** Catalogo completo light (senza paginazione) per l'indice di ricerca client-side (Fuse.js).
+	 *  Se clienteId è presente, arricchisce con la valutazione clinica MDSS. */
+	@GetMapping("/index")
+	@PreAuthorize("hasAuthority('ALIMENTO_READ')")
+	public ResponseEntity<List<AlimentoBaseDto>> index(
+			@RequestParam(required = false) Long clienteId){
+		return ResponseEntity.ok(service.listIndex(clienteId));
 	}
 	
     // NUOVO: Endpoint di ricerca per il frontend
@@ -77,6 +96,7 @@ public class AlimentoBaseController {
     @GetMapping("/piu-utilizzati")
     @PreAuthorize("hasAuthority('ALIMENTO_READ')")
     public ResponseEntity<List<AlimentoBaseDto>> getTopAlimenti(@RequestParam(defaultValue = "20") int limit) {
+        validateTopLimit(limit);
         return ResponseEntity.ok(service.getTopAlimenti(limit));
     }
 
@@ -84,7 +104,16 @@ public class AlimentoBaseController {
     @GetMapping("/statistiche/globali")
     @PreAuthorize("hasAuthority('ALIMENTO_READ')")
     public ResponseEntity<List<AlimentoBaseDto>> getTopAlimentiGlobal(@RequestParam(defaultValue = "20") int limit) {
+        // Il cap va validato qui, PRIMA del metodo @Cacheable (la cui chiave è il limit):
+        // così valori fuori range falliscono con 400 e non entrano mai in cache.
+        validateTopLimit(limit);
         return ResponseEntity.ok(service.getTopAlimentiGlobal(limit));
+    }
+
+    private void validateTopLimit(int limit) {
+        if (limit < 1 || limit > MAX_TOP_LIMIT) {
+            throw new BadRequestException("Il parametro 'limit' deve essere compreso tra 1 e " + MAX_TOP_LIMIT);
+        }
     }
 
 	/* ==========================================================

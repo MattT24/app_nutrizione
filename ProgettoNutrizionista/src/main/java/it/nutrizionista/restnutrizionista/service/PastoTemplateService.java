@@ -52,6 +52,19 @@ public class PastoTemplateService {
 		return repo.findNamesByCreatedById(me.getId());
 	}
 
+	/** Singolo template-pasto completo (albero alimenti+alternative), caricato on-demand
+	 *  quando si applica un template a un pasto. Il dropdown usa invece il summary id+nome. */
+	@Transactional(readOnly = true)
+	public PastoTemplateDto getById(Long id) {
+		var me = currentUserService.getMe();
+		PastoTemplate t = repo.findByIdWithFullTree(id)
+				.orElseThrow(() -> new NotFoundException("Template pasto non trovato"));
+		if (t.getCreatedBy() == null || !t.getCreatedBy().getId().equals(me.getId())) {
+			throw new ForbiddenException("NON AUTORIZZATO: template pasto non accessibile");
+		}
+		return DtoMapper.toPastoTemplateDto(t);
+	}
+
 	@Transactional
 	public PastoTemplateDto create(@Valid PastoTemplateUpsertDto req) {
 		var me = currentUserService.getMe();

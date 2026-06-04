@@ -1,12 +1,13 @@
 package it.nutrizionista.restnutrizionista.dto;
 
 /**
- * DTO minimale per il dropdown "crea scheda da template": solo i campi
- * effettivamente usati (id, nome, tipo). Esclude descrizione, numeroPasti
- * e timestamp, non necessari in quel contesto.
+ * DTO leggero per il dropdown "crea scheda da template" e la lista template:
+ * id, nome, tipo e numero di pasti. Esclude descrizione, alberi pasti/alimenti
+ * e timestamp, non necessari in quei contesti.
  */
 public record SchedaTemplateSummaryDto(
         Long id,
         String nome,
-        String tipo
+        String tipo,
+        Integer numeroPasti
 ) {}
