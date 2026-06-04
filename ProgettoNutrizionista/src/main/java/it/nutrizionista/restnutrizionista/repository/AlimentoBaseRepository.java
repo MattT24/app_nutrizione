@@ -60,6 +60,14 @@ public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long
 	@Query("SELECT a FROM AlimentoBase a WHERE a.createdBy IS NULL OR a.createdBy.id = :utenteId")
 	Page<AlimentoBase> findVisibleByUtente(@Param("utenteId") Long utenteId, Pageable pageable);
 
+	/** Catalogo completo light (globali + propri) per l'indice di ricerca client-side (Fuse.js).
+	 *  Niente paginazione: il catalogo è volutamente piccolo. Le tracce sono caricate in batch
+	 *  (default_batch_fetch_size) dentro la transazione, non nell'EntityGraph (eviterebbe il
+	 *  prodotto cartesiano con macroNutrienti). */
+	@EntityGraph(attributePaths = {"macroNutrienti"})
+	@Query("SELECT a FROM AlimentoBase a WHERE a.createdBy IS NULL OR a.createdBy.id = :utenteId ORDER BY lower(a.nome) ASC")
+	List<AlimentoBase> findVisibleByUtenteList(@Param("utenteId") Long utenteId);
+
 	/** Categorie visibili per un utente */
 	@Query("SELECT DISTINCT a.categoria FROM AlimentoBase a WHERE a.categoria IS NOT NULL AND (a.createdBy IS NULL OR a.createdBy.id = :utenteId) ORDER BY a.categoria")
 	List<String> findDistinctCategorieForUser(@Param("utenteId") Long utenteId);
@@ -80,6 +88,24 @@ public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long
 			lower(a.nome) ASC
 	""")
 	List<AlimentoBase> searchByNomeRankedForUser(@Param("query") String query, @Param("utenteId") Long utenteId);
+
+	/** Ricerca filtrata per utente — restituisce solo gli ID rankati (prefisso-first),
+	 *  con LIMIT applicato via Pageable a livello SQL. Le entità complete (macro+tracce)
+	 *  vengono poi caricate in batch con findAllByIdInWithMacro, evitando JOIN FETCH di
+	 *  collection + Pageable (HHH90003004). */
+	@Query("""
+		SELECT a.id
+		FROM AlimentoBase a
+		WHERE (a.createdBy IS NULL OR a.createdBy.id = :utenteId)
+		  AND lower(a.nome) LIKE concat('%', lower(:query), '%')
+		ORDER BY
+			CASE
+				WHEN lower(a.nome) LIKE concat(lower(:query), '%') THEN 0
+				ELSE 1
+			END,
+			lower(a.nome) ASC
+	""")
+	List<Long> searchByNomeRankedIdsForUser(@Param("query") String query, @Param("utenteId") Long utenteId, Pageable pageable);
 
 	/** Più utilizzati per il nutrizionista corrente — restituisce solo gli ID
 	 *  perché @EntityGraph viene ignorato con GROUP BY */

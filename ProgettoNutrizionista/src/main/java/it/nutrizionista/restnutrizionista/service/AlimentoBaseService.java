@@ -45,6 +45,9 @@ public class AlimentoBaseService {
 	@Autowired private ClinicalEngineService clinicalEngineService;
 	@Autowired private OwnershipValidator ownershipValidator;
 
+	/** Numero massimo di risultati restituiti dalla ricerca testuale (cap difensivo). */
+	private static final int SEARCH_MAX_RESULTS = 50;
+
 	/** Crea alimento globale (Admin) — createdBy = null */
 	@Transactional
 	public AlimentoBaseDto create(@Valid AlimentoBaseFormDto form) {
@@ -193,16 +196,55 @@ public class AlimentoBaseService {
 		return DtoMapper.toAlimentoBaseDtoLight(a);
 	}
 
-	/** Ricerca filtrata per utente.
+	/** Catalogo completo light per l'indice di ricerca client-side (Fuse.js).
+	 *  Nessuna paginazione: il catalogo è volutamente piccolo (alimenti propri + globali).
 	 *  Se clienteId è presente, arricchisce ogni DTO con la valutazione clinica MDSS. */
+	@Transactional(readOnly = true)
+	public List<AlimentoBaseDto> listIndex(Long clienteId) {
+	    Long utenteId = getCurrentUtente().getId();
+	    List<AlimentoBase> list = repo.findVisibleByUtenteList(utenteId);
+
+	    if (clienteId == null || list.isEmpty()) {
+	        return list.stream()
+	                   .map(DtoMapper::toAlimentoBaseDtoLight)
+	                   .collect(Collectors.toList());
+	    }
+
+	    Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+	    List<ValutazioneClinicaDto> valutazioni = clinicalEngineService.valutaInBatch(list, cliente);
+	    List<AlimentoBaseDto> risultati = new ArrayList<>();
+	    for (int i = 0; i < list.size(); i++) {
+	        AlimentoBaseDto dto = DtoMapper.toAlimentoBaseDtoLight(list.get(i));
+	        dto.setValutazioneClinica(valutazioni.get(i));
+	        risultati.add(dto);
+	    }
+	    return risultati;
+	}
+
+	/** Ricerca filtrata per utente, cappata a {@value #SEARCH_MAX_RESULTS} risultati.
+	 *  Two-step: prima gli ID rankati (LIMIT via Pageable), poi le entità con macro+tracce
+	 *  in batch, ri-ordinate secondo il ranking. Se clienteId è presente, arricchisce ogni
+	 *  DTO con la valutazione clinica MDSS. */
 	@Transactional(readOnly = true)
 	public List<AlimentoBaseDto> search(String query, Long clienteId) {
 	    String normalizedQuery = query == null ? "" : query.trim();
 	    Long utenteId = getCurrentUtente().getId();
-	    List<AlimentoBase> list = repo.searchByNomeRankedForUser(normalizedQuery, utenteId);
+
+	    List<Long> ids = repo.searchByNomeRankedIdsForUser(
+	            normalizedQuery, utenteId, PageRequest.of(0, SEARCH_MAX_RESULTS));
+	    if (ids.isEmpty()) return List.of();
+
+	    // Carica entità con macro+tracce in una sola query, poi riordina come gli ID rankati
+	    List<AlimentoBase> entities = repo.findAllByIdInWithMacro(ids);
+	    Map<Long, AlimentoBase> byId = entities.stream()
+	            .collect(Collectors.toMap(AlimentoBase::getId, a -> a));
+	    List<AlimentoBase> list = ids.stream()
+	            .map(byId::get)
+	            .filter(java.util.Objects::nonNull)
+	            .collect(Collectors.toList());
 
 	    // Caso base: nessun clienteId → risposta identica ad oggi (retrocompatibile)
-	    if (clienteId == null || list.isEmpty()) {
+	    if (clienteId == null) {
 	        return list.stream()
 	                   .map(DtoMapper::toAlimentoBaseDtoLight)
 	                   .collect(Collectors.toList());

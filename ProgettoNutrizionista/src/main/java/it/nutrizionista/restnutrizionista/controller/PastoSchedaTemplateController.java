@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.AlimentoPastoSchedaTemplateCreateDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoPastoSchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.ApplicaPastoTemplateRequest;
 import it.nutrizionista.restnutrizionista.dto.PastoSchedaTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.PastoSchedaTemplateFormDto;
 import it.nutrizionista.restnutrizionista.dto.ReorderDto;
@@ -75,6 +76,17 @@ public class PastoSchedaTemplateController {
 			@PathVariable Long pastoId,
 			@Valid @RequestBody AlimentoPastoSchedaTemplateCreateDto dto) {
 		return ResponseEntity.status(201).body(service.addAlimento(templateId, pastoId, dto));
+	}
+
+	/** POST /{pastoId}/applica-template — Applica un pasto-template al pasto in UNA chiamata
+	 *  transazionale (alimenti + alternative; MERGE o REPLACE), invece di N granulari. */
+	@PostMapping("/{pastoId}/applica-template")
+	@PreAuthorize("hasAuthority('SCHEDA_UPDATE')")
+	public ResponseEntity<PastoSchedaTemplateDto> applyPastoTemplate(
+			@PathVariable Long templateId,
+			@PathVariable Long pastoId,
+			@Valid @RequestBody ApplicaPastoTemplateRequest req) {
+		return ResponseEntity.ok(service.applyPastoTemplate(templateId, pastoId, req));
 	}
 
 	/** PATCH /{pastoId}/alimenti/reorder — Persiste ordine drag-and-drop alimenti */
