@@ -27,7 +27,15 @@ public interface OrariStudioRepository extends JpaRepository<OrariStudio, Long> 
     
     @Query("SELECT o FROM OrariStudio o WHERE o.nutrizionista.id = :nutrizionistaId AND o.giornoSettimana = :giorno")
     Optional<OrariStudio> findByNutrizionistaIdAndGiornoSettimana(
-        @Param("nutrizionistaId") Long nutrizionistaId, 
+        @Param("nutrizionistaId") Long nutrizionistaId,
         @Param("giorno") DayOfWeek giorno
     );
+
+    // Varianti resilienti ai duplicati storici (manca un vincolo unique su
+    // (nutrizionista_id, giorno_settimana)): se in DB esistono 2 righe per lo
+    // stesso giorno, le query Optional sopra lanciano NonUniqueResultException.
+    // findFirst...OrderByIdAsc ritorna deterministicamente la riga più vecchia.
+    Optional<OrariStudio> findFirstByNutrizionista_IdAndGiornoSettimanaOrderByIdAsc(Long nutrizionistaId, DayOfWeek giornoSettimana);
+
+    Optional<OrariStudio> findFirstByNutrizionistaAndGiornoSettimanaOrderByIdAsc(Utente nutrizionista, DayOfWeek giornoSettimana);
 }

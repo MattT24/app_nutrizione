@@ -105,7 +105,14 @@ public class PastoTemplateService {
 	}
 
 	private void applyItems(PastoTemplate template, List<PastoTemplateItemUpsertDto> items) {
+		boolean hadRows = !template.getAlimenti().isEmpty();
 		template.getAlimenti().clear();
+		// In update (righe preesistenti) forziamo l'esecuzione dei DELETE PRIMA dei nuovi INSERT:
+		// senza questo flush Hibernate inserisce prima di cancellare e viola lo unique
+		// (template_id, alimento_id) / (template_alimento_id, alimento_alternativo_id).
+		if (hadRows && template.getId() != null) {
+			repo.flush();
+		}
 		if (items == null || items.isEmpty())
 			return;
 

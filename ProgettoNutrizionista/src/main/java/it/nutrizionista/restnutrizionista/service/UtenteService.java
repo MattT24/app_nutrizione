@@ -112,7 +112,8 @@ public class UtenteService {
                 u.getNome(),
                 u.getCognome(),
                 u.getFilePathLogo(),
-                u.getRuolo() != null ? u.getRuolo().getNome() : null
+                u.getRuolo() != null ? u.getRuolo().getNome() : null,
+                u.getEmail()
         );
     }
     /** Copia campi dal form, gestendo password e ruolo. */

@@ -10,5 +10,6 @@ public record ProfiloLightDto(
         String nome,
         String cognome,
         String filePathLogo,
-        String ruoloNome
+        String ruoloNome,
+        String email
 ) {}
