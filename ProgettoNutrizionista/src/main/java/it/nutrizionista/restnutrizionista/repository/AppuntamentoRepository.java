@@ -26,7 +26,7 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
     // Recupera tutti gli appuntamenti del nutrizionista loggato nel range visibile del calendario
     // (Usato anche dal Service per calcolare le sovrapposizioni)
     @Query("SELECT a FROM Appuntamento a WHERE a.nutrizionista.id = :nutrizionistaId " +
-           "AND ((a.data BETWEEN :start AND :end) OR (a.endData BETWEEN :start AND :end)) " +
+           "AND a.data <= :end AND (a.endData >= :start OR a.endData IS NULL) " +
            "ORDER BY a.data ASC, a.ora ASC")
     List<Appuntamento> findByNutrizionistaIdAndDateRange(
             @Param("nutrizionistaId") Long nutrizionistaId,

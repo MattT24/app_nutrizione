@@ -50,8 +50,10 @@ public class GlobalExceptionHandler {
         // gli altri casi (es. campo NOT NULL non valorizzato), quindi il messaggio resta neutro.
         String causa = ex.getMostSpecificCause() != null ? ex.getMostSpecificCause().getMessage() : "";
         if (causa != null && (causa.toLowerCase().contains("duplicate") || causa.toLowerCase().contains("unique"))) {
+            // Messaggio neutro: i duplicati di codice fiscale/email del cliente hanno già un messaggio
+            // dedicato (ConflictException) a monte; qui arriva qualsiasi altra violazione di unicità.
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("Esiste già un cliente con questo codice fiscale o questa email.");
+                    .body("Operazione non riuscita: esiste già un elemento con questi dati (vincolo di unicità violato).");
         }
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("Impossibile salvare: alcuni dati obbligatori non sono validi o mancanti.");
