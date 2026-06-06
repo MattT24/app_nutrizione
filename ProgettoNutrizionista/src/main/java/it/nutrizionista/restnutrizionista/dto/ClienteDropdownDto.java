@@ -8,6 +8,7 @@ public class ClienteDropdownDto {
     private String cognome;
     private LocalDate dataNascita;
     private String email;
+    private String telefono;
 
     public ClienteDropdownDto() {}
 
@@ -38,6 +39,9 @@ public class ClienteDropdownDto {
 	public void setEmail(String email) {
 		this.email = email;
 	}
-    
+
+    public String getTelefono() { return telefono; }
+    public void setTelefono(String telefono) { this.telefono = telefono; }
+
 }
 

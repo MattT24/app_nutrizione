@@ -57,6 +57,7 @@ public class Appuntamento {
 
     private String luogo;
     private String emailCliente;
+    private String telefonoCliente;
 
     @CreatedDate
     @Column(updatable = false)
@@ -127,6 +128,9 @@ public class Appuntamento {
 
     public String getEmailCliente() { return emailCliente; }
     public void setEmailCliente(String emailCliente) { this.emailCliente = emailCliente; }
+
+    public String getTelefonoCliente() { return telefonoCliente; }
+    public void setTelefonoCliente(String telefonoCliente) { this.telefonoCliente = telefonoCliente; }
 
     public Instant getCreatedAt() { return createdAt; }
     public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
