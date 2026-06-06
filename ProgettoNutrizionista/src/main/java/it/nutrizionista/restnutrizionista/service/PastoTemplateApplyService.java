@@ -54,7 +54,6 @@ public class PastoTemplateApplyService {
 		PastoTemplate template = loadOwnedTemplate(req.getTemplateId());
 
 		boolean pastoVuoto = pasto.getAlimentiPasto() == null || pasto.getAlimentiPasto().isEmpty();
-		boolean pastoCustomEliminabile = Boolean.TRUE.equals(pasto.getEliminabile());
 
 		PastoApplyTemplateMode mode = req.getMode() != null ? req.getMode() : PastoApplyTemplateMode.MERGE;
 		if (pastoVuoto) mode = PastoApplyTemplateMode.REPLACE;
@@ -67,10 +66,9 @@ public class PastoTemplateApplyService {
 		PastoApplyTemplateStatsDto stats = out.getStats();
 		List<PastoApplyTemplateSkippedItemDto> skipped = out.getSkipped();
 
-		if (pastoVuoto && pastoCustomEliminabile) {
-			pasto.setNome(template.getNome());
-			pasto.setDescrizione(template.getDescrizione());
-		}
+		// NB: applicare un pasto-template aggiunge/sostituisce SOLO gli alimenti.
+		// Nome e descrizione del pasto restano quelli scelti dall'utente (non vanno
+		// sovrascritti col nome/descrizione del template).
 
 		Long clienteId = pastoRepository.findClienteIdByPastoId(pastoId)
 				.orElseThrow(() -> new NotFoundException("Cliente non trovato per pasto"));

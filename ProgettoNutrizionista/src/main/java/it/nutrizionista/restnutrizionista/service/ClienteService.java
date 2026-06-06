@@ -10,13 +10,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteInfoDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteLightDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
+import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
+import it.nutrizionista.restnutrizionista.repository.AlimentoPastoNomeOverrideRepository;
+import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
+import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
 import it.nutrizionista.restnutrizionista.repository.CalcoloTdeeRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
+import it.nutrizionista.restnutrizionista.repository.PastoRepository;
+import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 import jakarta.validation.Valid;
 
 @Service
@@ -26,14 +35,23 @@ public class ClienteService {
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private OwnershipValidator ownershipValidator;
 	@Autowired private CalcoloTdeeRepository calcoloTdeeRepository;
+	@Autowired private SchedaRepository schedaRepository;
+	@Autowired private PastoRepository pastoRepository;
+	@Autowired private AlimentoPastoRepository alimentoPastoRepository;
+	@Autowired private AlimentoPastoNomeOverrideRepository alimentoPastoNomeOverrideRepository;
+	@Autowired private AlimentoAlternativoRepository alimentoAlternativoRepository;
+	@Autowired private AppuntamentoRepository appuntamentoRepository;
 
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
 		Utente u = currentUserService.getMe();
-		//controllo se è già presente un cliente con quel CF
-		if(repo.existsByCodiceFiscale(form.getCodiceFiscale())) {
-            throw new RuntimeException("Cliente già esistente (CF duplicato)");
-       }
+		// Controllo duplicati su vincoli univoci, con messaggi chiari (409 Conflict)
+		if (repo.existsByCodiceFiscale(form.getCodiceFiscale())) {
+			throw new ConflictException("Esiste già un cliente con questo codice fiscale");
+		}
+		if (repo.existsByEmail(form.getEmail())) {
+			throw new ConflictException("Esiste già un cliente con questa email");
+		}
 		Cliente c = DtoMapper.toCliente(form);
 		c.setNutrizionista(u);
 		return DtoMapper.toClienteDtoLight(repo.save(c));
@@ -44,6 +62,13 @@ public class ClienteService {
 	public ClienteDto update(@Valid ClienteFormDto form) {
 		if (form.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
 		Cliente c = ownershipValidator.getOwnedCliente(form.getId());
+		// Controllo duplicati escludendo il cliente stesso
+		if (repo.existsByCodiceFiscaleAndIdNot(form.getCodiceFiscale(), form.getId())) {
+			throw new ConflictException("Esiste già un cliente con questo codice fiscale");
+		}
+		if (repo.existsByEmailAndIdNot(form.getEmail(), form.getId())) {
+			throw new ConflictException("Esiste già un cliente con questa email");
+		}
 		DtoMapper.updateClienteFromForm(c, form);
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
@@ -62,33 +87,51 @@ public class ClienteService {
 	@Transactional
 	public void deleteMyCliente(Long id) {
 	    if (id == null) throw new RuntimeException("Id cliente obbligatorio per il delete");
-        
+
+	    // Verifica ownership (carica solo il cliente, non l'albero delle schede)
 	    Cliente c = ownershipValidator.getOwnedCliente(id);
-		
-	    // 1. Elimina prima tutto lo storico dei calcoli TDEE associati a questo cliente
+
+	    // 1. Svuota in modo robusto l'albero profondo di OGNI scheda del cliente.
+	    //    Non ci si può affidare al solo cascade ORM: AlimentoAlternativo ha due FK
+	    //    (alimento_pasto_id + pasto_id) ma solo alimento_pasto_id è coperta da
+	    //    orphanRemoval; con il batching JDBC questo genera StaleStateException
+	    //    ("row count 0; expected 1") sulla delete delle alternative.
+	    //    Stesso ordine bottom-up di SchedaService.delete().
+	    for (Long schedaId : schedaRepository.findIdsByCliente_Id(id)) {
+	        alimentoAlternativoRepository.bulkDeleteBySchedaId(schedaId);        // alternative (dipendono da alimenti_pasto E pasti)
+	        alimentoPastoNomeOverrideRepository.bulkDeleteBySchedaId(schedaId);  // nome_override
+	        alimentoPastoRepository.bulkDeleteBySchedaId(schedaId);              // alimenti_pasto
+	        pastoRepository.bulkDeleteBySchedaId(schedaId);                      // pasti
+	    }
+
+	    // 2. Appuntamenti: la FK cliente_id NON è in cascade dal Cliente.
+	    appuntamentoRepository.deleteByCliente_Id(id);
+
+	    // 3. Storico dei calcoli TDEE associati a questo cliente.
 	    calcoloTdeeRepository.deleteByClienteId(id);
-	    
-	    // 2. Infine elimina il cliente stesso
+
+	    // 4. Infine il cliente: il cascade ORM gestisce ora solo le collezioni mono-FK
+	    //    (schede ormai vuote, misurazioni, plicometrie, obiettivi, blacklist, tag).
 	    repo.delete(c);
 	}
 
 	@Transactional(readOnly = true)
-	public PageResponse<ClienteDto> allMyClienti( Pageable pageable) {
+	public PageResponse<ClienteLightDto> allMyClienti( Pageable pageable) {
 		Utente u = currentUserService.getMe();
 	    int maxSize = 12;
 	    if (pageable.getPageSize() > maxSize) {
 	        pageable = PageRequest.of(pageable.getPageNumber(), maxSize, pageable.getSort());
-	    }		
-		return PageResponse.from(repo.findByNutrizionista_Id(u.getId(),pageable).map(DtoMapper::toClienteDtoLight));
+	    }
+		return PageResponse.from(repo.findByNutrizionista_Id(u.getId(),pageable).map(DtoMapper::toClienteLightDto));
 	}
 	
 	@Transactional(readOnly = true)
-	public List<ClienteDto> allMyClientiList() {
+	public List<ClienteLightDto> allMyClientiList() {
 		Utente u = currentUserService.getMe();
 		// Assicurati di avere questo metodo nel tuo ClienteRepository:
 		// List<Cliente> findByNutrizionista_Id(Long id);
 		return repo.findByNutrizionista_Id(u.getId()).stream()
-				.map(DtoMapper::toClienteDtoLight)
+				.map(DtoMapper::toClienteLightDto)
 				.toList();
 	}
 
@@ -112,9 +155,9 @@ public class ClienteService {
 	}
 	
 	@Transactional(readOnly = true)
-    public ClienteDto dettaglio(Long id) {
+    public ClienteInfoDto dettaglio(Long id) {
         Cliente c = ownershipValidator.getOwnedCliente(id);
-        return DtoMapper.toClienteDto(c);
+        return DtoMapper.toClienteInfoDto(c);
     }
 	//manca cliente Fabbisogno, da studiare un attimo
 }

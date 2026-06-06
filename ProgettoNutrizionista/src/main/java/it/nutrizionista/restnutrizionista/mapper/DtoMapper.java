@@ -17,6 +17,8 @@ import it.nutrizionista.restnutrizionista.dto.AppuntamentoFormDto;
 import it.nutrizionista.restnutrizionista.dto.AvversionePersonaleDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteInfoDto;
+import it.nutrizionista.restnutrizionista.dto.ClienteLightDto;
 import it.nutrizionista.restnutrizionista.dto.GruppoDto;
 import it.nutrizionista.restnutrizionista.dto.MacroDto;
 import it.nutrizionista.restnutrizionista.dto.MicroDto;
@@ -37,6 +39,7 @@ import it.nutrizionista.restnutrizionista.dto.PlicometriaFormDto;
 import it.nutrizionista.restnutrizionista.dto.RuoloDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaListItemDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
 import it.nutrizionista.restnutrizionista.dto.SystemTagDto;
@@ -414,6 +417,56 @@ public class DtoMapper {
 		return dto;
 	}
 
+	// mapper leggero per la lista-completa: record immutabile, nessuna relazione
+	public static ClienteLightDto toClienteLightDto(Cliente c) {
+		if (c == null) {
+			return null;
+		}
+		return new ClienteLightDto(
+				c.getId(),
+				c.getNome(),
+				c.getCognome(),
+				c.getSesso(),
+				c.getEmail(),
+				c.getDataNascita(),
+				c.getCreatedAt(),
+				c.getUpdatedAt()
+		);
+	}
+
+	// mapper per il dettaglio cliente: campi scalari + tagStandard (EAGER),
+	// senza misurazioni/plicometrie/schede (evita il fetch LAZY ridondante)
+	public static ClienteInfoDto toClienteInfoDto(Cliente c) {
+		if (c == null) {
+			return null;
+		}
+		return new ClienteInfoDto(
+				c.getId(),
+				c.getSesso(),
+				c.getNome(),
+				c.getCognome(),
+				c.getCodiceFiscale(),
+				c.getEmail(),
+				c.getTelefono(),
+				c.getDataNascita(),
+				c.getPeso(),
+				c.getAltezza(),
+				c.getPesoTarget(),
+				c.getAltezzaTarget(),
+				c.getLivelloDiAttivita(),
+				c.getIntolleranze(),
+				c.getFunzioniIntestinali(),
+				c.getProblematicheSalutari(),
+				c.getQuantitaEQualitaDelSonno(),
+				c.getAssunzioneFarmaci(),
+				c.getBeveAlcol(),
+				c.getFuma(),
+				c.getTagStandard() != null ? new HashSet<>(c.getTagStandard()) : new HashSet<>(),
+				c.getCreatedAt(),
+				c.getUpdatedAt()
+		);
+	}
+
 	// ── AvversionePersonale (Record piatto — Fase 3) ──────────────────────
 
 	/**
@@ -453,6 +506,7 @@ public class DtoMapper {
 		dto.setPctProteine(ob.getPctProteine());
 		dto.setPctCarboidrati(ob.getPctCarboidrati());
 		dto.setPctGrassi(ob.getPctGrassi());
+		dto.setNome(ob.getNome());
 		dto.setNote(ob.getNote());
 		dto.setLockedPctProteine(ob.getLockedPctProteine());
 		dto.setLockedPctCarboidrati(ob.getLockedPctCarboidrati());
@@ -867,6 +921,20 @@ public class DtoMapper {
 		return dto;
 	}
 
+	// mapper per la riga della lista schede: record leggero, niente cliente/pasti/timestamp
+	public static SchedaListItemDto toSchedaListItemDto(Scheda s) {
+		if (s == null) {
+			return null;
+		}
+		return new SchedaListItemDto(
+				s.getId(),
+				s.getNome(),
+				s.getDataCreazione(),
+				s.getTipo() != null ? s.getTipo().name() : "GIORNALIERA",
+				s.getAttiva(),
+				s.getNumeroPasti());
+	}
+
 	// mapper per l' entità misurazioneAntrometrica
 
 	public static MisurazioneAntropometricaDto toMisurazioneDto(MisurazioneAntropometrica m) {
@@ -877,7 +945,7 @@ public class DtoMapper {
 		dto.setId(m.getId());
 		dto.setBicipiteD(m.getBicipiteD());
 		dto.setBicipiteS(m.getBicipiteS());
-		dto.setCliente(toClienteDtoLight(m.getCliente()));
+		dto.setClienteId(m.getCliente() != null ? m.getCliente().getId() : null);
 		dto.setDataMisurazione(m.getDataMisurazione());
 		dto.setPeso(m.getPeso());
 		dto.setFianchi(m.getFianchi());
@@ -889,7 +957,7 @@ public class DtoMapper {
 		return dto;
 	}
 
-	public static MisurazioneAntropometricaDto toMisurazioneDtoLight(MisurazioneAntropometrica m) { // senza cliente
+	public static MisurazioneAntropometricaDto toMisurazioneDtoLight(MisurazioneAntropometrica m) { // espone solo clienteId
 		if (m == null) {
 			return null;
 		}
@@ -897,6 +965,7 @@ public class DtoMapper {
 		dto.setId(m.getId());
 		dto.setBicipiteD(m.getBicipiteD());
 		dto.setBicipiteS(m.getBicipiteS());
+		dto.setClienteId(m.getCliente() != null ? m.getCliente().getId() : null);
 		dto.setDataMisurazione(m.getDataMisurazione());
 		dto.setPeso(m.getPeso());
 		dto.setFianchi(m.getFianchi());
@@ -957,7 +1026,7 @@ public class DtoMapper {
 		}
 		PlicometriaDto dto = new PlicometriaDto();
 		dto.setId(p.getId());
-		dto.setCliente(toClienteDtoLight(p.getCliente())); // Include il cliente light
+		dto.setClienteId(p.getCliente() != null ? p.getCliente().getId() : null);
 		dto.setDataMisurazione(p.getDataMisurazione());
 		dto.setMetodo(p.getMetodo());
 
@@ -984,14 +1053,14 @@ public class DtoMapper {
 		return dto;
 	}
 
-	public static PlicometriaDto toPlicometriaDtoLight(Plicometria p) { // Senza cliente (utile per le liste dentro
-																		// ClienteDto)
+	public static PlicometriaDto toPlicometriaDtoLight(Plicometria p) { // Senza oggetto cliente (utile per le liste dentro
+																		// ClienteDto); espone solo clienteId
 		if (p == null) {
 			return null;
 		}
 		PlicometriaDto dto = new PlicometriaDto();
 		dto.setId(p.getId());
-		// dto.setCliente(...) -> ESCLUSO
+		dto.setClienteId(p.getCliente() != null ? p.getCliente().getId() : null);
 		dto.setDataMisurazione(p.getDataMisurazione());
 		dto.setMetodo(p.getMetodo());
 

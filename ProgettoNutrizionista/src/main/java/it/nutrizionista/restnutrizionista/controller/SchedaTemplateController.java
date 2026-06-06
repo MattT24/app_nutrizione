@@ -22,6 +22,7 @@ import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaTemplateSummaryDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateMetadataPatchDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.service.SchedaTemplateService;
@@ -45,7 +46,7 @@ public class SchedaTemplateController {
 	/** GET /api/schede-template/summary — Lista leggera (solo id, nome, tipo) per dropdown */
 	@GetMapping("/summary")
 	@PreAuthorize("hasAuthority('SCHEDA_READ')")
-	public ResponseEntity<List<SchedaTemplateDto>> listMineSummary() {
+	public ResponseEntity<List<SchedaTemplateSummaryDto>> listMineSummary() {
 		return ResponseEntity.ok(service.listMineSummary());
 	}
 

@@ -3,6 +3,7 @@ package it.nutrizionista.restnutrizionista.repository;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 
 // IMPORT CORRETTO PER JPA (Sostituito quello jdbc)
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.query.Param;
@@ -35,4 +36,13 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
 
     List<Appuntamento> findTop4ByNutrizionistaIdAndDataGreaterThanEqualOrderByDataAscOraAsc(
             @Param("nutrizionistaId") Long nutrizionistaId, @Param("data") LocalDate data);
+
+    /**
+     * Elimina tutti gli appuntamenti collegati a un cliente.
+     * La FK appuntamenti.cliente_id NON è gestita in cascade dall'entità Cliente,
+     * quindi va rimossa esplicitamente prima di cancellare il cliente.
+     */
+    @Modifying
+    @Query("DELETE FROM Appuntamento a WHERE a.cliente.id = :clienteId")
+    void deleteByCliente_Id(@Param("clienteId") Long clienteId);
 }

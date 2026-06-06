@@ -20,6 +20,8 @@ import it.nutrizionista.restnutrizionista.dto.CopyBulkResultDto;
 import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaListItemDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaPreviewDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.service.SchedaService;
 import it.nutrizionista.restnutrizionista.service.PdfService;
@@ -68,8 +70,20 @@ public class SchedaController {
 
 	@GetMapping("/cliente")
     @PreAuthorize("hasAuthority('SCHEDA_READ')")
-    public ResponseEntity<PageResponse<SchedaDto>> schedeByCliente(@RequestParam("clienteId") Long clienteId, Pageable pageable){
+    public ResponseEntity<PageResponse<SchedaListItemDto>> schedeByCliente(@RequestParam("clienteId") Long clienteId, Pageable pageable){
         return ResponseEntity.ok(service.schedeByCliente(clienteId, pageable));
+    }
+
+	@GetMapping("/cliente/attiva")
+    @PreAuthorize("hasAuthority('SCHEDA_READ')")
+    public ResponseEntity<SchedaDto> schedaAttivaByCliente(@RequestParam("clienteId") Long clienteId){
+        return ResponseEntity.ok(service.schedaAttivaByCliente(clienteId));
+    }
+
+	@GetMapping("/{id}/preview")
+    @PreAuthorize("hasAuthority('SCHEDA_READ')")
+    public ResponseEntity<SchedaPreviewDto> preview(@PathVariable("id") Long id){
+        return ResponseEntity.ok(service.preview(id));
     }
 
 	// ===== COPY BULK — Endpoint unificato per duplicate e import =====

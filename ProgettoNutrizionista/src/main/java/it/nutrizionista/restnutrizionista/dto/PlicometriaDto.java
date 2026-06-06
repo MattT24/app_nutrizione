@@ -8,10 +8,10 @@ import jakarta.persistence.Column;
 public class PlicometriaDto {
 
     private Long id;
-	
+	private Long clienteId;
+
 	@Column(name = "data_misurazione")
 	private LocalDate dataMisurazione;
-	private ClienteDto cliente;
 	private Double tricipite;
     private Double bicipite;      // Nuovo (usato in Durnin)
     private Double sottoscapolare;
@@ -97,6 +97,12 @@ public class PlicometriaDto {
 	public void setId(Long id) {
 		this.id = id;
 	}
+	public Long getClienteId() {
+		return clienteId;
+	}
+	public void setClienteId(Long clienteId) {
+		this.clienteId = clienteId;
+	}
 	public LocalDate getDataMisurazione() {
 		return dataMisurazione;
 	}
@@ -109,12 +115,6 @@ public class PlicometriaDto {
 	}
 	public void setMetodo(Metodo metodo) {
 		this.metodo = metodo;
-	}
-	public ClienteDto getCliente() {
-		return cliente;
-	}
-	public void setCliente(ClienteDto cliente) {
-		this.cliente = cliente;
 	}
 	public Double getPesoKgRiferimento() {
 		return pesoKgRiferimento;

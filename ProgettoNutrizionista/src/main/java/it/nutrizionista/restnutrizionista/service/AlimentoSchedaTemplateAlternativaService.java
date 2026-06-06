@@ -1,6 +1,10 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -9,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaFormDto;
+import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaUpsertDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPastoSchedaTemplate;
 import it.nutrizionista.restnutrizionista.entity.AlimentoSchedaTemplateAlternativa;
@@ -155,6 +160,94 @@ public class AlimentoSchedaTemplateAlternativaService {
         checkAlternativaBelongsToApt(entity, aptId);
         checkAptBelongsToTemplate(entity.getAlimentoPastoSchedaTemplate(), templateId);
         repo.delete(entity);
+    }
+
+    /**
+     * Upsert in blocco (bulk diff) delle alternative di un alimento nel pasto template,
+     * in UNA sola transazione: INSERT (id null), UPDATE (id esistente), DELETE
+     * (alternative esistenti il cui id non è più nella lista inviata). Sostituisce le N
+     * chiamate granulari del client, garantendo atomicità (niente stato parziale su errore).
+     */
+    @Transactional
+    public List<AlimentoSchedaTemplateAlternativaDto> bulkUpsert(Long templateId, Long aptId,
+            List<AlimentoSchedaTemplateAlternativaUpsertDto> items) {
+        getOwnedTemplate(templateId);
+        AlimentoPastoSchedaTemplate apt = getOwnedAlimentoPasto(aptId);
+        checkAptBelongsToTemplate(apt, templateId);
+
+        List<AlimentoSchedaTemplateAlternativaUpsertDto> incoming = items != null ? items : List.of();
+
+        List<AlimentoSchedaTemplateAlternativa> existing =
+                repo.findByAlimentoPastoSchedaTemplate_IdOrderByPrioritaAsc(aptId);
+        Map<Long, AlimentoSchedaTemplateAlternativa> existingById = existing.stream()
+                .collect(Collectors.toMap(AlimentoSchedaTemplateAlternativa::getId, a -> a));
+
+        Set<Long> keepIds = incoming.stream()
+                .map(AlimentoSchedaTemplateAlternativaUpsertDto::id)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        // DELETE: alternative non più presenti nella lista desiderata
+        for (AlimentoSchedaTemplateAlternativa e : existing) {
+            if (!keepIds.contains(e.getId())) {
+                repo.delete(e);
+            }
+        }
+        // Flush dei DELETE prima degli INSERT: evita violazioni del vincolo di unicità
+        // (apt_id, alimento_alternativo_id) quando un alimento viene rimpiazzato.
+        repo.flush();
+
+        List<AlimentoSchedaTemplateAlternativa> result = new ArrayList<>();
+        for (int i = 0; i < incoming.size(); i++) {
+            AlimentoSchedaTemplateAlternativaUpsertDto dto = incoming.get(i);
+            if (dto == null) continue;
+            int priorita = (dto.priorita() != null && dto.priorita() >= 1) ? dto.priorita() : (i + 1);
+
+            AlimentoSchedaTemplateAlternativa entity;
+            if (dto.id() != null && existingById.containsKey(dto.id())) {
+                // UPDATE — mantiene l'alimento alternativo esistente
+                entity = existingById.get(dto.id());
+            } else {
+                // INSERT — valida l'alimento alternativo e i vincoli
+                AlimentoBase alimentoAlt = alimentoBaseRepo.findById(dto.alimentoAlternativoId())
+                        .orElseThrow(() -> new NotFoundException(
+                                "Alimento alternativo non trovato con id: " + dto.alimentoAlternativoId()));
+                if (apt.getAlimento() != null
+                        && apt.getAlimento().getId().equals(dto.alimentoAlternativoId())) {
+                    throw new BadRequestException(
+                            "L'alimento alternativo deve essere diverso dall'alimento principale");
+                }
+                entity = new AlimentoSchedaTemplateAlternativa();
+                entity.setAlimentoPastoSchedaTemplate(apt);
+                entity.setAlimentoAlternativo(alimentoAlt);
+            }
+
+            AlternativeMode mode = dto.mode() != null
+                    ? parseMode(dto.mode())
+                    : (entity.getMode() != null ? entity.getMode() : AlternativeMode.CALORIE);
+            boolean manual = Boolean.TRUE.equals(dto.manual());
+            entity.setMode(mode);
+            entity.setManual(manual);
+            entity.setPriorita(priorita);
+            if (dto.note() != null) entity.setNote(dto.note());
+
+            Integer quantita = dto.quantita();
+            if (quantita == null) {
+                if (!manual) {
+                    quantita = suggestQuantityByCalorie(apt, entity.getAlimentoAlternativo(), mode);
+                }
+                if (quantita == null) {
+                    quantita = entity.getQuantita() != null ? entity.getQuantita() : 100;
+                }
+            }
+            entity.setQuantita(quantita);
+
+            result.add(repo.save(entity));
+        }
+
+        return result.stream()
+                .map(DtoMapper::toAlimentoSchedaTemplateAlternativaDto)
+                .collect(Collectors.toList());
     }
 
     /**
