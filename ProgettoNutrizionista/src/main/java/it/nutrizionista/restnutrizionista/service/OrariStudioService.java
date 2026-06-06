@@ -46,7 +46,7 @@ public class OrariStudioService {
         validateOrariStudio(formDto);
 
         // Cerca se esiste già un orario salvato per questo nutrizionista e per questo SPECIFICO giorno
-        OrariStudio orari = orariStudioRepository.findByNutrizionistaAndGiornoSettimana(nutrizionista, formDto.getGiornoSettimana())
+        OrariStudio orari = orariStudioRepository.findFirstByNutrizionistaAndGiornoSettimana(nutrizionista, formDto.getGiornoSettimana())
                 .orElse(null);
 
         if (orari == null) {

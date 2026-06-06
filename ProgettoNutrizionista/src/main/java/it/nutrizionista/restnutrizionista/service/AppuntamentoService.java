@@ -219,7 +219,7 @@ public class AppuntamentoService {
 
         // CONTROLLO ORARI STUDIO IN BASE AL GIORNO DELLA SETTIMANA
         DayOfWeek giorno = inizioNuovo.getDayOfWeek();
-        OrariStudio orario = orariStudioRepository.findByNutrizionistaIdAndGiornoSettimana(nuovoApp.getNutrizionista().getId(), giorno).orElse(null);
+        OrariStudio orario = orariStudioRepository.findFirstByNutrizionista_IdAndGiornoSettimana(nuovoApp.getNutrizionista().getId(), giorno).orElse(null);
         
         if (orario != null) {
             if (!orario.isGiornoLavorativo()) {

@@ -19,15 +19,8 @@ public interface OrariStudioRepository extends JpaRepository<OrariStudio, Long> 
     List<OrariStudio> findByNutrizionista(Utente nutrizionista);
     
     // Cerca la singola riga di un giorno specifico (es. LUNEDI) per il nutrizionista
-    Optional<OrariStudio> findByNutrizionistaAndGiornoSettimana(Utente nutrizionista, DayOfWeek giornoSettimana);
+    Optional<OrariStudio> findFirstByNutrizionistaAndGiornoSettimana(Utente nutrizionista, DayOfWeek giornoSettimana);
     
     // Utile per la validazione negli Appuntamenti (cerca per ID utente invece che per oggetto)
-    Optional<OrariStudio> findByNutrizionista_IdAndGiornoSettimana(Long nutrizionistaId, DayOfWeek giornoSettimana);
-    
-    
-    @Query("SELECT o FROM OrariStudio o WHERE o.nutrizionista.id = :nutrizionistaId AND o.giornoSettimana = :giorno")
-    Optional<OrariStudio> findByNutrizionistaIdAndGiornoSettimana(
-        @Param("nutrizionistaId") Long nutrizionistaId, 
-        @Param("giorno") DayOfWeek giorno
-    );
+    Optional<OrariStudio> findFirstByNutrizionista_IdAndGiornoSettimana(Long nutrizionistaId, DayOfWeek giornoSettimana);
 }
