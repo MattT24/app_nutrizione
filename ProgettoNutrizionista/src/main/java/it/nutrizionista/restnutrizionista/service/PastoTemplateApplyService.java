@@ -19,19 +19,18 @@ import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateResultDto;
 import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateSkippedItemDto;
 import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateStatsDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
-import it.nutrizionista.restnutrizionista.entity.AlimentoDaEvitare;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPastoNomeOverride;
+import it.nutrizionista.restnutrizionista.entity.AvversionePersonale;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplate;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlimento;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlternativo;
-import it.nutrizionista.restnutrizionista.entity.TipoRestrizione;
 import it.nutrizionista.restnutrizionista.exception.ForbiddenException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
-import it.nutrizionista.restnutrizionista.repository.AlimentoDaEvitareRepository;
+import it.nutrizionista.restnutrizionista.repository.AvversionePersonaleRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoTemplateRepository;
 import jakarta.validation.Valid;
@@ -42,7 +41,7 @@ public class PastoTemplateApplyService {
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private PastoRepository pastoRepository;
 	@Autowired private PastoTemplateRepository templateRepository;
-	@Autowired private AlimentoDaEvitareRepository daEvitareRepository;
+	@Autowired private AvversionePersonaleRepository avversionePersonaleRepository;
 	@Autowired private AlimentoAlternativoRepository alternativoRepository;
 
 	@Transactional
@@ -380,15 +379,15 @@ public class PastoTemplateApplyService {
 
 	private RestrictionDecision checkRestriction(Long clienteId, Long alimentoId) {
 		RestrictionDecision out = new RestrictionDecision();
-		AlimentoDaEvitare r = daEvitareRepository.findByCliente_IdAndAlimento_Id(clienteId, alimentoId).orElse(null);
+		AvversionePersonale r = avversionePersonaleRepository.findByClienteIdAndAlimentoId(clienteId, alimentoId).orElse(null);
 		if (r == null) return out;
-		if (r.getTipo() == TipoRestrizione.ALLERGIA) {
+		if (r.getGravita() == it.nutrizionista.restnutrizionista.enums.LivelloAllerta.ALERT_GRAVE) {
 			out.blocked = true;
-			out.message = "BLOCCO SICUREZZA: Il cliente è ALLERGICO a questo alimento. Inserimento vietato.";
+			out.message = "BLOCCO SICUREZZA: " + (r.getNote() != null ? r.getNote() : "Avversione bloccante");
 			return out;
 		}
 		out.warning = true;
-		out.message = "WARNING_RESTRIZIONE: Il cliente evita questo alimento per: " + r.getTipo();
+		out.message = "WARNING_RESTRIZIONE: " + (r.getNote() != null ? r.getNote() : "Avversione moderata");
 		return out;
 	}
 

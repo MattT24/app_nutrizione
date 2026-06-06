@@ -1,5 +1,7 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -40,7 +42,19 @@ public class OffProductDto {
 
         private String code;
 
+        @JsonProperty("product_name_it")
+        private String productNameIt;
+
         private Nutriments nutriments;
+
+        @JsonProperty("allergens_tags")
+        private List<String> allergensTags;
+
+        @JsonProperty("traces_tags")
+        private List<String> tracesTags;
+
+        @JsonProperty("labels_tags")
+        private List<String> labelsTags;
 
         public String getProductName() { return productName; }
         public void setProductName(String productName) { this.productName = productName; }
@@ -52,8 +66,16 @@ public class OffProductDto {
         public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
         public String getCode() { return code; }
         public void setCode(String code) { this.code = code; }
+        public String getProductNameIt() { return productNameIt; }
+        public void setProductNameIt(String productNameIt) { this.productNameIt = productNameIt; }
         public Nutriments getNutriments() { return nutriments; }
         public void setNutriments(Nutriments nutriments) { this.nutriments = nutriments; }
+        public List<String> getAllergensTags() { return allergensTags; }
+        public void setAllergensTags(List<String> allergensTags) { this.allergensTags = allergensTags; }
+        public List<String> getTracesTags() { return tracesTags; }
+        public void setTracesTags(List<String> tracesTags) { this.tracesTags = tracesTags; }
+        public List<String> getLabelsTags() { return labelsTags; }
+        public void setLabelsTags(List<String> labelsTags) { this.labelsTags = labelsTags; }
     }
 
     // ── Inner: Nutriments ──

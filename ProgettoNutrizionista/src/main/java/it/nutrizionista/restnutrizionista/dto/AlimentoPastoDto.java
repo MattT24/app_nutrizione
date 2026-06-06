@@ -16,6 +16,7 @@ public class AlimentoPastoDto {
     private List<AlimentoAlternativoDto> alternative;
     private Instant createdAt;
     private Instant updatedAt;
+    private ValutazioneClinicaDto valutazioneClinica;
     
 	public Long getId() {
 		return id;
@@ -70,6 +71,12 @@ public class AlimentoPastoDto {
 	}
 	public void setUpdatedAt(Instant updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+	public ValutazioneClinicaDto getValutazioneClinica() {
+		return valutazioneClinica;
+	}
+	public void setValutazioneClinica(ValutazioneClinicaDto valutazioneClinica) {
+		this.valutazioneClinica = valutazioneClinica;
 	}
 	
     

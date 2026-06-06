@@ -3,7 +3,9 @@ package it.nutrizionista.restnutrizionista.entity;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -23,6 +25,10 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.CollectionTable;
+import jakarta.persistence.ElementCollection;
+import org.hibernate.annotations.BatchSize;
+import it.nutrizionista.restnutrizionista.enums.TagStandard;
 
 @Entity
 @Table(name = "clienti")
@@ -82,8 +88,20 @@ public class Cliente {
 	@JoinColumn(name = "utente_id")
 	private Utente nutrizionista;
 	
-	@OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-	private List<AlimentoDaEvitare> alimentiDaEvitare;	
+    // ── Nuova implementazione dei Tag del Paziente (Regole MDSS) ──
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+        name = "cliente_tag_standard", 
+        joinColumns = @JoinColumn(name = "cliente_id")
+    )
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tag")
+    @BatchSize(size = 50)
+    private Set<TagStandard> tagStandard = new HashSet<>();
+
+    // ── Evoluzione "Smart" della Blacklist manuale ──
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<AvversionePersonale> blacklistManuale = new HashSet<>();
 
 	@OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<MisurazioneAntropometrica> misurazioni = new ArrayList<>();
@@ -248,14 +266,7 @@ public class Cliente {
 		this.fuma = fuma;
 	}
 
-	public List<AlimentoDaEvitare> getAlimentiDaEvitare() {
-		return alimentiDaEvitare;
-	}
 
-	public void setAlimentiDaEvitare(
-			List<AlimentoDaEvitare> alimentiDaEvitare) {
-		this.alimentiDaEvitare = alimentiDaEvitare;
-	}
 
 	public List<MisurazioneAntropometrica> getMisurazioni() {
         return misurazioni;
@@ -329,4 +340,31 @@ public class Cliente {
 		this.altezzaTarget = altezzaTarget;
 	}
 
+    // ── Nuovi Getter/Setter per Tag e Blacklist ──
+    public Set<TagStandard> getTagStandard() {
+        return tagStandard;
+    }
+
+    public void setTagStandard(Set<TagStandard> tagStandard) {
+        this.tagStandard = tagStandard;
+    }
+
+    public Set<AvversionePersonale> getBlacklistManuale() {
+        return blacklistManuale;
+    }
+
+    public void setBlacklistManuale(Set<AvversionePersonale> blacklistManuale) {
+        this.blacklistManuale = blacklistManuale;
+    }
+
+    // ── Metodi Helper per la sincronizzazione bidirezionale JPA ──
+    public void addAvversione(AvversionePersonale avversione) {
+        blacklistManuale.add(avversione);
+        avversione.setCliente(this); // Sincronizza la Foreign Key lato ManyToOne
+    }
+
+    public void removeAvversione(AvversionePersonale avversione) {
+        blacklistManuale.remove(avversione);
+        avversione.setCliente(null); // Sgancia la FK innescando l'orphanRemoval in sicurezza
+    }
 }

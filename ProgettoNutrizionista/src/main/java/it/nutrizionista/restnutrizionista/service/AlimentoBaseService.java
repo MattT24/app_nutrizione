@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +21,9 @@ import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.ValoreMicroFormDto;
+import it.nutrizionista.restnutrizionista.dto.ValutazioneClinicaDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
+import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.entity.ValoreMicro;
@@ -39,6 +42,8 @@ public class AlimentoBaseService {
 	@Autowired private MicroRepository microRepository;
 	@Autowired private UtenteRepository utenteRepository;
 	@Autowired private UtentePreferitoRepository preferitoRepository;
+	@Autowired private ClinicalEngineService clinicalEngineService;
+	@Autowired private OwnershipValidator ownershipValidator;
 
 	/** Crea alimento globale (Admin) — createdBy = null */
 	@Transactional
@@ -132,9 +137,10 @@ public class AlimentoBaseService {
 		repo.deleteById(id);
 	}
 
-	/** Lista alimenti visibili: globali + propri dell'utente loggato */
+	/** Lista alimenti visibili: globali + propri dell'utente loggato.
+	 *  Se clienteId è presente, arricchisce ogni DTO con la valutazione clinica. */
 	@Transactional(readOnly = true)
-	public PageResponse<AlimentoBaseDto> listAll(Pageable pageable) {
+	public PageResponse<AlimentoBaseDto> listAll(Pageable pageable, Long clienteId) {
 		Pageable effective = pageable;
 		if (pageable.getSort().isUnsorted()) {
 			effective = PageRequest.of(
@@ -144,7 +150,26 @@ public class AlimentoBaseService {
 			);
 		}
 		Long utenteId = getCurrentUtente().getId();
-		return PageResponse.from(repo.findVisibleByUtente(utenteId, effective).map(DtoMapper::toAlimentoBaseDtoLight));
+		var page = repo.findVisibleByUtente(utenteId, effective);
+
+		if (clienteId == null || page.isEmpty()) {
+			return PageResponse.from(page.map(DtoMapper::toAlimentoBaseDtoLight));
+		}
+
+		// [SECURITY] ownershipValidator lancia NotFoundException se clienteId non appartiene al nutrizionista
+		Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+		List<AlimentoBase> content = page.getContent();
+		List<ValutazioneClinicaDto> valutazioni = clinicalEngineService.valutaInBatch(content, cliente);
+
+		var enriched = page.map(a -> {
+			AlimentoBaseDto dto = DtoMapper.toAlimentoBaseDtoLight(a);
+			int idx = content.indexOf(a);
+			if (idx >= 0 && idx < valutazioni.size()) {
+				dto.setValutazioneClinica(valutazioni.get(idx));
+			}
+			return dto;
+		});
+		return PageResponse.from(enriched);
 	}
 
 	@Transactional(readOnly = true)
@@ -168,15 +193,35 @@ public class AlimentoBaseService {
 		return DtoMapper.toAlimentoBaseDtoLight(a);
 	}
 
-	/** Ricerca filtrata per utente */
+	/** Ricerca filtrata per utente.
+	 *  Se clienteId è presente, arricchisce ogni DTO con la valutazione clinica MDSS. */
 	@Transactional(readOnly = true)
-	public List<AlimentoBaseDto> search(String query) {
+	public List<AlimentoBaseDto> search(String query, Long clienteId) {
 	    String normalizedQuery = query == null ? "" : query.trim();
 	    Long utenteId = getCurrentUtente().getId();
 	    List<AlimentoBase> list = repo.searchByNomeRankedForUser(normalizedQuery, utenteId);
-	    return list.stream()
-	               .map(DtoMapper::toAlimentoBaseDtoLight)
-	               .collect(Collectors.toList());
+
+	    // Caso base: nessun clienteId → risposta identica ad oggi (retrocompatibile)
+	    if (clienteId == null || list.isEmpty()) {
+	        return list.stream()
+	                   .map(DtoMapper::toAlimentoBaseDtoLight)
+	                   .collect(Collectors.toList());
+	    }
+
+	    // [SECURITY] getOwnedCliente lancia NotFoundException se clienteId non appartiene
+	    // al nutrizionista loggato → GlobalExceptionHandler → HTTP 404, nessun leakage
+	    Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+
+	    // Valutazione clinica in batch: pre-fetch blacklist UNA SOLA VOLTA (Anti N+1)
+	    List<ValutazioneClinicaDto> valutazioni = clinicalEngineService.valutaInBatch(list, cliente);
+
+	    List<AlimentoBaseDto> risultati = new ArrayList<>();
+	    for (int i = 0; i < list.size(); i++) {
+	        AlimentoBaseDto dto = DtoMapper.toAlimentoBaseDtoLight(list.get(i));
+	        dto.setValutazioneClinica(valutazioni.get(i));
+	        risultati.add(dto);
+	    }
+	    return risultati;
 	}
 
 	/** Categorie visibili per l'utente corrente */

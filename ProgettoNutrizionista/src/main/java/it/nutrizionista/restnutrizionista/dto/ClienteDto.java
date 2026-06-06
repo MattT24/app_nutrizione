@@ -3,6 +3,8 @@ package it.nutrizionista.restnutrizionista.dto;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
+import it.nutrizionista.restnutrizionista.enums.TagStandard;
 
 import it.nutrizionista.restnutrizionista.entity.LivelloDiAttivita;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
@@ -29,7 +31,8 @@ public class ClienteDto {
     private String assunzioneFarmaci;
     private Boolean beveAlcol;
     private Boolean fuma;
-    private List<AlimentoDaEvitareDto> alimentiDaEvitare;
+    private Set<TagStandard> tagStandard;
+    private Set<AvversionePersonaleDto> blacklistManuale;
     private List<MisurazioneAntropometricaDto> misurazioni;
     private List<PlicometriaDto> plicometrie;
     private UtenteDto nutrizionista;
@@ -138,11 +141,18 @@ public class ClienteDto {
 	public void setFuma(Boolean fuma) {
 		this.fuma = fuma;
 	}
-	public List<AlimentoDaEvitareDto> getAlimentiDaEvitare() {
-		return alimentiDaEvitare;
+
+	public Set<TagStandard> getTagStandard() {
+		return tagStandard;
 	}
-	public void setAlimentiDaEvitare(List<AlimentoDaEvitareDto> alimentiDaEvitare) {
-		this.alimentiDaEvitare = alimentiDaEvitare;
+	public void setTagStandard(Set<TagStandard> tagStandard) {
+		this.tagStandard = tagStandard;
+	}
+	public Set<AvversionePersonaleDto> getBlacklistManuale() {
+		return blacklistManuale;
+	}
+	public void setBlacklistManuale(Set<AvversionePersonaleDto> blacklistManuale) {
+		this.blacklistManuale = blacklistManuale;
 	}
 
 	public List<MisurazioneAntropometricaDto> getMisurazioni() {

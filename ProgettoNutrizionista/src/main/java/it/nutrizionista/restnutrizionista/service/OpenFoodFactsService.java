@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
@@ -29,7 +30,7 @@ public class OpenFoodFactsService {
     private static final String SEARCH_URL = "https://search.openfoodfacts.org/search";
     /** OFF API v2 per fetch singolo prodotto per barcode */
     private static final String OFF_PRODUCT = "https://world.openfoodfacts.org/api/v2/product/";
-    private static final String FIELDS = "code,product_name,brands,categories,image_url,nutriments";
+    private static final String FIELDS = "code,product_name,product_name_it,brands,categories,image_url,nutriments,allergens_tags,traces_tags,labels_tags";
 
     @Autowired private RestTemplate restTemplate;
     @Autowired private AlimentoBaseService alimentoBaseService;
@@ -49,19 +50,18 @@ public class OpenFoodFactsService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Query minimo 2 caratteri");
         }
 
-        String safeQuery = sanitize(query).replace(" ", "+");
-        int safePage = Math.max(1, page);
-        int safeSize = Math.min(Math.max(1, size), 24);
-
-        String url = SEARCH_URL
-                + "?q=" + safeQuery
-                + "&langs=it,en"
-                + "&page=" + safePage
-                + "&page_size=" + safeSize
-                + "&fields=" + FIELDS;
+        String url = UriComponentsBuilder.fromHttpUrl(SEARCH_URL)
+                .queryParam("q", sanitize(query))
+                .queryParam("langs", "it,en")
+                .queryParam("page", Math.max(1, page))
+                .queryParam("page_size", Math.min(Math.max(1, size), 24))
+                .queryParam("fields", FIELDS)
+                .build().encode().toUriString();
 
         try {
             return restTemplate.getForObject(url, String.class);
+        } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Troppe ricerche consecutive. Attendi qualche secondo.");
         } catch (RestClientException e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                     "Impossibile raggiungere Open Food Facts");
@@ -79,11 +79,17 @@ public class OpenFoodFactsService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Barcode non valido");
         }
 
-        String url = OFF_PRODUCT + barcode + ".json?fields=" + FIELDS;
+        String url = UriComponentsBuilder.fromHttpUrl(OFF_PRODUCT + barcode + ".json")
+                .queryParam("fields", FIELDS)
+                .queryParam("lc", "it")
+                .queryParam("cc", "it")
+                .build().toUriString();
 
         OffProductDto response;
         try {
             response = restTemplate.getForObject(url, OffProductDto.class);
+        } catch (org.springframework.web.client.HttpClientErrorException.TooManyRequests e) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Troppe ricerche consecutive. Attendi qualche secondo.");
         } catch (RestClientException e) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                     "Impossibile raggiungere Open Food Facts");
@@ -106,14 +112,62 @@ public class OpenFoodFactsService {
         OffProductDto.Nutriments nut = product.getNutriments();
         AlimentoBaseFormDto form = new AlimentoBaseFormDto();
 
-        String nome = sanitize(product.getProductName());
+        String nomeIt = product.getProductNameIt();
+        String nomeGlobale = product.getProductName();
+        String rawName = (nomeIt != null && !nomeIt.isBlank()) ? nomeIt : nomeGlobale;
+
+        String nome = sanitize(rawName);
         String brand = sanitize(product.getBrands());
-        String baseName = !brand.equals("Sconosciuto") ? nome + " — " + brand : nome;
-        form.setNome(baseName + " — OFF");
+        String baseName = !brand.equals("Sconosciuto") ? nome + " (" + brand + ")" : nome;
+        form.setNome(baseName + " [OFF]");
 
         form.setCategoria(extractFirstCategory(product.getCategories()));
         form.setUrlImmagine(sanitizeUrl(product.getImageUrl()));
         form.setMisuraInGrammi(100.0);
+
+        // Parsing Tracce e Allergeni (Glutine, Lattosio, Vegano)
+        java.util.Set<String> traccePulite = new java.util.HashSet<>();
+        Boolean senzaGlutine = null;
+        Boolean senzaLattosio = null;
+        Boolean vegano = null;
+        boolean hasGlutenTrace = false;
+        boolean hasMilkTrace = false;
+
+        if (product.getLabelsTags() != null) {
+            for (String l : product.getLabelsTags()) {
+                String label = l.toLowerCase();
+                if (label.contains("en:gluten-free") || label.contains("it:senza-glutine")) senzaGlutine = true;
+                if (label.contains("en:no-lactose") || label.contains("it:senza-lattosio") || label.contains("en:lactose-free")) senzaLattosio = true;
+                if (label.contains("en:vegan") || label.contains("it:vegano")) vegano = true;
+            }
+        }
+
+        if (product.getAllergensTags() != null) {
+            for (String a : product.getAllergensTags()) {
+                String alg = a.toLowerCase();
+                if (alg.contains("gluten") || alg.contains("wheat") || alg.contains("barley") || alg.contains("oat") || alg.contains("glutine") || alg.contains("farro") || alg.contains("kamut") || alg.contains("spelt")) senzaGlutine = false;
+                if (alg.contains("milk") || alg.contains("lait") || alg.contains("latte") || alg.contains("dairy") || alg.contains("burro") || alg.contains("formaggio") || alg.contains("cheese") || alg.contains("butter")) senzaLattosio = false;
+            }
+        }
+
+        if (product.getTracesTags() != null) {
+            for (String t : product.getTracesTags()) {
+                String tr = t.toLowerCase();
+                if (tr.contains("gluten") || tr.contains("wheat") || tr.contains("glutine") || tr.contains("farro")) hasGlutenTrace = true;
+                if (tr.contains("milk") || tr.contains("latte") || tr.contains("dairy")) hasMilkTrace = true;
+                
+                String cleanTrace = t.replace("en:", "").replace("it:", "").replace("fr:", "").trim();
+                traccePulite.add(cleanTrace);
+            }
+        }
+        
+        if (hasGlutenTrace) senzaGlutine = false;
+        if (hasMilkTrace) senzaLattosio = false;
+
+        form.setTracce(traccePulite);
+        form.setSenzaGlutine(senzaGlutine);
+        form.setSenzaLattosio(senzaLattosio);
+        form.setVegano(vegano);
 
         MacroDto macro = new MacroDto();
         macro.setCalorie(safe(nut != null ? nut.getEnergyKcal100g() : null));

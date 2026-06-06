@@ -20,6 +20,7 @@ import it.nutrizionista.restnutrizionista.dto.PastoSchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateDto;
+import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateMetadataPatchDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
@@ -71,10 +72,10 @@ public class SchedaTemplateService {
 	// ═══════════════════════════════════════════
 
 	@Transactional(readOnly = true)
-	public List<SchedaTemplateDto> listMine() {
+	public List<SchedaTemplateListDto> listMine() {
 		var me = currentUserService.getMe();
-		return repo.findByCreatedByIdWithFullTree(me.getId()).stream()
-				.map(DtoMapper::toSchedaTemplateDto)
+		return repo.findAllByCreatedByIdOrderByUpdatedAtDesc(me.getId()).stream()
+				.map(DtoMapper::toSchedaTemplateListDto)
 				.collect(Collectors.toList());
 	}
 
@@ -216,9 +217,21 @@ public class SchedaTemplateService {
 		Scheda scheda = new Scheda();
 		scheda.setNome(schedaForm.getNome() != null ? schedaForm.getNome().trim() : st.getNome());
 		scheda.setCliente(cliente);
-		scheda.setAttiva(schedaForm.getAttiva() != null ? schedaForm.getAttiva() : true);
 		scheda.setDataCreazione(LocalDate.now());
 		scheda.setTipo(st.getTipo());
+
+		// Determina se la nuova scheda sarà attiva (default true se null)
+		boolean nuovaSchedaAttiva = schedaForm.getAttiva() == null || Boolean.TRUE.equals(schedaForm.getAttiva());
+
+		// Se la nuova scheda sarà attiva, disattiva tutte le altre del cliente
+		if (nuovaSchedaAttiva) {
+			List<Scheda> schedeAttive = schedaRepository.findByCliente_IdAndAttivaTrue(cliente.getId());
+			for (Scheda vecchia : schedeAttive) {
+				vecchia.setAttiva(false);
+			}
+			schedaRepository.saveAll(schedeAttive);
+		}
+		scheda.setAttiva(nuovaSchedaAttiva);
 
 		Scheda savedScheda = schedaRepository.save(scheda);
 		clonaPastiSuScheda(st, savedScheda, false);

@@ -58,16 +58,20 @@ public class AlimentoBaseController {
 	
 	@GetMapping
 	@PreAuthorize("hasAuthority('ALIMENTO_READ')")
-	public ResponseEntity<PageResponse<AlimentoBaseDto>> allAlimentiBase(Pageable pageable){
-		return ResponseEntity.ok(service.listAll(pageable));
+	public ResponseEntity<PageResponse<AlimentoBaseDto>> allAlimentiBase(
+			Pageable pageable,
+			@RequestParam(required = false) Long clienteId){
+		return ResponseEntity.ok(service.listAll(pageable, clienteId));
 	}
 	
     // NUOVO: Endpoint di ricerca per il frontend
     // GET /api/alimenti_base/search?query=Pollo
     @GetMapping("/search")
     @PreAuthorize("hasAuthority('ALIMENTO_READ')")
-    public ResponseEntity<List<AlimentoBaseDto>> search(@RequestParam String query) {
-        return ResponseEntity.ok(service.search(query));
+    public ResponseEntity<List<AlimentoBaseDto>> search(
+            @RequestParam String query,
+            @RequestParam(required = false) Long clienteId) {
+        return ResponseEntity.ok(service.search(query, clienteId));
     }
 
     @GetMapping("/piu-utilizzati")

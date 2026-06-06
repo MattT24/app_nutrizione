@@ -40,8 +40,6 @@ public class AlimentoBase {
 	@OneToMany(mappedBy = "alimento", fetch = FetchType.LAZY)
     private List<AlimentoPasto> alimentiScelti;
 	
-	@OneToMany(mappedBy = "alimento", fetch = FetchType.LAZY)
-    private List<AlimentoDaEvitare> alimentiEvitati;
 
 	@OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, optional = false, mappedBy = "alimento")
 	private Macro macroNutrienti;
@@ -146,12 +144,7 @@ public class AlimentoBase {
 	public void setAlimentiPasto(List<AlimentoPasto> alimentiPasto) {
 		this.alimentiScelti = alimentiPasto;
 	}
-	public List<AlimentoDaEvitare> getAlimentiEvitati() {
-		return alimentiEvitati;
-	}
-	public void setAlimentiEvitati(List<AlimentoDaEvitare> alimentiEvitati) {
-		this.alimentiEvitati = alimentiEvitati;
-	}
+
 	public List<AlimentoPasto> getAlimentiScelti() {
 		return alimentiScelti;
 	}
