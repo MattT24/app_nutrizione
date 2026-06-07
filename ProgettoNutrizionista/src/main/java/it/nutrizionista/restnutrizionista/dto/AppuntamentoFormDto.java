@@ -14,7 +14,8 @@ public class AppuntamentoFormDto {
     private String clienteCognome;
     private boolean clienteRegistrato;
     private String emailCliente;
-    
+    private String telefonoCliente;
+
     private String descrizioneAppuntamento;
     
     private LocalDate data;
@@ -50,6 +51,9 @@ public class AppuntamentoFormDto {
 
     public String getEmailCliente() { return emailCliente; }
     public void setEmailCliente(String emailCliente) { this.emailCliente = emailCliente; }
+
+    public String getTelefonoCliente() { return telefonoCliente; }
+    public void setTelefonoCliente(String telefonoCliente) { this.telefonoCliente = telefonoCliente; }
 
     public String getDescrizioneAppuntamento() { return descrizioneAppuntamento; }
     public void setDescrizioneAppuntamento(String descrizioneAppuntamento) { this.descrizioneAppuntamento = descrizioneAppuntamento; }

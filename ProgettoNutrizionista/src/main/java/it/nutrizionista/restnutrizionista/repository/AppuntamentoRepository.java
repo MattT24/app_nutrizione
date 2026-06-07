@@ -45,4 +45,9 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
     @Modifying
     @Query("DELETE FROM Appuntamento a WHERE a.cliente.id = :clienteId")
     void deleteByCliente_Id(@Param("clienteId") Long clienteId);
+
+    @Query("SELECT a FROM Appuntamento a WHERE a.data = :data AND a.stato <> :stato AND a.emailCliente IS NOT NULL AND a.emailCliente <> ''")
+    List<Appuntamento> findByDataAndStatoNotWithEmail(
+            @Param("data") LocalDate data,
+            @Param("stato") Appuntamento.StatoAppuntamento stato);
 }

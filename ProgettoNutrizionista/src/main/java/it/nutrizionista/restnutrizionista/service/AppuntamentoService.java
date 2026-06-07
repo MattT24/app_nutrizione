@@ -30,16 +30,19 @@ public class AppuntamentoService {
     private final OrariStudioRepository orariStudioRepository;
     private final ClienteRepository clienteRepository;
     private final CurrentUserService currentUserService;
+    private final EmailService emailService;
 
     public AppuntamentoService(
             AppuntamentoRepository appuntamentoRepository,
             OrariStudioRepository orariStudioRepository,
             ClienteRepository clienteRepository,
-            CurrentUserService currentUserService) {
+            CurrentUserService currentUserService,
+            EmailService emailService) {
         this.appuntamentoRepository = appuntamentoRepository;
         this.orariStudioRepository = orariStudioRepository;
         this.clienteRepository = clienteRepository;
         this.currentUserService = currentUserService;
+        this.emailService = emailService;
     }
 
     @Transactional
@@ -57,6 +60,24 @@ public class AppuntamentoService {
         }
         
         Appuntamento salvato = appuntamentoRepository.save(appuntamento);
+
+        if (salvato.getEmailCliente() != null && !salvato.getEmailCliente().isBlank()) {
+            String nomeCliente = salvato.getClienteNome() != null ? salvato.getClienteNome() : "Cliente";
+            String nutrizionistaName = nutrizionista.getNome() + " " + nutrizionista.getCognome();
+            String modalita = salvato.getModalita() != null ? salvato.getModalita().name() : "";
+            emailService.sendAppointmentConfirmation(
+                    salvato.getEmailCliente(),
+                    nomeCliente,
+                    salvato.getData(),
+                    salvato.getOra(),
+                    salvato.getEndOra(),
+                    modalita,
+                    salvato.getLuogo(),
+                    salvato.getDescrizioneAppuntamento(),
+                    nutrizionistaName
+            );
+        }
+
         return convertToDto(salvato);
     }
 
@@ -80,6 +101,7 @@ public class AppuntamentoService {
     public AppuntamentoDto getById(Long id) {
         Appuntamento appuntamento = appuntamentoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
+        verificaProprietario(appuntamento);
         return convertToDto(appuntamento);
     }
 
@@ -87,8 +109,7 @@ public class AppuntamentoService {
     public void delete(Long id) {
         Appuntamento esistente = appuntamentoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
-        
-        // Soft delete per storico
+        verificaProprietario(esistente);
         esistente.setStato(Appuntamento.StatoAppuntamento.ANNULLATO);
         appuntamentoRepository.save(esistente);
     }
@@ -167,7 +188,8 @@ public class AppuntamentoService {
     public AppuntamentoDto moveResize(Long id, LocalDateTime start, LocalDateTime end) {
         Appuntamento esistente = appuntamentoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
-        
+        verificaProprietario(esistente);
+
         esistente.setData(start.toLocalDate());
         esistente.setOra(start.toLocalTime());
         
@@ -194,9 +216,10 @@ public class AppuntamentoService {
                 .map(c -> {
                     ClienteDropdownDto dto = new ClienteDropdownDto();
                     dto.setId(c.getId());
-                    dto.setNome(c.getNome()); 
+                    dto.setNome(c.getNome());
                     dto.setCognome(c.getCognome());
-                    dto.setEmail(c.getEmail()); // <-- FIX: email era mancante
+                    dto.setEmail(c.getEmail());
+                    dto.setTelefono(c.getTelefono());
                     return dto;
                 })
                 .collect(Collectors.toList());
@@ -205,6 +228,13 @@ public class AppuntamentoService {
     // ==========================================
     // METODI PRIVATI DI VALIDAZIONE E MAPPATURA
     // ==========================================
+
+    private void verificaProprietario(Appuntamento app) {
+        Utente current = currentUserService.getMe();
+        if (!app.getNutrizionista().getId().equals(current.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non hai i permessi su questo appuntamento");
+        }
+    }
 
     private void validaSlotOrario(Appuntamento nuovoApp) {
         if (nuovoApp.isAllDay() || nuovoApp.getOra() == null || nuovoApp.getEndOra() == null) return;
@@ -277,7 +307,6 @@ public class AppuntamentoService {
         if (form.getClienteId() != null) {
             Cliente cliente = clienteRepository.findById(form.getClienteId()).orElse(null);
             app.setCliente(cliente);
-            // FIX: se l'email non arriva dal form, la prendiamo dall'entità cliente
             if (form.getEmailCliente() != null && !form.getEmailCliente().isBlank()) {
                 app.setEmailCliente(form.getEmailCliente());
             } else if (cliente != null) {
@@ -285,9 +314,17 @@ public class AppuntamentoService {
             } else {
                 app.setEmailCliente(form.getEmailCliente());
             }
+            if (form.getTelefonoCliente() != null && !form.getTelefonoCliente().isBlank()) {
+                app.setTelefonoCliente(form.getTelefonoCliente());
+            } else if (cliente != null) {
+                app.setTelefonoCliente(cliente.getTelefono());
+            } else {
+                app.setTelefonoCliente(form.getTelefonoCliente());
+            }
         } else {
             app.setCliente(null);
             app.setEmailCliente(form.getEmailCliente());
+            app.setTelefonoCliente(form.getTelefonoCliente());
         }
     }
 
@@ -319,6 +356,7 @@ public class AppuntamentoService {
         dto.setStato(app.getStato());
         dto.setLuogo(app.getLuogo());
         dto.setEmailCliente(app.getEmailCliente());
+        dto.setTelefonoCliente(app.getTelefonoCliente());
         dto.setCreatedAt(app.getCreatedAt());
         dto.setUpdatedAt(app.getUpdatedAt());
         

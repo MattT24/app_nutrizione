@@ -36,6 +36,7 @@ public class AppuntamentoDto {
     private StatoAppuntamento stato;
     private String luogo;
     private String emailCliente;
+    private String telefonoCliente;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -192,6 +193,9 @@ public class AppuntamentoDto {
     public void setEmailCliente(String emailCliente) {
         this.emailCliente = emailCliente;
     }
+
+    public String getTelefonoCliente() { return telefonoCliente; }
+    public void setTelefonoCliente(String telefonoCliente) { this.telefonoCliente = telefonoCliente; }
 
     public Instant getCreatedAt() {
         return createdAt;
