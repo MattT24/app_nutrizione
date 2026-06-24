@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
+import it.nutrizionista.restnutrizionista.entity.Utente;
 import jakarta.validation.Valid;
 
 public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long>{
@@ -20,6 +21,9 @@ public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long
 	Page<AlimentoBase> findAll(Pageable pageable);
 
 	Optional<AlimentoBase> findByNome(@Valid String nome);
+
+	/** Dedup import OFF: un barcode è unico per (created_by, barcode). Vedi piano §6. */
+	Optional<AlimentoBase> findByCreatedByAndBarcode(Utente createdBy, String barcode);
 
 	List<AlimentoBase> findByNomeContainingIgnoreCase(String query);
 

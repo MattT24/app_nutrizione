@@ -16,8 +16,12 @@ public class MacroDto {
 	    private Double alcol;
 	    private Double acqua;
 	    private Double sale;
+	    private Double energiaKj;
+	    private Double zuccheriAggiunti;
+	    private Double grassiTrans;
+	    private Double colesterolo;
 
-	    
+
 		public Long getId() {
 			return id;
 		}
@@ -97,5 +101,29 @@ public class MacroDto {
 		public void setSale(Double sale) {
 			this.sale = sale;
 		}
-	    
+		public Double getEnergiaKj() {
+			return energiaKj;
+		}
+		public void setEnergiaKj(Double energiaKj) {
+			this.energiaKj = energiaKj;
+		}
+		public Double getZuccheriAggiunti() {
+			return zuccheriAggiunti;
+		}
+		public void setZuccheriAggiunti(Double zuccheriAggiunti) {
+			this.zuccheriAggiunti = zuccheriAggiunti;
+		}
+		public Double getGrassiTrans() {
+			return grassiTrans;
+		}
+		public void setGrassiTrans(Double grassiTrans) {
+			this.grassiTrans = grassiTrans;
+		}
+		public Double getColesterolo() {
+			return colesterolo;
+		}
+		public void setColesterolo(Double colesterolo) {
+			this.colesterolo = colesterolo;
+		}
+
 }

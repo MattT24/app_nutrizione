@@ -10,6 +10,12 @@ public enum TagStandard {
     ALL_SOIA,
     ALL_LATTE,
     ALL_FRUTTA_GUSCIO,
+    ALL_SEDANO,
+    ALL_SENAPE,
+    ALL_SESAMO,
+    ALL_SOLFITI,
+    ALL_LUPINI,
+    ALL_MOLLUSCHI,
 
     // ── Stili e Scelte ──
     STILE_VEGETARIANO,

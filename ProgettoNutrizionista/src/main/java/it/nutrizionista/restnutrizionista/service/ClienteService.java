@@ -1,6 +1,11 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -14,6 +19,7 @@ import it.nutrizionista.restnutrizionista.dto.ClienteInfoDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteLightDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
+import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
@@ -128,10 +134,21 @@ public class ClienteService {
 	@Transactional(readOnly = true)
 	public List<ClienteLightDto> allMyClientiList() {
 		Utente u = currentUserService.getMe();
-		// Assicurati di avere questo metodo nel tuo ClienteRepository:
-		// List<Cliente> findByNutrizionista_Id(Long id);
-		return repo.findByNutrizionista_Id(u.getId()).stream()
-				.map(DtoMapper::toClienteLightDto)
+		List<Cliente> clienti = repo.findByNutrizionista_Id(u.getId());
+
+		// Prossimo appuntamento per cliente: UNA sola query (no N+1). La lista arriva
+		// già ordinata per data/ora, quindi la prima occorrenza per cliente è la più vicina.
+		Map<Long, LocalDateTime> prossimoByCliente = new HashMap<>();
+		for (Appuntamento a : appuntamentoRepository.findByNutrizionistaIdAndStatoAndDataGreaterThanEqualOrderByDataAscOraAsc(
+				u.getId(), Appuntamento.StatoAppuntamento.PRENOTATO, LocalDate.now())) {
+			Cliente cli = a.getCliente();
+			if (cli == null || cli.getId() == null) continue;
+			prossimoByCliente.computeIfAbsent(cli.getId(), k ->
+					a.getData().atTime(a.getOra() != null ? a.getOra() : LocalTime.MIDNIGHT));
+		}
+
+		return clienti.stream()
+				.map(c -> DtoMapper.toClienteLightDto(c, prossimoByCliente.get(c.getId())))
 				.toList();
 	}
 

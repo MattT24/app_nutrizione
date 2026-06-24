@@ -24,13 +24,27 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(ConflictException.class)
-    public ResponseEntity<String> handleConflict(ConflictException ex) {
+    public ResponseEntity<?> handleConflict(ConflictException ex) {
+        // Con existingId valorizzato → body JSON strutturato (il FE punta all'alimento esistente).
+        // Altrimenti retrocompatibile: body testo (es. duplicati CF/email cliente).
+        if (ex.getExistingId() != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ConflictBody(ex.getMessage(), ex.getExistingId(), ex.getNome()));
+        }
         return ResponseEntity.status(HttpStatus.CONFLICT).body(ex.getMessage());
     }
+
+    /** Body JSON per i conflitti "risorsa già esistente". */
+    public record ConflictBody(String message, Long existingId, String nome) {}
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<String> handleBadRequest(BadRequestException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(UnprocessableEntityException.class)
+    public ResponseEntity<String> handleUnprocessable(UnprocessableEntityException ex) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ex.getMessage());
     }
 
     @ExceptionHandler(SecurityException.class)

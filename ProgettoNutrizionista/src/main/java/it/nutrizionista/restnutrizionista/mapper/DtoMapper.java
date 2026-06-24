@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.mapper;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -417,8 +418,14 @@ public class DtoMapper {
 		return dto;
 	}
 
-	// mapper leggero per la lista-completa: record immutabile, nessuna relazione
+	// mapper leggero per la lista-completa: record immutabile, nessuna relazione.
+	// Overload senza prossimo appuntamento (es. endpoint paginato): lo lascia null.
 	public static ClienteLightDto toClienteLightDto(Cliente c) {
+		return toClienteLightDto(c, null);
+	}
+
+	// Overload con il prossimo appuntamento già risolto a monte (batch, no N+1).
+	public static ClienteLightDto toClienteLightDto(Cliente c, LocalDateTime prossimoAppuntamento) {
 		if (c == null) {
 			return null;
 		}
@@ -430,8 +437,31 @@ public class DtoMapper {
 				c.getEmail(),
 				c.getDataNascita(),
 				c.getCreatedAt(),
-				c.getUpdatedAt()
+				c.getUpdatedAt(),
+				condizioniDaTag(c.getTagStandard()),
+				prossimoAppuntamento
 		);
+	}
+
+	/**
+	 * Etichette leggibili delle sole "condizioni" cliniche del cliente — patologie
+	 * (PAT_), intolleranze (INT_), allergie (ALL_) e stati fisiologici (FISIO_).
+	 * Esclude stili alimentari/religiosi e farmaci. Riusa {@link #toTagDto} per
+	 * coerenza con le label mostrate altrove; ordinate per stabilità del risultato.
+	 */
+	private static List<String> condizioniDaTag(Set<TagStandard> tags) {
+		if (tags == null || tags.isEmpty()) {
+			return List.of();
+		}
+		return tags.stream()
+				.filter(t -> {
+					String n = t.name();
+					return n.startsWith("PAT_") || n.startsWith("INT_")
+							|| n.startsWith("ALL_") || n.startsWith("FISIO_");
+				})
+				.map(t -> toTagDto(t).label())
+				.sorted()
+				.toList();
 	}
 
 	// mapper per il dettaglio cliente: campi scalari + tagStandard (EAGER),
@@ -545,6 +575,22 @@ public class DtoMapper {
 		a.setSenzaLattosio(dto.getSenzaLattosio());
 		a.setVegano(dto.getVegano());
 
+		// Integrazione OpenFoodFacts
+		a.setBarcode(dto.getBarcode());
+		if (dto.getAllergeni() != null && !dto.getAllergeni().isEmpty())
+			a.setAllergeni(new java.util.EnumMap<>(dto.getAllergeni()));
+		a.setFonteAllergeni(dto.getFonteAllergeni());
+		a.setNutriscoreGrade(dto.getNutriscoreGrade());
+		a.setNovaGroup(dto.getNovaGroup());
+		a.setEnvironmentalScoreGrade(dto.getEnvironmentalScoreGrade());
+		if (dto.getNutrientLevels() != null)
+			a.setNutrientLevels(new java.util.HashMap<>(dto.getNutrientLevels()));
+		if (dto.getAdditivi() != null)
+			a.setAdditivi(new java.util.HashSet<>(dto.getAdditivi()));
+		a.setIngredientsText(dto.getIngredientsText());
+		a.setServingQuantityG(dto.getServingQuantityG());
+		a.setNeedsReview(dto.getNeedsReview());
+
 		// Micronutrienti → gestiti nel Service (find-or-create)
 
 		return a;
@@ -566,6 +612,20 @@ public class DtoMapper {
 		a.setSenzaGlutine(form.getSenzaGlutine());
 		a.setSenzaLattosio(form.getSenzaLattosio());
 		a.setVegano(form.getVegano());
+
+		// Integrazione OFF — preserva i valori esistenti se il form non li fornisce
+		if (form.getBarcode() != null) a.setBarcode(form.getBarcode());
+		if (form.getAllergeni() != null && !form.getAllergeni().isEmpty())
+			a.setAllergeni(new java.util.EnumMap<>(form.getAllergeni()));
+		if (form.getFonteAllergeni() != null) a.setFonteAllergeni(form.getFonteAllergeni());
+		if (form.getNutriscoreGrade() != null) a.setNutriscoreGrade(form.getNutriscoreGrade());
+		if (form.getNovaGroup() != null) a.setNovaGroup(form.getNovaGroup());
+		if (form.getEnvironmentalScoreGrade() != null) a.setEnvironmentalScoreGrade(form.getEnvironmentalScoreGrade());
+		if (form.getNutrientLevels() != null) a.setNutrientLevels(new java.util.HashMap<>(form.getNutrientLevels()));
+		if (form.getAdditivi() != null) a.setAdditivi(new java.util.HashSet<>(form.getAdditivi()));
+		if (form.getIngredientsText() != null) a.setIngredientsText(form.getIngredientsText());
+		if (form.getServingQuantityG() != null) a.setServingQuantityG(form.getServingQuantityG());
+		if (form.getNeedsReview() != null) a.setNeedsReview(form.getNeedsReview());
 
 		// Macro
 		Macro macro = toMacro(form.getMacroNutrienti());
@@ -592,6 +652,7 @@ public class DtoMapper {
 		dto.setSenzaGlutine(a.getSenzaGlutine());
 		dto.setSenzaLattosio(a.getSenzaLattosio());
 		dto.setVegano(a.getVegano());
+		applyOffFields(dto, a);
 		return dto;
 	}
 
@@ -623,7 +684,26 @@ public class DtoMapper {
 		dto.setSenzaGlutine(a.getSenzaGlutine());
 		dto.setSenzaLattosio(a.getSenzaLattosio());
 		dto.setVegano(a.getVegano());
+		applyOffFields(dto, a);
 		return dto;
+	}
+
+	/** Popola i campi OpenFoodFacts (allergeni tri-stato, score, qualità) sul DTO di output. */
+	private static void applyOffFields(AlimentoBaseDto dto, AlimentoBase a) {
+		dto.setBarcode(a.getBarcode());
+		dto.setFonteAllergeni(a.getFonteAllergeni());
+		dto.setNutriscoreGrade(a.getNutriscoreGrade());
+		dto.setNovaGroup(a.getNovaGroup());
+		dto.setEnvironmentalScoreGrade(a.getEnvironmentalScoreGrade());
+		dto.setIngredientsText(a.getIngredientsText());
+		dto.setServingQuantityG(a.getServingQuantityG());
+		dto.setNeedsReview(a.getNeedsReview());
+		java.util.Map<it.nutrizionista.restnutrizionista.enums.Allergene, it.nutrizionista.restnutrizionista.enums.StatoAllergene> alg = a.getAllergeni();
+		dto.setAllergeni(alg == null || alg.isEmpty() ? null : new java.util.EnumMap<>(alg));
+		dto.setNutrientLevels(a.getNutrientLevels() != null && !a.getNutrientLevels().isEmpty()
+				? new java.util.HashMap<>(a.getNutrientLevels()) : null);
+		dto.setAdditivi(a.getAdditivi() != null && !a.getAdditivi().isEmpty()
+				? new java.util.HashSet<>(a.getAdditivi()) : null);
 	}
 
 	// Mapper Minimal: Solo info base, NIENTE macro/micro per evitare loop
@@ -660,7 +740,11 @@ public class DtoMapper {
 		dto.setSodio(m.getSodio());
 		dto.setAlcol(m.getAlcol());
 		dto.setAcqua(m.getAcqua());
-		dto.setSale(m.getSale());
+		dto.setSale(m.getSaleEffettivo());
+		dto.setEnergiaKj(m.getEnergiaKj());
+		dto.setZuccheriAggiunti(m.getZuccheriAggiunti());
+		dto.setGrassiTrans(m.getGrassiTrans());
+		dto.setColesterolo(m.getColesterolo());
 		return dto;
 	}
 
@@ -680,7 +764,11 @@ public class DtoMapper {
 		dto.setSodio(m.getSodio());
 		dto.setAlcol(m.getAlcol());
 		dto.setAcqua(m.getAcqua());
-		dto.setSale(m.getSale());
+		dto.setSale(m.getSaleEffettivo());
+		dto.setEnergiaKj(m.getEnergiaKj());
+		dto.setZuccheriAggiunti(m.getZuccheriAggiunti());
+		dto.setGrassiTrans(m.getGrassiTrans());
+		dto.setColesterolo(m.getColesterolo());
 		return dto;
 	}
 
@@ -701,6 +789,11 @@ public class DtoMapper {
 		m.setSodio(dto.getSodio());
 		m.setAlcol(dto.getAlcol());
 		m.setAcqua(dto.getAcqua());
+		m.setSale(dto.getSale());
+		m.setEnergiaKj(dto.getEnergiaKj());
+		m.setZuccheriAggiunti(dto.getZuccheriAggiunti());
+		m.setGrassiTrans(dto.getGrassiTrans());
+		m.setColesterolo(dto.getColesterolo());
 
 		return m;
 	}

@@ -1,8 +1,11 @@
 package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
+import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
@@ -24,17 +27,27 @@ import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.MapKeyColumn;
+import jakarta.persistence.MapKeyEnumerated;
+import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.BatchSize;
 
+import it.nutrizionista.restnutrizionista.enums.Allergene;
+import it.nutrizionista.restnutrizionista.enums.FonteAllergene;
+import it.nutrizionista.restnutrizionista.enums.StatoAllergene;
+
 @Entity
-@Table(name = "alimenti_base")
+@Table(name = "alimenti_base",
+       uniqueConstraints = @UniqueConstraint(name = "uq_alimento_owner_barcode", columnNames = {"created_by", "barcode"}))
 @EntityListeners(AuditingEntityListener.class)
 public class AlimentoBase {
  
 	@Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 	
-	@Column(name = "nome", nullable = false, unique = true)
+	@Column(name = "nome", nullable = false)
 	private String nome;
 	
 	@OneToMany(mappedBy = "alimento", fetch = FetchType.LAZY)
@@ -86,6 +99,72 @@ public class AlimentoBase {
 
     @Column(name = "vegano")
     private Boolean vegano;
+
+    // ── Integrazione OpenFoodFacts: barcode, allergeni tri-stato, score, qualità ──
+    /** EAN/UPC dell'alimento OFF (null per CREA e alimenti manuali). Unique per (created_by, barcode). */
+    @Column(name = "barcode", length = 20)
+    private String barcode;
+
+    /**
+     * Allergeni tri-stato (Reg. UE 1169/2011). L'assenza di una entry = SCONOSCIUTO
+     * (distinto da {@link StatoAllergene#ASSENTE}). LAZY + @BatchSize: niente N+1 nelle liste.
+     */
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "alimento_allergene", joinColumns = @JoinColumn(name = "alimento_id"))
+    @MapKeyColumn(name = "allergene", length = 32)
+    @MapKeyEnumerated(EnumType.STRING)
+    @Column(name = "stato", length = 16)
+    @Enumerated(EnumType.STRING)
+    @BatchSize(size = 50)
+    private Map<Allergene, StatoAllergene> allergeni = new EnumMap<>(Allergene.class);
+
+    /** Provenienza prevalente dell'informazione allergeni (tracciabilità/confidenza). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "fonte_allergeni", length = 32)
+    private FonteAllergene fonteAllergeni;
+
+    /** Nutri-Score a–e (OFF). String per ospitare "unknown"/"not-applicable" → normalizzati a null in import. */
+    @Column(name = "nutriscore_grade")
+    private String nutriscoreGrade;
+
+    /** Gruppo NOVA 1–4 (grado di processamento, OFF). */
+    @Column(name = "nova_group")
+    private Integer novaGroup;
+
+    /** Green/Eco-Score a–e (OFF: environmental_score_grade ?? ecoscore_grade). */
+    @Column(name = "environmental_score_grade")
+    private String environmentalScoreGrade;
+
+    /** Semaforo nutrienti OFF: chiavi fat/saturated-fat/sugars/salt → low/moderate/high. */
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "alimento_nutrient_level", joinColumns = @JoinColumn(name = "alimento_id"))
+    @MapKeyColumn(name = "nutriente")
+    @Column(name = "livello")
+    @BatchSize(size = 50)
+    private Map<String, String> nutrientLevels = new HashMap<>();
+
+    /** Additivi OFF (E-number canonici, es. "en:e322"). */
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "alimento_additivo", joinColumns = @JoinColumn(name = "alimento_id"))
+    @Column(name = "additivo")
+    @BatchSize(size = 50)
+    private Set<String> additivi = new HashSet<>();
+
+    /** Testo ingredienti (lingua IT se disponibile, OFF). */
+    @Column(name = "ingredients_text", columnDefinition = "TEXT")
+    private String ingredientsText;
+
+    /** Porzione in grammi (OFF serving_quantity). */
+    @Column(name = "serving_quantity_g")
+    private Double servingQuantityG;
+
+    /** Completezza scheda OFF 0–1 (per needsReview). */
+    @Column(name = "completezza_off")
+    private Double completezzaOff;
+
+    /** true se dati incompleti/contraddittori → richiede revisione del nutrizionista. */
+    @Column(name = "needs_review")
+    private Boolean needsReview;
 
     // Getter e Setter
     public Set<String> getTracce() {
@@ -186,6 +265,43 @@ public class AlimentoBase {
 
     public Boolean getVegano() { return vegano; }
     public void setVegano(Boolean vegano) { this.vegano = vegano; }
+
+    // ── Getters/Setters integrazione OFF ──
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
+
+    public Map<Allergene, StatoAllergene> getAllergeni() { return allergeni; }
+    public void setAllergeni(Map<Allergene, StatoAllergene> allergeni) { this.allergeni = allergeni; }
+
+    public FonteAllergene getFonteAllergeni() { return fonteAllergeni; }
+    public void setFonteAllergeni(FonteAllergene fonteAllergeni) { this.fonteAllergeni = fonteAllergeni; }
+
+    public String getNutriscoreGrade() { return nutriscoreGrade; }
+    public void setNutriscoreGrade(String nutriscoreGrade) { this.nutriscoreGrade = nutriscoreGrade; }
+
+    public Integer getNovaGroup() { return novaGroup; }
+    public void setNovaGroup(Integer novaGroup) { this.novaGroup = novaGroup; }
+
+    public String getEnvironmentalScoreGrade() { return environmentalScoreGrade; }
+    public void setEnvironmentalScoreGrade(String environmentalScoreGrade) { this.environmentalScoreGrade = environmentalScoreGrade; }
+
+    public Map<String, String> getNutrientLevels() { return nutrientLevels; }
+    public void setNutrientLevels(Map<String, String> nutrientLevels) { this.nutrientLevels = nutrientLevels; }
+
+    public Set<String> getAdditivi() { return additivi; }
+    public void setAdditivi(Set<String> additivi) { this.additivi = additivi; }
+
+    public String getIngredientsText() { return ingredientsText; }
+    public void setIngredientsText(String ingredientsText) { this.ingredientsText = ingredientsText; }
+
+    public Double getServingQuantityG() { return servingQuantityG; }
+    public void setServingQuantityG(Double servingQuantityG) { this.servingQuantityG = servingQuantityG; }
+
+    public Double getCompletezzaOff() { return completezzaOff; }
+    public void setCompletezzaOff(Double completezzaOff) { this.completezzaOff = completezzaOff; }
+
+    public Boolean getNeedsReview() { return needsReview; }
+    public void setNeedsReview(Boolean needsReview) { this.needsReview = needsReview; }
 }
 
 

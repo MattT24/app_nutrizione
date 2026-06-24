@@ -2,6 +2,8 @@ package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 
@@ -24,5 +26,7 @@ public record ClienteLightDto(
         String email,
         LocalDate dataNascita,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        List<String> condizioni,
+        LocalDateTime prossimoAppuntamento
 ) {}
