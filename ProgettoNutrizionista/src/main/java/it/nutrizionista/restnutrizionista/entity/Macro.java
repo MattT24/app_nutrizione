@@ -58,6 +58,23 @@ public class Macro {
     @Column
     private Double acqua;
 
+    // ── Integrazione OpenFoodFacts: sale etichettato + nutrienti estesi ──
+    /** Sale etichettato (g/100g) da OFF (salt_100g). Null per CREA/manuali → si usa getSaleEffettivo(). */
+    @Column
+    private Double sale;
+
+    @Column(name = "energia_kj")
+    private Double energiaKj;
+
+    @Column(name = "zuccheri_aggiunti")
+    private Double zuccheriAggiunti;
+
+    @Column(name = "grassi_trans")
+    private Double grassiTrans;
+
+    @Column
+    private Double colesterolo;
+
     @CreatedDate
     @Column(nullable = false) 
     private Instant createdAt;
@@ -76,7 +93,34 @@ public class Macro {
         double sale = (this.sodio * 2.5) / 1000.0;
         return Math.round(sale * 100.0) / 100.0;
     }
-    
+
+    /**
+     * Sale "effettivo" (g/100g): preferisce il sale etichettato OFF ({@code sale}),
+     * altrimenti lo deriva dal sodio ({@code sodio * 2.5 / 1000}). Punto di calcolo UNICO
+     * da usare ovunque (mapper + regole cliniche) per evitare divergenze.
+     * Null-preserving: ritorna null se né sale né sodio sono dichiarati (≠ getSale() che ritorna 0.0).
+     */
+    public Double getSaleEffettivo() {
+        if (this.sale != null) return this.sale;
+        if (this.sodio == null) return null;
+        double s = (this.sodio * 2.5) / 1000.0;
+        return Math.round(s * 100.0) / 100.0;
+    }
+
+    public void setSale(Double sale) { this.sale = sale; }
+
+    public Double getEnergiaKj() { return energiaKj; }
+    public void setEnergiaKj(Double energiaKj) { this.energiaKj = energiaKj; }
+
+    public Double getZuccheriAggiunti() { return zuccheriAggiunti; }
+    public void setZuccheriAggiunti(Double zuccheriAggiunti) { this.zuccheriAggiunti = zuccheriAggiunti; }
+
+    public Double getGrassiTrans() { return grassiTrans; }
+    public void setGrassiTrans(Double grassiTrans) { this.grassiTrans = grassiTrans; }
+
+    public Double getColesterolo() { return colesterolo; }
+    public void setColesterolo(Double colesterolo) { this.colesterolo = colesterolo; }
+
     public Double getFibre() {
 		return fibre;
 	}

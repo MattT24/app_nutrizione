@@ -50,4 +50,13 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
     List<Appuntamento> findByDataAndStatoNotWithEmail(
             @Param("data") LocalDate data,
             @Param("stato") Appuntamento.StatoAppuntamento stato);
+
+    /**
+     * Appuntamenti PRENOTATI del nutrizionista da una certa data in poi, ordinati per
+     * data/ora. Consente di calcolare il "prossimo appuntamento" di ogni cliente in
+     * un'unica query (scorrendo la lista ordinata si tiene la prima occorrenza per
+     * cliente), evitando il problema N+1.
+     */
+    List<Appuntamento> findByNutrizionistaIdAndStatoAndDataGreaterThanEqualOrderByDataAscOraAsc(
+            Long nutrizionistaId, Appuntamento.StatoAppuntamento stato, LocalDate data);
 }

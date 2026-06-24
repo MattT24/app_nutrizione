@@ -92,7 +92,7 @@ public class Cliente {
         joinColumns = @JoinColumn(name = "cliente_id")
     )
     @Enumerated(EnumType.STRING)
-    @Column(name = "tag")
+    @Column(name = "tag", length = 64)
     @BatchSize(size = 50)
     private Set<TagStandard> tagStandard = new HashSet<>();
 

@@ -6,6 +6,7 @@ import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AvversionePersonale;
 import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
 import it.nutrizionista.restnutrizionista.enums.TagStandard;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
@@ -24,6 +25,7 @@ import java.util.Set;
  */
 @Component
 @Order(1)
+@ConditionalOnProperty(name = "clinica.engine.use-allergen-rule", havingValue = "false", matchIfMissing = true)
 public class AllergiaGlutineRule implements AlimentoRuleValidator {
 
     private static final String TRACCIA_GLUTINE = "glutine";

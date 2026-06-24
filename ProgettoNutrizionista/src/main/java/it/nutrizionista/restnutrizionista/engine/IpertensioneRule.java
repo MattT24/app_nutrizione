@@ -53,14 +53,13 @@ public class IpertensioneRule implements AlimentoRuleValidator {
             return new ValutazioneClinicaDto(LivelloAllerta.SAFE, List.of());
         }
 
-        // Recupera il contenuto di sodio (in mg per 100g) dai macro dell'alimento
-        if (alimento.getMacroNutrienti() == null || alimento.getMacroNutrienti().getSodio() == null) {
+        // Sale "effettivo" (g/100g): punto di calcolo UNICO sull'entità Macro.
+        // Preferisce il sale etichettato OFF; in fallback lo deriva dal sodio (Sale = Sodio_mg × 2.5 / 1000).
+        if (alimento.getMacroNutrienti() == null || alimento.getMacroNutrienti().getSaleEffettivo() == null) {
             return new ValutazioneClinicaDto(LivelloAllerta.SAFE, List.of());
         }
 
-        // Conversione sodio (mg) → sale (g): Sale = Sodio_mg × 2.5 / 1000
-        double sodioMg = alimento.getMacroNutrienti().getSodio();
-        double saleG = sodioMg * 2.5 / 1000.0;
+        double saleG = alimento.getMacroNutrienti().getSaleEffettivo();
 
         if (saleG > sogliaGraveSaleG) {
             MotivoValutazioneDto motivo = new MotivoValutazioneDto(

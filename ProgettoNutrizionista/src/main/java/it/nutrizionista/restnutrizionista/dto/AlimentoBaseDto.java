@@ -2,7 +2,12 @@ package it.nutrizionista.restnutrizionista.dto;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import it.nutrizionista.restnutrizionista.enums.Allergene;
+import it.nutrizionista.restnutrizionista.enums.FonteAllergene;
+import it.nutrizionista.restnutrizionista.enums.StatoAllergene;
 
 public class AlimentoBaseDto {
 	
@@ -110,4 +115,40 @@ public class AlimentoBaseDto {
 
     public ValutazioneClinicaDto getValutazioneClinica() { return valutazioneClinica; }
     public void setValutazioneClinica(ValutazioneClinicaDto valutazioneClinica) { this.valutazioneClinica = valutazioneClinica; }
+
+    // ── Integrazione OpenFoodFacts ──────────────────────────────────
+    private String barcode;
+    private Map<Allergene, StatoAllergene> allergeni;
+    private FonteAllergene fonteAllergeni;
+    private String nutriscoreGrade;
+    private Integer novaGroup;
+    private String environmentalScoreGrade;
+    private Map<String, String> nutrientLevels;
+    private Set<String> additivi;
+    private String ingredientsText;
+    private Double servingQuantityG;
+    private Boolean needsReview;
+
+    public String getBarcode() { return barcode; }
+    public void setBarcode(String barcode) { this.barcode = barcode; }
+    public Map<Allergene, StatoAllergene> getAllergeni() { return allergeni; }
+    public void setAllergeni(Map<Allergene, StatoAllergene> allergeni) { this.allergeni = allergeni; }
+    public FonteAllergene getFonteAllergeni() { return fonteAllergeni; }
+    public void setFonteAllergeni(FonteAllergene fonteAllergeni) { this.fonteAllergeni = fonteAllergeni; }
+    public String getNutriscoreGrade() { return nutriscoreGrade; }
+    public void setNutriscoreGrade(String nutriscoreGrade) { this.nutriscoreGrade = nutriscoreGrade; }
+    public Integer getNovaGroup() { return novaGroup; }
+    public void setNovaGroup(Integer novaGroup) { this.novaGroup = novaGroup; }
+    public String getEnvironmentalScoreGrade() { return environmentalScoreGrade; }
+    public void setEnvironmentalScoreGrade(String environmentalScoreGrade) { this.environmentalScoreGrade = environmentalScoreGrade; }
+    public Map<String, String> getNutrientLevels() { return nutrientLevels; }
+    public void setNutrientLevels(Map<String, String> nutrientLevels) { this.nutrientLevels = nutrientLevels; }
+    public Set<String> getAdditivi() { return additivi; }
+    public void setAdditivi(Set<String> additivi) { this.additivi = additivi; }
+    public String getIngredientsText() { return ingredientsText; }
+    public void setIngredientsText(String ingredientsText) { this.ingredientsText = ingredientsText; }
+    public Double getServingQuantityG() { return servingQuantityG; }
+    public void setServingQuantityG(Double servingQuantityG) { this.servingQuantityG = servingQuantityG; }
+    public Boolean getNeedsReview() { return needsReview; }
+    public void setNeedsReview(Boolean needsReview) { this.needsReview = needsReview; }
 }

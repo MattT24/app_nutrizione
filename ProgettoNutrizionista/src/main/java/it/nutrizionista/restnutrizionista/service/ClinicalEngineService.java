@@ -161,8 +161,9 @@ public class ClinicalEngineService {
     private int ordine(LivelloAllerta livello) {
         return switch (livello) {
             case SAFE        -> 0;
-            case WARNING     -> 1;
-            case ALERT_GRAVE -> 2;
+            case INFO        -> 1;
+            case WARNING     -> 2;
+            case ALERT_GRAVE -> 3;
         };
     }
 }

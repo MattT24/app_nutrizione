@@ -66,6 +66,13 @@ public class AlimentoBaseService {
 	    return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
 	}
 
+	/** Dedup import OFF: alimento dell'utente corrente con quel barcode (vedi OpenFoodFactsService.importProduct). */
+	@Transactional(readOnly = true)
+	public java.util.Optional<AlimentoBase> findOwnedByBarcode(String barcode) {
+	    if (barcode == null || barcode.isBlank()) return java.util.Optional.empty();
+	    return repo.findByCreatedByAndBarcode(getCurrentUtente(), barcode);
+	}
+
 	@Transactional
 	public AlimentoBaseDto update(@Valid AlimentoBaseFormDto form) {
 	    if (form.getId() == null) {
