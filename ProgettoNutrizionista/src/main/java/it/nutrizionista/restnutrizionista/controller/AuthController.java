@@ -8,6 +8,9 @@ import org.springframework.web.bind.annotation.*;
 import it.nutrizionista.restnutrizionista.dto.RegisterRequest;
 import it.nutrizionista.restnutrizionista.dto.LoginRequest;
 import it.nutrizionista.restnutrizionista.dto.LoginResponse;
+import it.nutrizionista.restnutrizionista.dto.GoogleIdTokenRequest;
+import it.nutrizionista.restnutrizionista.dto.GoogleRegisterRequest;
+import it.nutrizionista.restnutrizionista.dto.GoogleAuthResponse;
 import it.nutrizionista.restnutrizionista.service.AuthService;
 
 /** Controller REST per autenticazione: delega tutta la logica ad AuthService. */
@@ -34,5 +37,17 @@ public class AuthController {
     public ResponseEntity<Void> register(@Valid @RequestBody RegisterRequest req) {
         authService.register(req);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Login con Google: se l'utente non esiste ancora, risponde con registrationRequired=true. */
+    @PostMapping("/google/login")
+    public ResponseEntity<GoogleAuthResponse> googleLogin(@Valid @RequestBody GoogleIdTokenRequest req) {
+        return ResponseEntity.ok(authService.loginOrPrepareRegisterWithGoogle(req));
+    }
+
+    /** Completa la registrazione avviata con Google con i campi obbligatori mancanti. */
+    @PostMapping("/google/register")
+    public ResponseEntity<LoginResponse> googleRegister(@Valid @RequestBody GoogleRegisterRequest req) {
+        return ResponseEntity.ok(authService.registerWithGoogle(req));
     }
 }

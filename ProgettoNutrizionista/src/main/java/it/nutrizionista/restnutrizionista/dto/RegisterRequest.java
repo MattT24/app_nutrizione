@@ -22,7 +22,9 @@ public class RegisterRequest {
     private String password;
 
     private String telefono;
-    
+
+    @NotBlank(message = "L'indirizzo è obbligatorio")
+    private String indirizzo;
 
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
@@ -36,4 +38,6 @@ public class RegisterRequest {
     public void setPassword(String password) { this.password = password; }
     public String getTelefono() { return telefono; }
     public void setTelefono(String telefono) { this.telefono = telefono; }
+    public String getIndirizzo() { return indirizzo; }
+    public void setIndirizzo(String indirizzo) { this.indirizzo = indirizzo; }
 }

@@ -207,6 +207,15 @@ public class AppuntamentoService {
         return convertToDto(salvato);
     }
 
+    @Transactional
+    public AppuntamentoDto updateStato(Long id, String stato) {
+        Appuntamento esistente = appuntamentoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
+        verificaProprietario(esistente);
+        esistente.setStato(Appuntamento.StatoAppuntamento.valueOf(stato));
+        return convertToDto(appuntamentoRepository.save(esistente));
+    }
+
     public List<ClienteDropdownDto> searchMyClientsForDropdown(String q) {
         Utente nutrizionista = currentUserService.getMe(); 
         
