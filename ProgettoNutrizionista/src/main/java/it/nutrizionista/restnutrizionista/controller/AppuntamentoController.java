@@ -78,6 +78,15 @@ public class AppuntamentoController {
         return ResponseEntity.ok(service.moveResize(id, start, end));
     }
     
+    @PatchMapping("/{id}/stato")
+    @PreAuthorize("hasAuthority('APPUNTAMENTO_UPDATE')")
+    public ResponseEntity<AppuntamentoDto> updateStato(
+        @PathVariable("id") Long id,
+        @RequestParam("stato") String stato
+    ) {
+        return ResponseEntity.ok(service.updateStato(id, stato));
+    }
+
     @GetMapping("/me/clienti/dropdown")
     @PreAuthorize("hasAuthority('APPUNTAMENTO_READ')")
     public List<ClienteDropdownDto> dropdownClienti(@RequestParam("q") String q) {

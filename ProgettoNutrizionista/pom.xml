@@ -130,7 +130,14 @@
       <version>0.11.5</version>
       <scope>runtime</scope>
     </dependency>
-    
+
+    <!-- Google Sign-In: verifica server-side dell'ID token (Google Identity Services) -->
+    <dependency>
+      <groupId>com.google.api-client</groupId>
+      <artifactId>google-api-client</artifactId>
+      <version>2.7.0</version>
+    </dependency>
+
     <!-- OpenAPI -->
     <dependency>
       <groupId>org.springdoc</groupId>
