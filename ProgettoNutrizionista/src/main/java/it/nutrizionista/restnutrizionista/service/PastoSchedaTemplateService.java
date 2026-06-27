@@ -56,13 +56,25 @@ public class PastoSchedaTemplateService {
 	public PastoSchedaTemplateDto createPasto(Long templateId, @Valid PastoSchedaTemplateFormDto dto) {
 		SchedaTemplate template = getOwnedTemplate(templateId);
 
+		String nome = dto.nome().trim();
+		GiornoSettimana giorno = parseGiorno(dto.giorno());
+
+		// Evita pasti duplicati (stesso nome+giorno) nel template: se esiste già, lo si riusa.
+		PastoSchedaTemplate esistente = template.getPasti().stream()
+				.filter(p -> p.getNome() != null && p.getNome().equals(nome)
+						&& java.util.Objects.equals(p.getGiorno(), giorno))
+				.findFirst().orElse(null);
+		if (esistente != null) {
+			return DtoMapper.toPastoSchedaTemplateDto(esistente);
+		}
+
 		int maxOrdine = template.getPasti().stream()
 				.mapToInt(p -> p.getOrdineVisualizzazione() != null ? p.getOrdineVisualizzazione() : 0)
 				.max().orElse(-1);
 
 		PastoSchedaTemplate pasto = new PastoSchedaTemplate();
 		pasto.setSchedaTemplate(template);
-		pasto.setNome(dto.nome().trim());
+		pasto.setNome(nome);
 		pasto.setDescrizione(normalizeString(dto.descrizione()));
 		pasto.setGiorno(parseGiorno(dto.giorno()));
 		pasto.setOrdineVisualizzazione(maxOrdine + 1);

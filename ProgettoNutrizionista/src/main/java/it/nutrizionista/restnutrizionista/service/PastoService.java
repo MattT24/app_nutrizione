@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PastoFormDto;
+import it.nutrizionista.restnutrizionista.dto.ReorderDto;
 import it.nutrizionista.restnutrizionista.dto.ValutazioneClinicaDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
@@ -20,7 +21,6 @@ import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
 import it.nutrizionista.restnutrizionista.entity.TipoScheda;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
-import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.exception.ForbiddenException;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
@@ -35,21 +35,6 @@ public class PastoService {
 	@Autowired private OwnershipValidator ownershipValidator;
 	@Autowired private ClinicalEngineService clinicalEngineService;
 
-	private boolean isDefaultMealName(String nome) {
-		return "Colazione".equalsIgnoreCase(nome)
-				|| "Pranzo".equalsIgnoreCase(nome)
-				|| "Merenda".equalsIgnoreCase(nome)
-				|| "Cena".equalsIgnoreCase(nome);
-	}
-
-	private int defaultMealOrder(String nome) {
-		if ("Colazione".equalsIgnoreCase(nome)) return 1;
-		if ("Pranzo".equalsIgnoreCase(nome)) return 2;
-		if ("Merenda".equalsIgnoreCase(nome)) return 3;
-		if ("Cena".equalsIgnoreCase(nome)) return 4;
-		return 999;
-	}
-	
 	@Transactional
     public PastoDto create(@Valid PastoFormDto form) {
         if (form.getScheda().getId() == null) throw new RuntimeException("ID Scheda obbligatorio");
@@ -74,23 +59,17 @@ public class PastoService {
             throw new BadRequestException("Il giorno è obbligatorio per schede settimanali");
         }
         
-        if (isDefaultMealName(form.getNome())) {
-        	if (repo.existsByScheda_IdAndDefaultCodeIgnoreCase(scheda.getId(), form.getNome())) {
-        		throw new ConflictException("Pasto default già presente nella scheda");
-        	}
-        	p.setDefaultCode(form.getNome());
-        	p.setEliminabile(false);
-        	p.setOrdineVisualizzazione(defaultMealOrder(form.getNome()));
+        // I pasti creati dall'utente sono SEMPRE custom ed eliminabili, anche se hanno un nome
+        // standard (es. "Colazione"): solo i 4 pasti generati automaticamente alla creazione della
+        // scheda (ensureDefaultMeals) hanno defaultCode valorizzato e sono non eliminabili.
+        p.setDefaultCode(null);
+        p.setEliminabile(true);
+        if (form.getOrdineVisualizzazione() != null) {
+        	p.setOrdineVisualizzazione(form.getOrdineVisualizzazione());
         } else {
-        	p.setDefaultCode(null);
-        	p.setEliminabile(true);
-        	if (form.getOrdineVisualizzazione() != null) {
-        		p.setOrdineVisualizzazione(form.getOrdineVisualizzazione());
-        	} else {
-        		var last = repo.findTopByScheda_IdOrderByOrdineVisualizzazioneDescIdDesc(scheda.getId()).orElse(null);
-        		int next = (last != null && last.getOrdineVisualizzazione() != null) ? last.getOrdineVisualizzazione() + 1 : 10;
-        		p.setOrdineVisualizzazione(next);
-        	}
+        	var last = repo.findTopByScheda_IdOrderByOrdineVisualizzazioneDescIdDesc(scheda.getId()).orElse(null);
+        	int next = (last != null && last.getOrdineVisualizzazione() != null) ? last.getOrdineVisualizzazione() + 1 : 10;
+        	p.setOrdineVisualizzazione(next);
         }
         return DtoMapper.toPastoDtoLight(repo.save(p));
     }
@@ -151,6 +130,21 @@ public class PastoService {
 			throw new ForbiddenException("NON AUTORIZZATO: non puoi eliminare un pasto default");
 		}
 		repo.delete(p);
+	}
+
+	/**
+	 * Persiste l'ordine dei pasti dopo un drag-and-drop: assegna a ogni id la posizione
+	 * nella lista come {@code ordineVisualizzazione}. Ogni pasto è validato per ownership.
+	 */
+	@Transactional
+	public void reorder(@Valid ReorderDto dto) {
+		List<Long> ids = dto.ids();
+		if (ids == null || ids.isEmpty()) return;
+		for (int i = 0; i < ids.size(); i++) {
+			Pasto p = ownershipValidator.getOwnedPasto(ids.get(i));
+			p.setOrdineVisualizzazione(i);
+			repo.save(p);
+		}
 	}
 
 	@Transactional(readOnly = true)

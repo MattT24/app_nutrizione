@@ -3,6 +3,9 @@ package it.nutrizionista.restnutrizionista.service;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,7 +18,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.AlimentoPastoSchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.dto.ApplicaSchedaTemplateRequest;
+import it.nutrizionista.restnutrizionista.dto.ApplicaTemplateResultDto;
 import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
+import it.nutrizionista.restnutrizionista.dto.PastoConflittoDto;
+import it.nutrizionista.restnutrizionista.dto.RisoluzioneConflittoDto;
 import it.nutrizionista.restnutrizionista.dto.PastoSchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
@@ -175,7 +181,7 @@ public class SchedaTemplateService {
 	// ═══════════════════════════════════════════
 
 	@Transactional
-	public SchedaDto applicaAScheda(Long templateId, Long schedaId, @Valid ApplicaSchedaTemplateRequest req) {
+	public ApplicaTemplateResultDto applicaAScheda(Long templateId, Long schedaId, @Valid ApplicaSchedaTemplateRequest req) {
 		var me = currentUserService.getMe();
 
 		SchedaTemplate st = repo.findByIdWithFullTree(templateId)
@@ -185,14 +191,93 @@ public class SchedaTemplateService {
 		Scheda scheda = schedaRepository.findByIdWithFullDetailsMine(schedaId, me.getId())
 				.orElseThrow(() -> new NotFoundException("Scheda non trovata o non accessibile"));
 
-		String mode = req.getMode();
-		boolean isMerge = "MERGE".equalsIgnoreCase(mode);
-		if ("REPLACE".equalsIgnoreCase(mode)) {
+		boolean isMerge = "MERGE".equalsIgnoreCase(req.getMode());
+
+		if (!isMerge) { // REPLACE: sostituisce l'intera scheda
 			scheda.getPasti().clear();
+			clonaPastiSuScheda(st, scheda, false, Map.of());
+			return new ApplicaTemplateResultDto(true, DtoMapper.toSchedaDto(scheda), List.of());
 		}
 
-		clonaPastiSuScheda(st, scheda, isMerge);
-		return DtoMapper.toSchedaDto(scheda);
+		// MERGE: mappa pastoKey -> azione (KEEP/REPLACE) dalle decisioni del nutrizionista
+		Map<String, String> risoluzioni = new HashMap<>();
+		if (req.getRisoluzioni() != null) {
+			for (RisoluzioneConflittoDto r : req.getRisoluzioni()) {
+				if (r.pastoKey() != null && r.azione() != null) {
+					risoluzioni.put(r.pastoKey(), r.azione().toUpperCase());
+				}
+			}
+		}
+
+		// Detect: se ci sono pasti omonimi già con alimenti e nessuna decisione è stata presa,
+		// non si modifica nulla e si restituiscono i conflitti da risolvere nel modal.
+		List<PastoConflittoDto> conflitti = rilevaConflitti(st, scheda);
+		if (!conflitti.isEmpty() && risoluzioni.isEmpty()) {
+			return new ApplicaTemplateResultDto(false, null, conflitti);
+		}
+
+		clonaPastiSuScheda(st, scheda, true, risoluzioni);
+		return new ApplicaTemplateResultDto(true, DtoMapper.toSchedaDto(scheda), List.of());
+	}
+
+	/** Chiave stabile di un pasto per il match template↔scheda: "nome|GIORNO". */
+	private String pastoKey(String nome, GiornoSettimana giorno) {
+		return (nome == null ? "" : nome) + "|" + (giorno == null ? "" : giorno.name());
+	}
+
+	private int numAlimenti(PastoSchedaTemplate p) {
+		return p.getAlimenti() != null ? p.getAlimenti().size() : 0;
+	}
+
+	/** A parità di (nome+giorno) preferisce il pasto con più alimenti; a parità, ordineVisualizzazione minore. */
+	private boolean preferisciTemplate(PastoSchedaTemplate candidato, PastoSchedaTemplate attuale) {
+		int ca = numAlimenti(candidato), aa = numAlimenti(attuale);
+		if (ca != aa) return ca > aa;
+		int co = candidato.getOrdineVisualizzazione() != null ? candidato.getOrdineVisualizzazione() : Integer.MAX_VALUE;
+		int ao = attuale.getOrdineVisualizzazione() != null ? attuale.getOrdineVisualizzazione() : Integer.MAX_VALUE;
+		return co < ao;
+	}
+
+	/**
+	 * Pasti del template deduplicati per (nome+giorno): se il template contiene più pasti omonimi
+	 * (es. uno vuoto e uno con alimenti, per assenza di vincolo unique), tiene solo quello "migliore"
+	 * (più alimenti). Evita conflitti doppi e pasti svuotati in modo non deterministico all'import.
+	 */
+	private List<PastoSchedaTemplate> pastiTemplateConsolidati(SchedaTemplate st) {
+		Map<String, PastoSchedaTemplate> best = new LinkedHashMap<>();
+		for (PastoSchedaTemplate pt : st.getPasti()) {
+			String key = pastoKey(pt.getNome(), pt.getGiorno());
+			PastoSchedaTemplate attuale = best.get(key);
+			if (attuale == null || preferisciTemplate(pt, attuale)) {
+				best.put(key, pt);
+			}
+		}
+		List<PastoSchedaTemplate> out = new ArrayList<>(best.values());
+		out.sort(Comparator.comparingInt(p -> p.getOrdineVisualizzazione() != null ? p.getOrdineVisualizzazione() : Integer.MAX_VALUE));
+		return out;
+	}
+
+	/** Pasti del template con omonimo (nome+giorno) già presente nella scheda e con alimenti. */
+	private List<PastoConflittoDto> rilevaConflitti(SchedaTemplate st, Scheda scheda) {
+		List<PastoConflittoDto> out = new ArrayList<>();
+		for (PastoSchedaTemplate pt : pastiTemplateConsolidati(st)) {
+			Pasto esistente = scheda.getPasti().stream()
+					.filter(p -> p.getNome() != null && p.getNome().equals(pt.getNome())
+							&& java.util.Objects.equals(p.getGiorno(), pt.getGiorno()))
+					.findFirst().orElse(null);
+			if (esistente == null || esistente.getAlimentiPasto() == null || esistente.getAlimentiPasto().isEmpty()) {
+				continue;
+			}
+			List<String> attuali = esistente.getAlimentiPasto().stream()
+					.map(ap -> ap.getAlimento() != null ? ap.getAlimento().getNome() : "—")
+					.collect(Collectors.toList());
+			List<String> templ = pt.getAlimenti().stream()
+					.map(apt -> apt.getAlimento() != null ? apt.getAlimento().getNome() : "—")
+					.collect(Collectors.toList());
+			out.add(new PastoConflittoDto(pastoKey(pt.getNome(), pt.getGiorno()),
+					pt.getNome(), pt.getGiorno() != null ? pt.getGiorno().name() : null, attuali, templ));
+		}
+		return out;
 	}
 
 	// ═══════════════════════════════════════════
@@ -234,7 +319,7 @@ public class SchedaTemplateService {
 		scheda.setAttiva(nuovaSchedaAttiva);
 
 		Scheda savedScheda = schedaRepository.save(scheda);
-		clonaPastiSuScheda(st, savedScheda, false);
+		clonaPastiSuScheda(st, savedScheda, false, Map.of());
 		return DtoMapper.toSchedaDto(savedScheda);
 	}
 
@@ -403,15 +488,20 @@ public class SchedaTemplateService {
 		st.getPasti().clear();
 		if (pastiDto == null || pastiDto.isEmpty()) return;
 
+		java.util.Set<String> visti = new java.util.HashSet<>();
 		int ordine = 0;
 		for (var pastoDto : pastiDto) {
 			if (pastoDto == null) continue;
+			String nome = pastoDto.getNome().trim();
+			GiornoSettimana giorno = parseGiorno(pastoDto.getGiorno());
+			// Evita pasti duplicati (stesso nome+giorno) nello stesso template.
+			if (!visti.add(pastoKey(nome, giorno))) continue;
 
 			PastoSchedaTemplate pasto = new PastoSchedaTemplate();
 			pasto.setSchedaTemplate(st);
-			pasto.setNome(pastoDto.getNome().trim());
+			pasto.setNome(nome);
 			pasto.setDescrizione(normalizeString(pastoDto.getDescrizione()));
-			pasto.setGiorno(parseGiorno(pastoDto.getGiorno()));
+			pasto.setGiorno(giorno);
 			pasto.setOrdineVisualizzazione(
 					pastoDto.getOrdineVisualizzazione() != null ? pastoDto.getOrdineVisualizzazione() : ordine);
 			pasto.setOrarioInizio(parseTime(pastoDto.getOrarioInizio()));
@@ -474,9 +564,12 @@ public class SchedaTemplateService {
 	 *
 	 * @param mergeMode se true, cerca pasti esistenti per nome+giorno e li riutilizza
 	 */
-	private void clonaPastiSuScheda(SchedaTemplate st, Scheda scheda, boolean mergeMode) {
+	private void clonaPastiSuScheda(SchedaTemplate st, Scheda scheda, boolean mergeMode, Map<String, String> risoluzioni) {
+		// Pasti del template deduplicati per (nome+giorno): un solo pasto per chiave (vedi commento sopra).
+		List<PastoSchedaTemplate> pastiTemplate = pastiTemplateConsolidati(st);
+
 		// 1. Bulk-load alternative dal template (zero N+1)
-		List<Long> allAptIds = st.getPasti().stream()
+		List<Long> allAptIds = pastiTemplate.stream()
 				.flatMap(pt -> pt.getAlimenti().stream())
 				.map(AlimentoPastoSchedaTemplate::getId)
 				.collect(Collectors.toList());
@@ -492,7 +585,7 @@ public class SchedaTemplateService {
 				.mapToInt(p -> p.getOrdineVisualizzazione() != null ? p.getOrdineVisualizzazione() : 0)
 				.max().orElse(-1);
 
-		for (PastoSchedaTemplate pt : st.getPasti()) {
+		for (PastoSchedaTemplate pt : pastiTemplate) {
 			Pasto pasto = null;
 
 			// MERGE: cerca un pasto esistente con lo stesso nome + giorno
@@ -503,7 +596,16 @@ public class SchedaTemplateService {
 						.findFirst()
 						.orElse(null);
 				if (pasto != null) {
+					boolean haAlimenti = pasto.getAlimentiPasto() != null && !pasto.getAlimentiPasto().isEmpty();
+					// Conflitto risolto con "Mantieni": lascia invariato il pasto esistente.
+					if (haAlimenti && "KEEP".equals(risoluzioni.get(pastoKey(pt.getNome(), pt.getGiorno())))) {
+						continue;
+					}
+					// "Sostituisci" (o pasto vuoto): rimpiazza il contenuto. Il flush forza i DELETE
+					// di AlimentoPasto (+ alternative in cascade) PRIMA dei re-insert, evitando la
+					// violazione di uk_pasto_alt_per_pasto (vedi CLAUDE.md, clear-and-re-add).
 					pasto.getAlimentiPasto().clear();
+					alimentoPastoRepo.flush();
 				}
 			}
 

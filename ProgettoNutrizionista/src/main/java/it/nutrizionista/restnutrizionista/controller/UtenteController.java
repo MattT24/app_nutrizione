@@ -11,6 +11,7 @@ import it.nutrizionista.restnutrizionista.dto.IdRequest;
 import it.nutrizionista.restnutrizionista.dto.LogoRequestDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.ProfiloLightDto;
+import it.nutrizionista.restnutrizionista.dto.ResetPasswordDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteFormDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteProfileUpdateDto;
@@ -103,6 +104,16 @@ public class UtenteController {
             @Valid @RequestBody UtenteProfileUpdateDto form
     ) {
         var updated = service.updateMyProfile(form);
+        return ResponseEntity.ok(updated);
+    }
+
+    /** Cambio password dell'utente corrente (id dal JWT). */
+    @PutMapping("/password")
+    @PreAuthorize("hasAuthority('UTENTE_PROFILE')")
+    public ResponseEntity<UtenteDto> updateMyPassword(
+            @Valid @RequestBody ResetPasswordDto form
+    ) {
+        var updated = service.updateMyPassword(form);
         return ResponseEntity.ok(updated);
     }
 
