@@ -6,7 +6,7 @@ package it.nutrizionista.restnutrizionista.dto;
 public record AlimentoSchedaTemplateAlternativaDto(
 	Long id,
 	Long alimentoPastoSchedaTemplateId,
-	AlimentoBaseDto alimentoAlternativo,
+	AlimentoBaseMiniDto alimentoAlternativo,
 	Integer quantita,
 	Integer priorita,
 	String mode,

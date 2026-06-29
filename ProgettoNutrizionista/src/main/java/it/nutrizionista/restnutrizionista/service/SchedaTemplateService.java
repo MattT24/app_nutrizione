@@ -108,6 +108,9 @@ public class SchedaTemplateService {
 		SchedaTemplate st = repo.findByIdWithFullTree(id)
 				.orElseThrow(() -> new NotFoundException("Template scheda non trovato"));
 		checkOwnership(st, me.getId());
+		// Idrata alternative + macro degli alimenti alternativi nello stesso persistence context
+		// (evita l'N+1 sui macronutrienti delle alternative durante il mapping).
+		repo.fetchAlternativeWithMacroBySchedaId(id);
 		return DtoMapper.toSchedaTemplateDto(st);
 	}
 

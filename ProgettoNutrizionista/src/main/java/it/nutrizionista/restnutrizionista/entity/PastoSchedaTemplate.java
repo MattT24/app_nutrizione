@@ -2,8 +2,9 @@ package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
 import java.time.LocalTime;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -22,6 +23,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 @Entity
@@ -57,7 +59,8 @@ public class PastoSchedaTemplate {
 	private SchedaTemplate schedaTemplate;
 
 	@OneToMany(mappedBy = "pastoSchedaTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
-	private List<AlimentoPastoSchedaTemplate> alimenti = new ArrayList<>();
+	@OrderBy("ordine ASC, id ASC")
+	private Set<AlimentoPastoSchedaTemplate> alimenti = new LinkedHashSet<>();
 
 	@CreatedDate
 	@Column(nullable = false)
@@ -83,10 +86,23 @@ public class PastoSchedaTemplate {
 	public void setOrarioFine(LocalTime orarioFine) { this.orarioFine = orarioFine; }
 	public SchedaTemplate getSchedaTemplate() { return schedaTemplate; }
 	public void setSchedaTemplate(SchedaTemplate schedaTemplate) { this.schedaTemplate = schedaTemplate; }
-	public List<AlimentoPastoSchedaTemplate> getAlimenti() { return alimenti; }
-	public void setAlimenti(List<AlimentoPastoSchedaTemplate> alimenti) { this.alimenti = alimenti; }
+	public Set<AlimentoPastoSchedaTemplate> getAlimenti() { return alimenti; }
+	public void setAlimenti(Set<AlimentoPastoSchedaTemplate> alimenti) { this.alimenti = alimenti; }
 	public Instant getCreatedAt() { return createdAt; }
 	public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 	public Instant getUpdatedAt() { return updatedAt; }
 	public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		PastoSchedaTemplate that = (PastoSchedaTemplate) o;
+		return id != null && Objects.equals(id, that.id);
+	}
+
+	@Override
+	public int hashCode() {
+		return getClass().hashCode();
+	}
 }

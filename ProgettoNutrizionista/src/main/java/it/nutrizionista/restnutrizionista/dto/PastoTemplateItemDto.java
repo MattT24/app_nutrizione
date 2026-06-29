@@ -3,17 +3,17 @@ package it.nutrizionista.restnutrizionista.dto;
 import java.util.List;
 
 public class PastoTemplateItemDto {
-	private AlimentoBaseDto alimento;
+	private AlimentoBaseMiniDto alimento;
 	private Double quantita;
 	private String nomeCustom;
 	private String nomeVisualizzato;
 	private List<PastoTemplateAlternativaDto> alternative;
 
-	public AlimentoBaseDto getAlimento() {
+	public AlimentoBaseMiniDto getAlimento() {
 		return alimento;
 	}
 
-	public void setAlimento(AlimentoBaseDto alimento) {
+	public void setAlimento(AlimentoBaseMiniDto alimento) {
 		this.alimento = alimento;
 	}
 

@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 import it.nutrizionista.restnutrizionista.dto.AlimentoAlternativoDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseFormDto;
+import it.nutrizionista.restnutrizionista.dto.AlimentoBaseMiniDto;
+import it.nutrizionista.restnutrizionista.dto.MacroMiniDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoPastoDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoPastoSchedaTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoSchedaTemplateAlternativaDto;
@@ -718,6 +720,28 @@ public class DtoMapper {
 		dto.setCategoria(a.getCategoria());
 		// NON settiamo Macro né Micro qui!
 		return dto;
+	}
+
+	// Mapper LEGGERI per i TEMPLATE (food card: solo nome/categoria/misura + 4 macro).
+	// Sostituiscono toAlimentoBaseDtoMacro negli alimenti annidati di schede/pasti template e ricette
+	// per evitare di serializzare ~25 campi null (micro, valutazione clinica, OFF, ...) per alimento.
+	public static MacroMiniDto toMacroMiniDto(Macro m) {
+		if (m == null) {
+			return null;
+		}
+		return new MacroMiniDto(m.getCalorie(), m.getProteine(), m.getCarboidrati(), m.getGrassi());
+	}
+
+	public static AlimentoBaseMiniDto toAlimentoBaseMiniDto(AlimentoBase a) {
+		if (a == null) {
+			return null;
+		}
+		return new AlimentoBaseMiniDto(
+				a.getId(),
+				a.getNome(),
+				a.getCategoria(),
+				a.getMisuraInGrammi(),
+				toMacroMiniDto(a.getMacronutrienti()));
 	}
 
 
@@ -1546,7 +1570,7 @@ public class DtoMapper {
 		PastoTemplateItemDto dto = new PastoTemplateItemDto();
 		AlimentoBase alim = a.getAlimento();
 		if (alim != null) {
-			dto.setAlimento(toAlimentoBaseDtoMacro(alim));
+			dto.setAlimento(toAlimentoBaseMiniDto(alim));
 		}
 		dto.setQuantita(a.getQuantita());
 		dto.setNomeCustom(a.getNomeCustom());
@@ -1569,7 +1593,7 @@ public class DtoMapper {
 		PastoTemplateAlternativaDto dto = new PastoTemplateAlternativaDto();
 		dto.setId(a.getId());
 		if (a.getAlimentoAlternativo() != null) {
-			dto.setAlimentoAlternativo(toAlimentoBaseDtoMacro(a.getAlimentoAlternativo()));
+			dto.setAlimentoAlternativo(toAlimentoBaseMiniDto(a.getAlimentoAlternativo()));
 		}
 		dto.setQuantita(a.getQuantita());
 		dto.setPriorita(a.getPriorita());
@@ -1630,7 +1654,7 @@ public class DtoMapper {
 		var dto = new it.nutrizionista.restnutrizionista.dto.RicettaIngredienteDto();
 		dto.setId(ing.getId());
 		if (ing.getAlimento() != null)
-			dto.setAlimento(toAlimentoBaseDtoMacro(ing.getAlimento()));
+			dto.setAlimento(toAlimentoBaseMiniDto(ing.getAlimento()));
 		dto.setQuantita(ing.getQuantita());
 		dto.setNomeCustom(ing.getNomeCustom());
 		String base = ing.getAlimento() != null ? ing.getAlimento().getNome() : null;
@@ -1712,7 +1736,7 @@ public class DtoMapper {
 		dto.setQuantita(a.getQuantita());
 		AlimentoBase alim = a.getAlimento();
 		if (alim != null) {
-			dto.setAlimento(toAlimentoBaseDtoMacro(alim));
+			dto.setAlimento(toAlimentoBaseMiniDto(alim));
 		}
 		dto.setNomeCustom(a.getNomeCustom());
 		dto.setNomeVisualizzato(a.getNomeCustom() != null && !a.getNomeCustom().isBlank()
@@ -1744,7 +1768,7 @@ public class DtoMapper {
 				alt.getId(),
 				alt.getAlimentoPastoSchedaTemplate() != null
 						? alt.getAlimentoPastoSchedaTemplate().getId() : null,
-				alim != null ? toAlimentoBaseDtoMacro(alim) : null,
+				alim != null ? toAlimentoBaseMiniDto(alim) : null,
 				alt.getQuantita(),
 				alt.getPriorita(),
 				alt.getMode() != null ? alt.getMode().name() : "CALORIE",

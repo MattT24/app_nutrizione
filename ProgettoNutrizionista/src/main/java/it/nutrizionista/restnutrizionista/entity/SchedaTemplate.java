@@ -1,8 +1,8 @@
 package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -49,7 +49,7 @@ public class SchedaTemplate {
 
 	@OneToMany(mappedBy = "schedaTemplate", cascade = CascadeType.ALL, orphanRemoval = true)
 	@OrderBy("ordineVisualizzazione ASC, id ASC")
-	private List<PastoSchedaTemplate> pasti = new ArrayList<>();
+	private Set<PastoSchedaTemplate> pasti = new LinkedHashSet<>();
 
 	@CreatedDate
 	@Column(nullable = false)
@@ -69,8 +69,8 @@ public class SchedaTemplate {
 	public void setTipo(TipoScheda tipo) { this.tipo = tipo; }
 	public Utente getCreatedBy() { return createdBy; }
 	public void setCreatedBy(Utente createdBy) { this.createdBy = createdBy; }
-	public List<PastoSchedaTemplate> getPasti() { return pasti; }
-	public void setPasti(List<PastoSchedaTemplate> pasti) { this.pasti = pasti; }
+	public Set<PastoSchedaTemplate> getPasti() { return pasti; }
+	public void setPasti(Set<PastoSchedaTemplate> pasti) { this.pasti = pasti; }
 	public Instant getCreatedAt() { return createdAt; }
 	public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 	public Instant getUpdatedAt() { return updatedAt; }
