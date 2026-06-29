@@ -363,9 +363,19 @@ public class SchedaService {
         if (sourcePasti.isEmpty()) {
             return DtoMapper.toSchedaDto(scheda); // Niente da copiare orginalmente
         }
-        
+
+        // Filtra i pasti sorgente selezionati (se forniti)
+        List<Long> selectedPastoIds = request.getSelectedPastoIds();
+        if (selectedPastoIds != null && !selectedPastoIds.isEmpty()) {
+            sourcePasti = sourcePasti.stream()
+                .filter(p -> selectedPastoIds.contains(p.getId()))
+                .collect(Collectors.toList());
+            if (sourcePasti.isEmpty()) return DtoMapper.toSchedaDto(scheda);
+        }
+
         List<Long> selectedIds = request.getAlimentoPastoIds();
         boolean isPartialCopy = selectedIds != null && !selectedIds.isEmpty();
+        boolean addMode = "ADD".equalsIgnoreCase(request.getMode());
         
         List<Pasto> pastiToSave = new java.util.ArrayList<>();
         
@@ -392,17 +402,22 @@ public class SchedaService {
                     .findFirst()
                     .orElse(null);
                     
+                // REPLACE svuota il pasto target prima dei re-insert; ADD lo lascia intatto.
+                // La dedup "alimento/alternativa già nel pasto" è delegata ai check existsBy del
+                // repository nel loop sottostante (stessa regola di AlimentoPastoService.associaAlimento):
+                // l'autoflush prima della query derivata fa vedere anche le righe appena salvate,
+                // così si evitano sia i doppioni vs target (ADD) sia quelli interni alla sorgente.
                 if (targetPasto != null && targetPasto.getId() != null) {
-                    // PULIZIA CHIRURGICA SUL DB per evitare Constraint Violations sulle FK
-                    repoAlternative.deleteByPasto_Id(targetPasto.getId());
-                    repoAlimentoPasto.deleteByPasto_Id(targetPasto.getId());
-                    
-                    // FORZIAMO IL FLUSH PER SINCRONIZZARE IL DATABASE
-                    repoAlternative.flush();
-                    repoAlimentoPasto.flush();
-                    
-                    // Svuotiamo la collezione in memoria (il flush ha già cancellato dal DB)
-                    targetPasto.getAlimentiPasto().clear();
+                    if (!addMode) {
+                        // REPLACE: pulizia chirurgica sul DB per evitare Constraint Violations sulle FK
+                        repoAlternative.deleteByPasto_Id(targetPasto.getId());
+                        repoAlimentoPasto.deleteByPasto_Id(targetPasto.getId());
+                        // FORZIAMO IL FLUSH PER SINCRONIZZARE IL DATABASE prima dei re-insert
+                        repoAlternative.flush();
+                        repoAlimentoPasto.flush();
+                        // Svuotiamo la collezione in memoria (il flush ha già cancellato dal DB)
+                        targetPasto.getAlimentiPasto().clear();
+                    }
                 } else if (targetPasto == null) {
                     targetPasto = new Pasto();
                     targetPasto.setNome(sourcePasto.getNome());
@@ -422,6 +437,10 @@ public class SchedaService {
                 // Clona i nuovi alimenti selezionati dentro il pasto target
                 Set<AlimentoPasto> cloniAlimenti = new LinkedHashSet<>();
                 for (AlimentoPasto apOriginale : alimentiToCopy) {
+                    // Lo stesso alimento non va inserito due volte nello stesso pasto (stessa regola
+                    // di associaAlimento). L'existsBy fa autoflush → vede anche i cloni di questa passata.
+                    Long baseId = apOriginale.getAlimento() != null ? apOriginale.getAlimento().getId() : null;
+                    if (baseId != null && repoAlimentoPasto.existsByPasto_IdAndAlimento_Id(savedTargetPasto.getId(), baseId)) continue;
                     AlimentoPasto apNuovo = new AlimentoPasto();
                     apNuovo.setAlimento(apOriginale.getAlimento()); 
                     apNuovo.setQuantita(apOriginale.getQuantita()); 
@@ -440,6 +459,9 @@ public class SchedaService {
                     // Clona direttamente le alternative di questo AlimentoPasto specifico
                     List<AlimentoAlternativo> altOriginali = repoAlternative.findByAlimentoPasto_IdOrderByPrioritaAsc(apOriginale.getId());
                     for (AlimentoAlternativo altOrig : altOriginali) {
+                        Long altId = altOrig.getAlimentoAlternativo() != null ? altOrig.getAlimentoAlternativo().getId() : null;
+                        // Un'alternativa non può comparire due volte nello stesso pasto (uk_pasto_alt_per_pasto).
+                        if (altId != null && repoAlternative.existsByPasto_IdAndAlimentoAlternativo_Id(savedTargetPasto.getId(), altId)) continue;
                         AlimentoAlternativo altNuovo = new AlimentoAlternativo();
                         altNuovo.setAlimentoPasto(savedApNuovo);
                         altNuovo.setPasto(savedTargetPasto);

@@ -4,7 +4,7 @@ import it.nutrizionista.restnutrizionista.entity.AlternativeMode;
 
 public class PastoTemplateAlternativaDto {
 	private Long id;
-	private AlimentoBaseDto alimentoAlternativo;
+	private AlimentoBaseMiniDto alimentoAlternativo;
 	private Integer quantita;
 	private Integer priorita;
 	private AlternativeMode mode;
@@ -21,11 +21,11 @@ public class PastoTemplateAlternativaDto {
 		this.id = id;
 	}
 
-	public AlimentoBaseDto getAlimentoAlternativo() {
+	public AlimentoBaseMiniDto getAlimentoAlternativo() {
 		return alimentoAlternativo;
 	}
 
-	public void setAlimentoAlternativo(AlimentoBaseDto alimentoAlternativo) {
+	public void setAlimentoAlternativo(AlimentoBaseMiniDto alimentoAlternativo) {
 		this.alimentoAlternativo = alimentoAlternativo;
 	}
 

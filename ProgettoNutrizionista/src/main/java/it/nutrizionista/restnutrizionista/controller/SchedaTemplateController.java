@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.ApplicaSchedaTemplateRequest;
+import it.nutrizionista.restnutrizionista.dto.ApplicaTemplateResultDto;
 import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
 import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
@@ -91,7 +92,7 @@ public class SchedaTemplateController {
 	/** POST /api/schede-template/{templateId}/applica/{schedaId} — Applica template su scheda esistente */
 	@PostMapping("/{templateId}/applica/{schedaId}")
 	@PreAuthorize("hasAuthority('SCHEDA_UPDATE')")
-	public ResponseEntity<SchedaDto> applicaAScheda(
+	public ResponseEntity<ApplicaTemplateResultDto> applicaAScheda(
 			@PathVariable Long templateId,
 			@PathVariable Long schedaId,
 			@Valid @RequestBody ApplicaSchedaTemplateRequest req) {

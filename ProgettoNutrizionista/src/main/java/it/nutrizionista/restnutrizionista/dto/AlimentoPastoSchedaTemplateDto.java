@@ -5,7 +5,7 @@ import java.util.List;
 
 public class AlimentoPastoSchedaTemplateDto {
 	private Long id;
-	private AlimentoBaseDto alimento;
+	private AlimentoBaseMiniDto alimento;
 	private int quantita;
 	private String nomeCustom;
 	private String nomeVisualizzato;
@@ -13,8 +13,8 @@ public class AlimentoPastoSchedaTemplateDto {
 
 	public Long getId() { return id; }
 	public void setId(Long id) { this.id = id; }
-	public AlimentoBaseDto getAlimento() { return alimento; }
-	public void setAlimento(AlimentoBaseDto alimento) { this.alimento = alimento; }
+	public AlimentoBaseMiniDto getAlimento() { return alimento; }
+	public void setAlimento(AlimentoBaseMiniDto alimento) { this.alimento = alimento; }
 	public int getQuantita() { return quantita; }
 	public void setQuantita(int quantita) { this.quantita = quantita; }
 	public String getNomeCustom() { return nomeCustom; }

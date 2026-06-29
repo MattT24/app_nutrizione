@@ -12,6 +12,7 @@ import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateResultDto;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.PastoFormDto;
 import it.nutrizionista.restnutrizionista.dto.PastoOrariFormDto;
+import it.nutrizionista.restnutrizionista.dto.ReorderDto;
 import it.nutrizionista.restnutrizionista.service.PastoService;
 import it.nutrizionista.restnutrizionista.service.PastoTemplateApplyService;
 import jakarta.validation.Valid;
@@ -49,6 +50,14 @@ public class PastoController {
 	@PreAuthorize("hasAuthority('PASTO_DELETE')")
 	public ResponseEntity<Void> delete(@PathVariable Long id) {
 		service.delete(id);
+		return ResponseEntity.noContent().build();
+	}
+
+	/** Persiste l'ordine dei pasti (drag-and-drop). Body: { ids: [...] } nell'ordine desiderato. */
+	@PatchMapping("/reorder")
+	@PreAuthorize("hasAuthority('PASTO_UPDATE')")
+	public ResponseEntity<Void> reorder(@Valid @RequestBody ReorderDto dto) {
+		service.reorder(dto);
 		return ResponseEntity.noContent().build();
 	}
 	

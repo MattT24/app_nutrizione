@@ -1,8 +1,9 @@
 package it.nutrizionista.restnutrizionista.entity;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.Objects;
+import java.util.Set;
 
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -19,6 +20,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 import jakarta.persistence.Table;
 
 @Entity
@@ -49,7 +51,8 @@ public class AlimentoPastoSchedaTemplate {
 
 	@OneToMany(mappedBy = "alimentoPastoSchedaTemplate",
 			cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-	private List<AlimentoSchedaTemplateAlternativa> alternative = new ArrayList<>();
+	@OrderBy("priorita ASC, id ASC")
+	private Set<AlimentoSchedaTemplateAlternativa> alternative = new LinkedHashSet<>();
 
 	@CreatedDate
 	@Column(nullable = false)
@@ -71,10 +74,23 @@ public class AlimentoPastoSchedaTemplate {
 	public void setNomeCustom(String nomeCustom) { this.nomeCustom = nomeCustom; }
 	public int getOrdine() { return ordine; }
 	public void setOrdine(int ordine) { this.ordine = ordine; }
-	public List<AlimentoSchedaTemplateAlternativa> getAlternative() { return alternative; }
-	public void setAlternative(List<AlimentoSchedaTemplateAlternativa> alternative) { this.alternative = alternative; }
+	public Set<AlimentoSchedaTemplateAlternativa> getAlternative() { return alternative; }
+	public void setAlternative(Set<AlimentoSchedaTemplateAlternativa> alternative) { this.alternative = alternative; }
 	public Instant getCreatedAt() { return createdAt; }
 	public void setCreatedAt(Instant createdAt) { this.createdAt = createdAt; }
 	public Instant getUpdatedAt() { return updatedAt; }
 	public void setUpdatedAt(Instant updatedAt) { this.updatedAt = updatedAt; }
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		AlimentoPastoSchedaTemplate that = (AlimentoPastoSchedaTemplate) o;
+		return id != null && Objects.equals(id, that.id);
+	}
+
+	@Override
+	public int hashCode() {
+		return getClass().hashCode();
+	}
 }

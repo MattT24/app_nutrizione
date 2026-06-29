@@ -16,6 +16,12 @@ public class CopyDayRequest {
 
     private List<Long> alimentoPastoIds;
 
+    /** Opzionale: id dei pasti sorgente da copiare (se vuoto, tutti i pasti del giorno). */
+    private List<Long> selectedPastoIds;
+
+    /** "REPLACE" (default): sostituisce i pasti dei giorni target; "ADD": li aggiunge a quelli presenti. */
+    private String mode;
+
     public GiornoSettimana getSourceDay() {
         return sourceDay;
     }
@@ -38,5 +44,21 @@ public class CopyDayRequest {
 
     public void setAlimentoPastoIds(List<Long> alimentoPastoIds) {
         this.alimentoPastoIds = alimentoPastoIds;
+    }
+
+    public List<Long> getSelectedPastoIds() {
+        return selectedPastoIds;
+    }
+
+    public void setSelectedPastoIds(List<Long> selectedPastoIds) {
+        this.selectedPastoIds = selectedPastoIds;
+    }
+
+    public String getMode() {
+        return mode;
+    }
+
+    public void setMode(String mode) {
+        this.mode = mode;
     }
 }
