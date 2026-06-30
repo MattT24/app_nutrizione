@@ -17,6 +17,9 @@ public interface OrariStudioRepository extends JpaRepository<OrariStudio, Long> 
     
     // Restituisce TUTTI i giorni configurati per il nutrizionista
     List<OrariStudio> findByNutrizionista(Utente nutrizionista);
+
+    // Come sopra ma per ID (comodo quando non si ha già in mano l'oggetto Utente)
+    List<OrariStudio> findByNutrizionista_Id(Long nutrizionistaId);
     
     // Cerca la singola riga di un giorno specifico (es. LUNEDI) per il nutrizionista
     Optional<OrariStudio> findByNutrizionistaAndGiornoSettimana(Utente nutrizionista, DayOfWeek giornoSettimana);

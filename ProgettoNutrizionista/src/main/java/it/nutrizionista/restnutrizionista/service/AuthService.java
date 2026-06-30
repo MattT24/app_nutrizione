@@ -15,6 +15,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 
 import it.nutrizionista.restnutrizionista.dto.*;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
@@ -35,6 +36,7 @@ public class AuthService {
     @Autowired private RuoloRepository ruoloRepository;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private GoogleTokenVerifier googleTokenVerifier;
+    @Autowired private GamificationService gamificationService;
 
 
     /** Esegue il login e costruisce la LoginResponse completa. */
@@ -50,6 +52,9 @@ public class AuthService {
         UserDetailsServiceImpl.CustomUserDetails userDetails = 
                 (UserDetailsServiceImpl.CustomUserDetails) auth.getPrincipal();
         Utente u = userDetails.getUtente();
+
+        // Gamification: registra l'accesso giornaliero (idempotente, al più uno al giorno)
+        gamificationService.registraEvento(u, TipoEventoGamification.ACCESSO_GIORNALIERO, null);
 
         // 3) Estrai le authorities (usiamo direttamente quelle caricate da Spring Security)
         List<String> authorities = userDetails.getAuthorities().stream()
@@ -228,6 +233,9 @@ public class AuthService {
 
     /** Costruisce token + ruoli/permessi/gruppi per un Utente già caricato con ruolo/permessi (stessa logica di login()). */
     private LoginResponse buildLoginResponseFor(Utente u) {
+        // Gamification: registra l'accesso giornaliero anche per il login via Google (idempotente)
+        gamificationService.registraEvento(u, TipoEventoGamification.ACCESSO_GIORNALIERO, null);
+
         List<String> authorities = u.getRuolo() != null
                 ? u.getRuolo().getRuoloPermessi().stream()
                     .map(rp -> rp.getPermesso().getAlias())

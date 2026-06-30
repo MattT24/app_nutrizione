@@ -35,6 +35,7 @@ import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
 import it.nutrizionista.restnutrizionista.entity.Macro;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
+import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoNomeOverrideRepository;
@@ -55,7 +56,8 @@ public class SchedaService {
 	@Autowired private AlimentoPastoRepository repoAlimentoPasto;
 	@Autowired private AlimentoPastoNomeOverrideRepository repoNomeOverride;
 	@Autowired private CurrentUserService currentUserService;
-	
+	@Autowired private GamificationService gamificationService;
+
 	@Transactional(readOnly = true)
 	public long countAttive() {
 		return repo.countByAttivaTrueAndCliente_Nutrizionista_Id(currentUserService.getMe().getId());
@@ -96,6 +98,7 @@ public class SchedaService {
 
 	s.setCliente(cliente);
 		Scheda saved = repo.save(s);
+		gamificationService.registraEvento(cliente.getNutrizionista(), TipoEventoGamification.SCHEDA_CREATA, cliente.getId());
 		ensureDefaultMeals(saved);
 		SchedaDto dto = DtoMapper.toSchedaDtoLight(saved);
 		dto.setPasti(repoPasto.findByScheda_IdOrderByOrdineVisualizzazioneAscIdAsc(saved.getId()).stream()

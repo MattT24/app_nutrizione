@@ -59,4 +59,7 @@ public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long
      */
     List<Appuntamento> findByNutrizionistaIdAndStatoAndDataGreaterThanEqualOrderByDataAscOraAsc(
             Long nutrizionistaId, Appuntamento.StatoAppuntamento stato, LocalDate data);
+
+    // Conteggio appuntamenti per stato (gamification: badge "appuntamenti completati")
+    long countByNutrizionista_IdAndStato(Long nutrizionistaId, Appuntamento.StatoAppuntamento stato);
 }

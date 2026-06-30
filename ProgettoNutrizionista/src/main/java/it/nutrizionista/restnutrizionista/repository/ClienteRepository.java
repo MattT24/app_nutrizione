@@ -27,6 +27,9 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>{
     
  // Cerca tutti i clienti per nutrizionista (Lista completa senza paginazione)
     List<Cliente> findByNutrizionista_Id(Long nutrizionistaId);
+
+    // Conteggio totale clienti del nutrizionista (gamification: badge di crescita studio)
+    long countByNutrizionista_Id(Long nutrizionistaId);
     
     // Verifica duplicati codice fiscale
     boolean existsByCodiceFiscale(String codiceFiscale);
