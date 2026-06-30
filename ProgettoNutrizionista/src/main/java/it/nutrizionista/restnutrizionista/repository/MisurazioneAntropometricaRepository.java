@@ -13,4 +13,7 @@ public interface MisurazioneAntropometricaRepository extends JpaRepository<Misur
 	Page<MisurazioneAntropometrica> findByCliente_IdOrderByDataMisurazioneDesc(Long id, Pageable pageable);
 
 	Optional<MisurazioneAntropometrica> findByIdAndCliente_Nutrizionista_Id(Long id, Long nutrizionistaId);
+
+	// Conteggio totale misurazioni dei clienti del nutrizionista (gamification)
+	long countByCliente_Nutrizionista_Id(Long nutrizionistaId);
 }

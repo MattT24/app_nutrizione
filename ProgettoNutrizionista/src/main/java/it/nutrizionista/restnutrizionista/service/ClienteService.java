@@ -22,6 +22,7 @@ import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
@@ -47,6 +48,7 @@ public class ClienteService {
 	@Autowired private AlimentoPastoNomeOverrideRepository alimentoPastoNomeOverrideRepository;
 	@Autowired private AlimentoAlternativoRepository alimentoAlternativoRepository;
 	@Autowired private AppuntamentoRepository appuntamentoRepository;
+	@Autowired private GamificationService gamificationService;
 
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
@@ -60,7 +62,9 @@ public class ClienteService {
 		}
 		Cliente c = DtoMapper.toCliente(form);
 		c.setNutrizionista(u);
-		return DtoMapper.toClienteDtoLight(repo.save(c));
+		Cliente salvato = repo.save(c);
+		gamificationService.registraEvento(u, TipoEventoGamification.NUOVO_CLIENTE, salvato.getId());
+		return DtoMapper.toClienteDtoLight(salvato);
 	}
 
 

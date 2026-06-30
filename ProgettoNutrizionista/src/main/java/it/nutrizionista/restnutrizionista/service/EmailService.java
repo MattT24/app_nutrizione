@@ -161,4 +161,29 @@ public class EmailService {
             log.error("Errore durante l'invio del promemoria appuntamento a {}: {}", to, e.getMessage(), e);
         }
     }
+
+    /** Notifica il nutrizionista di un nuovo traguardo gamification sbloccato (badge o salita di livello). */
+    @Async
+    public void sendGamificationMilestone(String to, String nutrizionistaNome, String titoloTraguardo, String descrizioneTraguardo) {
+        try {
+            MimeMessage message = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+            helper.setFrom(fromAddress);
+            helper.setTo(to);
+            helper.setSubject("Nuovo traguardo raggiunto: " + titoloTraguardo + " – Statera Nutrition");
+
+            StringBuilder body = new StringBuilder();
+            body.append("Ciao ").append(nutrizionistaNome).append(",\n\n");
+            body.append("Hai raggiunto un nuovo traguardo: ").append(titoloTraguardo).append("\n");
+            body.append(descrizioneTraguardo).append("\n\n");
+            body.append("Continua così!\n\n");
+            body.append("Il team Statera Nutrition");
+
+            helper.setText(body.toString(), false);
+            javaMailSender.send(message);
+            log.info("Email traguardo gamification inviata a {}", to);
+        } catch (MessagingException e) {
+            log.error("Errore durante l'invio dell'email traguardo gamification a {}: {}", to, e.getMessage(), e);
+        }
+    }
 }

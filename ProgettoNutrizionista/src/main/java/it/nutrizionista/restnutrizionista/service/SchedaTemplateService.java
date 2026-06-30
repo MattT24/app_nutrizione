@@ -361,7 +361,7 @@ public class SchedaTemplateService {
 
 			for (PastoSchedaTemplate sourcePasto : sourcePasti) {
 				// Filtra gli alimenti selezionati
-				List<AlimentoPastoSchedaTemplate> alimentiToCopy = sourcePasto.getAlimenti();
+				List<AlimentoPastoSchedaTemplate> alimentiToCopy = new ArrayList<>(sourcePasto.getAlimenti());
 				if (isPartialCopy) {
 					alimentiToCopy = alimentiToCopy.stream()
 							.filter(apt -> selectedIds.contains(apt.getId()))

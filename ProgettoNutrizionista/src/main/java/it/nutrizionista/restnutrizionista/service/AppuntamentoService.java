@@ -5,6 +5,7 @@ import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
 import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
@@ -31,18 +32,21 @@ public class AppuntamentoService {
     private final ClienteRepository clienteRepository;
     private final CurrentUserService currentUserService;
     private final EmailService emailService;
+    private final GamificationService gamificationService;
 
     public AppuntamentoService(
             AppuntamentoRepository appuntamentoRepository,
             OrariStudioRepository orariStudioRepository,
             ClienteRepository clienteRepository,
             CurrentUserService currentUserService,
-            EmailService emailService) {
+            EmailService emailService,
+            GamificationService gamificationService) {
         this.appuntamentoRepository = appuntamentoRepository;
         this.orariStudioRepository = orariStudioRepository;
         this.clienteRepository = clienteRepository;
         this.currentUserService = currentUserService;
         this.emailService = emailService;
+        this.gamificationService = gamificationService;
     }
 
     @Transactional
@@ -212,8 +216,16 @@ public class AppuntamentoService {
         Appuntamento esistente = appuntamentoRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
         verificaProprietario(esistente);
-        esistente.setStato(Appuntamento.StatoAppuntamento.valueOf(stato));
-        return convertToDto(appuntamentoRepository.save(esistente));
+        Appuntamento.StatoAppuntamento nuovoStato = Appuntamento.StatoAppuntamento.valueOf(stato);
+        esistente.setStato(nuovoStato);
+        Appuntamento salvato = appuntamentoRepository.save(esistente);
+
+        if (nuovoStato == Appuntamento.StatoAppuntamento.COMPLETATO) {
+            Long clienteId = esistente.getCliente() != null ? esistente.getCliente().getId() : null;
+            gamificationService.registraEvento(esistente.getNutrizionista(), TipoEventoGamification.APPUNTAMENTO_COMPLETATO, clienteId);
+        }
+
+        return convertToDto(salvato);
     }
 
     public List<ClienteDropdownDto> searchMyClientsForDropdown(String q) {

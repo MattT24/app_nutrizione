@@ -11,6 +11,7 @@ import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
+import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
@@ -23,6 +24,7 @@ public class MisurazioneAntropometricaService {
     @Autowired private ClienteRepository clienteRepo;
     @Autowired private CurrentUserService currentUserService;
     @Autowired private OwnershipValidator ownershipValidator;
+    @Autowired private GamificationService gamificationService;
 
     @Transactional
     public MisurazioneAntropometricaDto create(@Valid MisurazioneAntropometricaFormDto form) {
@@ -30,8 +32,10 @@ public class MisurazioneAntropometricaService {
 
         MisurazioneAntropometrica m = DtoMapper.toMisurazione(form);
         m.setCliente(cliente); // Associo la misurazione al cliente trovato
-        
-        return DtoMapper.toMisurazioneDtoLight(repo.save(m));
+
+        MisurazioneAntropometrica salvata = repo.save(m);
+        gamificationService.registraEvento(cliente.getNutrizionista(), TipoEventoGamification.MISURAZIONE_REGISTRATA, cliente.getId());
+        return DtoMapper.toMisurazioneDtoLight(salvata);
     }
 
 

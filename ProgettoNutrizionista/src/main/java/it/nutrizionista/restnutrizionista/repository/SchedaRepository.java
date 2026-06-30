@@ -18,6 +18,10 @@ public interface SchedaRepository extends JpaRepository<Scheda, Long> {
 	
 	@Query(value = "SELECT COUNT(*) FROM schede s JOIN clienti c ON s.cliente_id = c.id WHERE c.utente_id = :nutrizionistaId AND s.attiva = 1", nativeQuery = true)
 	long countByAttivaTrueAndCliente_Nutrizionista_Id(@Param("nutrizionistaId") Long nutrizionistaId);
+
+	// Conteggio cumulativo di tutte le schede (anche non attive) del nutrizionista (gamification)
+	@Query(value = "SELECT COUNT(*) FROM schede s JOIN clienti c ON s.cliente_id = c.id WHERE c.utente_id = :nutrizionistaId", nativeQuery = true)
+	long countByCliente_Nutrizionista_Id(@Param("nutrizionistaId") Long nutrizionistaId);
 //TODO da ricontrollare
 	@EntityGraph(attributePaths = {"pasti", "pasti.alimentiPasto", "pasti.alimentiPasto.nomeOverride"})
     @Query("SELECT s FROM Scheda s WHERE s.id = :id")
