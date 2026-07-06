@@ -3,6 +3,7 @@ package it.nutrizionista.restnutrizionista.service;
 import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -24,26 +25,30 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Arrays;
+
 import it.nutrizionista.restnutrizionista.dto.BadgeDto;
 import it.nutrizionista.restnutrizionista.dto.CategoriaProgressoDto;
 import it.nutrizionista.restnutrizionista.dto.GamificationEventoDto;
 import it.nutrizionista.restnutrizionista.dto.GamificationStatoDto;
+import it.nutrizionista.restnutrizionista.dto.PremioDisponibileDto;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.BadgeSbloccato;
 import it.nutrizionista.restnutrizionista.entity.EventoGamification;
-import it.nutrizionista.restnutrizionista.entity.MeseGratisRiscattato;
 import it.nutrizionista.restnutrizionista.entity.OrariStudio;
+import it.nutrizionista.restnutrizionista.entity.PremioRiscattato;
 import it.nutrizionista.restnutrizionista.entity.ProgressioneNutrizionista;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
+import it.nutrizionista.restnutrizionista.enums.TipoPremio;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
 import it.nutrizionista.restnutrizionista.repository.BadgeSbloccatoRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.EventoGamificationRepository;
-import it.nutrizionista.restnutrizionista.repository.MeseGratisRiscattatoRepository;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
 import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
+import it.nutrizionista.restnutrizionista.repository.PremioRiscattatoRepository;
 import it.nutrizionista.restnutrizionista.repository.ProgressioneNutrizionistaRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 
@@ -63,9 +68,6 @@ public class GamificationService {
 
     private static final Logger log = LoggerFactory.getLogger(GamificationService.class);
 
-    /** Costo in punti riscattabili di un mese gratis di abbonamento. */
-    public static final int SOGLIA_MESE_GRATIS = 5000;
-
     /**
      * Finestra massima (in giorni) guardata indietro per lo streak di accessi giornalieri.
      * Usata anche da {@code GamificationCleanupScheduler} per sapere quali eventi sono
@@ -76,7 +78,7 @@ public class GamificationService {
     @Autowired private EventoGamificationRepository eventoRepo;
     @Autowired private ProgressioneNutrizionistaRepository progressioneRepo;
     @Autowired private BadgeSbloccatoRepository badgeRepo;
-    @Autowired private MeseGratisRiscattatoRepository meseGratisRepo;
+    @Autowired private PremioRiscattatoRepository premioRepo;
     @Autowired private ClienteRepository clienteRepo;
     @Autowired private SchedaRepository schedaRepo;
     @Autowired private MisurazioneAntropometricaRepository misurazioneRepo;
@@ -341,26 +343,32 @@ public class GamificationService {
     }
 
     /**
-     * Riscatta un mese gratis di abbonamento scalando {@link #SOGLIA_MESE_GRATIS} punti dal
-     * saldo riscattabile del nutrizionista loggato. Non esiste ancora un sistema di
-     * abbonamento/billing reale: la riga creata in {@code mesi_gratis_riscattati} è per ora un
-     * "buono" da applicare manualmente, pronto per essere collegato a un sistema di pagamento
-     * vero in futuro.
+     * Riscatta uno dei premi disponibili (sconto 20%, sconto 40%, mese gratis) scalando
+     * il costo in punti riscattabili. Non esiste ancora un sistema di billing reale: la riga
+     * creata in {@code premi_riscattati} è il "buono" che il team applicherà manualmente.
      */
     @Transactional
-    public GamificationStatoDto riscattaMeseGratis() {
+    public GamificationStatoDto riscattaPremio(TipoPremio tipo) {
         Utente me = currentUserService.getMe();
-        int righeAggiornate = progressioneRepo.scalaPuntiRiscattabili(me.getId(), SOGLIA_MESE_GRATIS);
+        Instant inizioMese = YearMonth.now(ZoneId.systemDefault()).atDay(1)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant();
+        if (premioRepo.existsByNutrizionista_IdAndTipoPremioAndDataRiscattoGreaterThanEqual(
+                me.getId(), tipo, inizioMese)) {
+            throw new ConflictException(
+                    "Hai già riscattato \"" + tipo.getTitolo() + "\" questo mese. Riprova il mese prossimo.");
+        }
+        int righeAggiornate = progressioneRepo.scalaPuntiRiscattabili(me.getId(), tipo.getCosto());
         if (righeAggiornate == 0) {
             throw new ConflictException(
-                    "Punti riscattabili insufficienti: servono almeno " + SOGLIA_MESE_GRATIS + " punti.");
+                    "Punti riscattabili insufficienti: servono almeno " + tipo.getCosto() + " punti.");
         }
 
-        MeseGratisRiscattato riscatto = new MeseGratisRiscattato();
+        PremioRiscattato riscatto = new PremioRiscattato();
         riscatto.setNutrizionista(me);
-        riscatto.setPuntiSpesi(SOGLIA_MESE_GRATIS);
-        meseGratisRepo.save(riscatto);
-        log.info("Nutrizionista {} ha riscattato un mese gratis ({} punti)", me.getId(), SOGLIA_MESE_GRATIS);
+        riscatto.setTipoPremio(tipo);
+        riscatto.setPuntiSpesi(tipo.getCosto());
+        premioRepo.save(riscatto);
+        log.info("Nutrizionista {} ha riscattato {} ({} punti)", me.getId(), tipo.name(), tipo.getCosto());
 
         return getStatoPerMe();
     }
@@ -400,6 +408,16 @@ public class GamificationService {
 
         GamificationContatori contatori = calcolaContatori(me.getId());
 
+        Instant inizioMeseCorrente = YearMonth.now(ZoneId.systemDefault()).atDay(1)
+                .atStartOfDay(ZoneId.systemDefault()).toInstant();
+        List<PremioDisponibileDto> premi = Arrays.stream(TipoPremio.values())
+                .map(t -> new PremioDisponibileDto(
+                        t.name(), t.getTitolo(), t.getDescrizione(), t.getCosto(),
+                        premioRepo.countByNutrizionista_IdAndTipoPremio(me.getId(), t),
+                        premioRepo.existsByNutrizionista_IdAndTipoPremioAndDataRiscattoGreaterThanEqual(
+                                me.getId(), t, inizioMeseCorrente)))
+                .toList();
+
         return new GamificationStatoDto(
                 puntiTotali,
                 attuale.nome(),
@@ -410,8 +428,7 @@ public class GamificationService {
                 badge,
                 calcolaProgressiCategorie(contatori),
                 puntiRiscattabili,
-                SOGLIA_MESE_GRATIS,
-                meseGratisRepo.countByNutrizionista_Id(me.getId()));
+                premi);
     }
 
     private static final int LIMIT_STORICO_MASSIMO = 100;
