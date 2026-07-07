@@ -2,7 +2,7 @@ package it.nutrizionista.restnutrizionista.dto;
 
 import java.util.List;
 
-/** Stato gamification del nutrizionista loggato: punti, livello, streak di accessi e badge. */
+/** Stato gamification del nutrizionista loggato: punti, livello, streak, badge e premi riscattabili. */
 public record GamificationStatoDto(
         int puntiTotali,
         String livelloAttuale,
@@ -13,6 +13,5 @@ public record GamificationStatoDto(
         List<BadgeDto> badge,
         List<CategoriaProgressoDto> progressiCategorie,
         int puntiRiscattabili,
-        int sogliaMeseGratis,
-        long mesiGratisRiscattati
+        List<PremioDisponibileDto> premi
 ) {}
