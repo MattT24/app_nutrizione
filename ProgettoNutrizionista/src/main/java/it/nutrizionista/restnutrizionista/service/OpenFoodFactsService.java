@@ -171,7 +171,8 @@ public class OpenFoodFactsService {
     //  Mapping deterministico OFF → AlimentoBaseFormDto
     // ═══════════════════════════════════════════════════════════
 
-    private AlimentoBaseFormDto mapToFormDto(OffProductDto.Product product, String code, MacroDto macro) {
+    // package-private: invocato dagli unit del mapping (OpenFoodFactsMappingTest) senza HTTP.
+    AlimentoBaseFormDto mapToFormDto(OffProductDto.Product product, String code, MacroDto macro) {
         AlimentoBaseFormDto form = new AlimentoBaseFormDto();
 
         // ── Nome: it → generic_name_it → product_name; + brand + suffisso [OFF] ──
@@ -182,10 +183,12 @@ public class OpenFoodFactsService {
         form.setNome(baseName + " [OFF]");
 
         form.setBarcode(code);
+        form.setMarca(resolveMarca(product));
         form.setCategoria(resolveCategoria(product));
         form.setUrlImmagine(sanitizeUrl(firstNonBlank(product.getImageUrl(), product.getImageFrontUrl())));
         form.setMisuraInGrammi(100.0);
-        form.setServingQuantityG(product.getServingQuantity());
+        // Porzione: default 100 g se OFF non fornisce serving_quantity (E.4).
+        form.setServingQuantityG(product.getServingQuantity() != null ? product.getServingQuantity() : 100.0);
         form.setIngredientsText(product.getIngredientsTextIt());
 
         // ── Macro (risolti a monte: v3.6 nutrition → fallback v2) ──
@@ -202,8 +205,9 @@ public class OpenFoodFactsService {
         // ── Score, nutrient levels, additivi ──
         form.setNutriscoreGrade(normalizeGrade(product.getNutriscoreGrade()));
         form.setNovaGroup(product.getNovaGroup());
+        // Eco-score (E.6): live OFF ritorna ecoscore_grade (legacy) → ha precedenza su environmental_score_grade.
         form.setEnvironmentalScoreGrade(
-                normalizeGrade(firstNonBlank(product.getEnvironmentalScoreGrade(), product.getEcoscoreGrade())));
+                normalizeGrade(firstNonBlank(product.getEcoscoreGrade(), product.getEnvironmentalScoreGrade())));
         if (product.getNutrientLevels() != null) {
             form.setNutrientLevels(new java.util.HashMap<>(product.getNutrientLevels()));
         }
@@ -358,6 +362,24 @@ public class OpenFoodFactsService {
         return map;
     }
 
+    /**
+     * Marca human-readable: primo token di {@code brands} (prima della virgola, es. "Ferrero, Nutella"
+     * → "Ferrero"); fallback al primo {@code brands_tags} (slug) se {@code brands} è assente/vuoto;
+     * null per CREA/manuali senza brand.
+     */
+    private String resolveMarca(OffProductDto.Product product) {
+        String brands = product.getBrands();
+        if (brands != null && !brands.isBlank()) {
+            String first = brands.split(",")[0].trim();
+            if (!first.isBlank()) return first;
+        }
+        List<String> tags = product.getBrandsTags();
+        if (tags != null && !tags.isEmpty() && tags.get(0) != null && !tags.get(0).isBlank()) {
+            return tags.get(0).trim();
+        }
+        return null;
+    }
+
     /** Provenienza best-effort (E.5): import produttore → OFF_DICHIARATO, altrimenti OFF_DERIVATO. */
     private FonteAllergene resolveFonte(OffProductDto.Product product) {
         boolean manufacturer = false;
@@ -392,11 +414,20 @@ public class OpenFoodFactsService {
         boolean nonVeganAnalysis = analysis != null && analysis.contains("en:non-vegan");
         if (veganLabel || veganAnalysis) form.setVegano(true);
         else if (nonVeganAnalysis) form.setVegano(false);
+
+        boolean vegetarianLabel = labels != null && (labels.contains("en:vegetarian") || labels.contains("it:vegetariano"));
+        boolean vegetarianAnalysis = analysis != null && analysis.contains("en:vegetarian");
+        boolean nonVegetarianAnalysis = analysis != null && analysis.contains("en:non-vegetarian");
+        if (Boolean.TRUE.equals(form.getVegano()) || vegetarianLabel || vegetarianAnalysis) form.setVegetariano(true);
+        else if (nonVegetarianAnalysis) form.setVegetariano(false);
     }
 
     private Boolean computeNeedsReview(OffProductDto.Product product, Map<Allergene, StatoAllergene> allergeni) {
-        // Solo gli ERRORS qualità: i WARNINGS sono troppo comuni su OFF (renderebbero needsReview quasi sempre true)
-        boolean qualityIssues = product.getDataQualityErrorsTags() != null && !product.getDataQualityErrorsTags().isEmpty();
+        // §2.4: needsReview se data_quality errors O warnings non vuoti (i warnings sono comuni su OFF,
+        // quindi il flag scatterà spesso: è voluto — segnala al nutrizionista di verificare il dato).
+        boolean qualityIssues =
+                (product.getDataQualityErrorsTags() != null && !product.getDataQualityErrorsTags().isEmpty())
+                || (product.getDataQualityWarningsTags() != null && !product.getDataQualityWarningsTags().isEmpty());
         boolean lowCompleteness = product.getCompleteness() != null && product.getCompleteness() < COMPLETENESS_REVIEW_THRESHOLD;
         boolean noAllergenData = allergeni.isEmpty()
                 && (product.getAllergensTags() == null || product.getAllergensTags().isEmpty());

@@ -65,10 +65,10 @@ public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long
 	Page<AlimentoBase> findVisibleByUtente(@Param("utenteId") Long utenteId, Pageable pageable);
 
 	/** Catalogo completo light (globali + propri) per l'indice di ricerca client-side (Fuse.js).
-	 *  Niente paginazione: il catalogo è volutamente piccolo. Le tracce sono caricate in batch
-	 *  (default_batch_fetch_size) dentro la transazione, non nell'EntityGraph (eviterebbe il
-	 *  prodotto cartesiano con macroNutrienti). */
-	@EntityGraph(attributePaths = {"macroNutrienti"})
+	 *  Niente paginazione: il catalogo è volutamente piccolo → tracce in JOIN è sicuro (nessun
+	 *  HHH90003004). tracce serve al filtro "escludi tracce" client; allergeni resta in batch
+	 *  (@BatchSize) perché un secondo JOIN @ElementCollection moltiplicherebbe il prodotto cartesiano. */
+	@EntityGraph(attributePaths = {"macroNutrienti", "tracce"})
 	@Query("SELECT a FROM AlimentoBase a WHERE a.createdBy IS NULL OR a.createdBy.id = :utenteId ORDER BY lower(a.nome) ASC")
 	List<AlimentoBase> findVisibleByUtenteList(@Param("utenteId") Long utenteId);
 

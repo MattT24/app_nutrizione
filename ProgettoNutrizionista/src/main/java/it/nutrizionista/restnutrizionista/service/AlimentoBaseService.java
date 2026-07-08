@@ -163,7 +163,7 @@ public class AlimentoBaseService {
 		var page = repo.findVisibleByUtente(utenteId, effective);
 
 		if (clienteId == null || page.isEmpty()) {
-			return PageResponse.from(page.map(DtoMapper::toAlimentoBaseDtoLight));
+			return PageResponse.from(page.map(DtoMapper::toAlimentoBaseDtoCard));
 		}
 
 		// [SECURITY] ownershipValidator lancia NotFoundException se clienteId non appartiene al nutrizionista
@@ -172,7 +172,7 @@ public class AlimentoBaseService {
 		List<ValutazioneClinicaDto> valutazioni = clinicalEngineService.valutaInBatch(content, cliente);
 
 		var enriched = page.map(a -> {
-			AlimentoBaseDto dto = DtoMapper.toAlimentoBaseDtoLight(a);
+			AlimentoBaseDto dto = DtoMapper.toAlimentoBaseDtoCard(a);
 			int idx = content.indexOf(a);
 			if (idx >= 0 && idx < valutazioni.size()) {
 				dto.setValutazioneClinica(valutazioni.get(idx));
@@ -213,7 +213,7 @@ public class AlimentoBaseService {
 
 	    if (clienteId == null || list.isEmpty()) {
 	        return list.stream()
-	                   .map(DtoMapper::toAlimentoBaseDtoLight)
+	                   .map(DtoMapper::toAlimentoBaseDtoCard)
 	                   .collect(Collectors.toList());
 	    }
 
@@ -221,7 +221,7 @@ public class AlimentoBaseService {
 	    List<ValutazioneClinicaDto> valutazioni = clinicalEngineService.valutaInBatch(list, cliente);
 	    List<AlimentoBaseDto> risultati = new ArrayList<>();
 	    for (int i = 0; i < list.size(); i++) {
-	        AlimentoBaseDto dto = DtoMapper.toAlimentoBaseDtoLight(list.get(i));
+	        AlimentoBaseDto dto = DtoMapper.toAlimentoBaseDtoCard(list.get(i));
 	        dto.setValutazioneClinica(valutazioni.get(i));
 	        risultati.add(dto);
 	    }
@@ -253,7 +253,7 @@ public class AlimentoBaseService {
 	    // Caso base: nessun clienteId → risposta identica ad oggi (retrocompatibile)
 	    if (clienteId == null) {
 	        return list.stream()
-	                   .map(DtoMapper::toAlimentoBaseDtoLight)
+	                   .map(DtoMapper::toAlimentoBaseDtoCard)
 	                   .collect(Collectors.toList());
 	    }
 
@@ -266,7 +266,7 @@ public class AlimentoBaseService {
 
 	    List<AlimentoBaseDto> risultati = new ArrayList<>();
 	    for (int i = 0; i < list.size(); i++) {
-	        AlimentoBaseDto dto = DtoMapper.toAlimentoBaseDtoLight(list.get(i));
+	        AlimentoBaseDto dto = DtoMapper.toAlimentoBaseDtoCard(list.get(i));
 	        dto.setValutazioneClinica(valutazioni.get(i));
 	        risultati.add(dto);
 	    }
@@ -295,7 +295,7 @@ public class AlimentoBaseService {
 		return ids.stream()
 				.map(byId::get)
 				.filter(java.util.Objects::nonNull)
-				.map(DtoMapper::toAlimentoBaseDtoLight)
+				.map(DtoMapper::toAlimentoBaseDtoCard)
 				.collect(Collectors.toList());
 	}
 
@@ -315,7 +315,7 @@ public class AlimentoBaseService {
 		return ids.stream()
 				.map(byId::get)
 				.filter(java.util.Objects::nonNull)
-				.map(DtoMapper::toAlimentoBaseDtoLight)
+				.map(DtoMapper::toAlimentoBaseDtoCard)
 				.collect(Collectors.toList());
 	}
 
@@ -328,7 +328,7 @@ public class AlimentoBaseService {
 		Long utenteId = getCurrentUtente().getId();
 		return preferitoRepository.findByUtenteIdOrderByCreatedAtDesc(utenteId).stream()
 				.map(UtentePreferito::getAlimento)
-				.map(DtoMapper::toAlimentoBaseDtoLight)
+				.map(DtoMapper::toAlimentoBaseDtoCard)
 				.collect(Collectors.toList());
 	}
 

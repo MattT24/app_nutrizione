@@ -36,9 +36,11 @@ public class AlimentoBaseFormDto {
     private Boolean senzaGlutine;
     private Boolean senzaLattosio;
     private Boolean vegano;
+    private Boolean vegetariano;
 
     // ── Integrazione OpenFoodFacts ──────────────────────────────────
     private String barcode;
+    private String marca;
     private Map<Allergene, StatoAllergene> allergeni;
     private FonteAllergene fonteAllergeni;
     private String nutriscoreGrade;
@@ -109,10 +111,14 @@ public class AlimentoBaseFormDto {
     public void setSenzaLattosio(Boolean senzaLattosio) { this.senzaLattosio = senzaLattosio; }
     public Boolean getVegano() { return vegano; }
     public void setVegano(Boolean vegano) { this.vegano = vegano; }
+    public Boolean getVegetariano() { return vegetariano; }
+    public void setVegetariano(Boolean vegetariano) { this.vegetariano = vegetariano; }
 
     // ── Getters/Setters integrazione OFF ──
     public String getBarcode() { return barcode; }
     public void setBarcode(String barcode) { this.barcode = barcode; }
+    public String getMarca() { return marca; }
+    public void setMarca(String marca) { this.marca = marca; }
     public Map<Allergene, StatoAllergene> getAllergeni() { return allergeni; }
     public void setAllergeni(Map<Allergene, StatoAllergene> allergeni) { this.allergeni = allergeni; }
     public FonteAllergene getFonteAllergeni() { return fonteAllergeni; }

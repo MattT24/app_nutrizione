@@ -19,3 +19,7 @@ ProgettoNutrizionista/.agents/
 ProgettoNutrizionista/skills-lock.json
 GOOGLE_AUTH_IMPLEMENTATION_PLAN.md
 COMMIT_MESSAGES_GOOGLE_LOGIN.txt
+/ProgettoNutrizionista/src/test
+/ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/engine
+ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/engine/AllergeneRuleTest.java
+
