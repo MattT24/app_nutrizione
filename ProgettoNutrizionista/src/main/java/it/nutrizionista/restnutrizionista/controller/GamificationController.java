@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.GamificationEventoDto;
 import it.nutrizionista.restnutrizionista.dto.GamificationStatoDto;
+import it.nutrizionista.restnutrizionista.enums.TipoPremio;
 import it.nutrizionista.restnutrizionista.service.GamificationService;
 
 /**
@@ -40,10 +41,10 @@ public class GamificationController {
         return service.getStorico(limit);
     }
 
-    /** Riscatta un mese gratis di abbonamento spendendo punti riscattabili. */
-    @PostMapping("/riscatta-mese-gratis")
+    /** Riscatta uno dei premi disponibili (SCONTO_20, SCONTO_40, MESE_GRATIS) spendendo punti riscattabili. */
+    @PostMapping("/riscatta-premio")
     @PreAuthorize("hasAuthority('CLIENTE_READ')")
-    public GamificationStatoDto riscattaMeseGratis() {
-        return service.riscattaMeseGratis();
+    public GamificationStatoDto riscattaPremio(@RequestParam TipoPremio tipo) {
+        return service.riscattaPremio(tipo);
     }
 }

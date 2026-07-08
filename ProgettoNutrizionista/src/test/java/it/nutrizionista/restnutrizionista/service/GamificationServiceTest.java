@@ -32,14 +32,15 @@ import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.ProgressioneNutrizionista;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
+import it.nutrizionista.restnutrizionista.enums.TipoPremio;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
 import it.nutrizionista.restnutrizionista.repository.BadgeSbloccatoRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.EventoGamificationRepository;
-import it.nutrizionista.restnutrizionista.repository.MeseGratisRiscattatoRepository;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
 import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
+import it.nutrizionista.restnutrizionista.repository.PremioRiscattatoRepository;
 import it.nutrizionista.restnutrizionista.repository.ProgressioneNutrizionistaRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 
@@ -60,7 +61,7 @@ class GamificationServiceTest {
     @Mock private EventoGamificationRepository eventoRepo;
     @Mock private ProgressioneNutrizionistaRepository progressioneRepo;
     @Mock private BadgeSbloccatoRepository badgeRepo;
-    @Mock private MeseGratisRiscattatoRepository meseGratisRepo;
+    @Mock private PremioRiscattatoRepository premioRepo;
     @Mock private ClienteRepository clienteRepo;
     @Mock private SchedaRepository schedaRepo;
     @Mock private MisurazioneAntropometricaRepository misurazioneRepo;
@@ -118,23 +119,39 @@ class GamificationServiceTest {
     }
 
     @Test
-    void riscattaMeseGratis_puntiInsufficienti_lanciaConflictExceptionENonSalvaNulla() {
+    void riscattaPremio_puntiInsufficienti_lanciaConflictExceptionENonSalvaNulla() {
         when(currentUserService.getMe()).thenReturn(nutrizionista(1L));
-        when(progressioneRepo.scalaPuntiRiscattabili(1L, GamificationService.SOGLIA_MESE_GRATIS)).thenReturn(0);
+        // existsBy ritorna false di default (Mockito): il check mensile passa, si procede al decremento
+        when(progressioneRepo.scalaPuntiRiscattabili(1L, TipoPremio.MESE_GRATIS.getCosto())).thenReturn(0);
 
-        assertThrows(ConflictException.class, () -> service.riscattaMeseGratis());
+        assertThrows(ConflictException.class, () -> service.riscattaPremio(TipoPremio.MESE_GRATIS));
 
-        verify(meseGratisRepo, never()).save(any());
+        verify(premioRepo, never()).save(any());
     }
 
     @Test
-    void riscattaMeseGratis_puntiSufficienti_scalaIlSaldoESalvaIlRiscatto() {
+    void riscattaPremio_giaRiscattatoQuestomese_lanciaConflictExceptionSenzaScalareIPunti() {
         when(currentUserService.getMe()).thenReturn(nutrizionista(1L));
-        when(progressioneRepo.scalaPuntiRiscattabili(1L, GamificationService.SOGLIA_MESE_GRATIS)).thenReturn(1);
+        when(premioRepo.existsByNutrizionista_IdAndTipoPremioAndDataRiscattoGreaterThanEqual(
+                eq(1L), eq(TipoPremio.SCONTO_20), any())).thenReturn(true);
 
-        service.riscattaMeseGratis();
+        assertThrows(ConflictException.class, () -> service.riscattaPremio(TipoPremio.SCONTO_20));
 
-        verify(meseGratisRepo).save(argThat(r -> r.getPuntiSpesi() == GamificationService.SOGLIA_MESE_GRATIS));
+        verify(progressioneRepo, never()).scalaPuntiRiscattabili(anyLong(), anyInt());
+        verify(premioRepo, never()).save(any());
+    }
+
+    @Test
+    void riscattaPremio_puntiSufficienti_scalaIlSaldoESalvaIlRiscatto() {
+        when(currentUserService.getMe()).thenReturn(nutrizionista(1L));
+        // existsBy ritorna false di default: non ancora riscattato questo mese
+        when(progressioneRepo.scalaPuntiRiscattabili(1L, TipoPremio.MESE_GRATIS.getCosto())).thenReturn(1);
+
+        service.riscattaPremio(TipoPremio.MESE_GRATIS);
+
+        verify(premioRepo).save(argThat(r ->
+                r.getTipoPremio() == TipoPremio.MESE_GRATIS &&
+                r.getPuntiSpesi() == TipoPremio.MESE_GRATIS.getCosto()));
     }
 
     @Test
