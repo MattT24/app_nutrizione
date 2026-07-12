@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.entity;
 
+import it.nutrizionista.restnutrizionista.enums.TemaPdf;
 import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -54,7 +55,12 @@ public class Utente {
     
     @Column(name = "logo")
     private String filePathLogo;
-    
+
+    /** Tema colore preferito per i PDF generati (preferenza globale del nutrizionista). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "pdf_tema_colore", length = 16)
+    private TemaPdf pdfTemaColore = TemaPdf.EMERALD;
+
     @OneToMany(mappedBy = "nutrizionista", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<Cliente> clienti;
 
@@ -97,6 +103,12 @@ public class Utente {
 	}
 	public void setClienti(List<Cliente> clienti) {
 		this.clienti = clienti;
+	}
+	public TemaPdf getPdfTemaColore() {
+		return pdfTemaColore;
+	}
+	public void setPdfTemaColore(TemaPdf pdfTemaColore) {
+		this.pdfTemaColore = pdfTemaColore;
 	}
     
 

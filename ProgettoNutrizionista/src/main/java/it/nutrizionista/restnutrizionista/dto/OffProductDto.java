@@ -75,6 +75,7 @@ public class OffProductDto {
         @JsonProperty("product_name_it") private String productNameIt;
         @JsonProperty("generic_name_it") private String genericNameIt;
         private String brands;
+        @JsonProperty("brands_tags") private List<String> brandsTags;
         private String categories;
         @JsonProperty("categories_tags") private List<String> categoriesTags;
         @JsonProperty("labels_tags") private List<String> labelsTags;
@@ -83,6 +84,7 @@ public class OffProductDto {
         @JsonProperty("image_ingredients_url") private String imageIngredientsUrl;
         @JsonProperty("image_nutrition_url") private String imageNutritionUrl;
         @JsonProperty("serving_quantity") private Double servingQuantity;
+        private String quantity; // quantità nominale confezione (es. "400 g"), testuale su OFF
 
         @JsonProperty("allergens_tags") private List<String> allergensTags;
         @JsonProperty("traces_tags") private List<String> tracesTags;
@@ -102,10 +104,9 @@ public class OffProductDto {
         @JsonProperty("states_tags") private List<String> statesTags;
         private Double completeness;
 
-        // Provenienza (E.5): tags_sources assente live → usare sources/sources_fields
+        // Provenienza (E.5): tags_sources NON è disponibile live → si usano sources/sources_fields
         private List<Source> sources;
         @JsonProperty("sources_fields") private Map<String, Object> sourcesFields;
-        @JsonProperty("tags_sources") private Map<String, Object> tagsSources; // opzionale/futuro
 
         private Nutriments nutriments;
         @JsonProperty("nutrition") private Nutrition nutrition;  // v3.5+ (schema 1003+): nuova struttura nutrienti annidata
@@ -120,6 +121,8 @@ public class OffProductDto {
         public void setGenericNameIt(String genericNameIt) { this.genericNameIt = genericNameIt; }
         public String getBrands() { return brands; }
         public void setBrands(String brands) { this.brands = brands; }
+        public List<String> getBrandsTags() { return brandsTags; }
+        public void setBrandsTags(List<String> brandsTags) { this.brandsTags = brandsTags; }
         public String getCategories() { return categories; }
         public void setCategories(String categories) { this.categories = categories; }
         public List<String> getCategoriesTags() { return categoriesTags; }
@@ -136,6 +139,8 @@ public class OffProductDto {
         public void setImageNutritionUrl(String imageNutritionUrl) { this.imageNutritionUrl = imageNutritionUrl; }
         public Double getServingQuantity() { return servingQuantity; }
         public void setServingQuantity(Double servingQuantity) { this.servingQuantity = servingQuantity; }
+        public String getQuantity() { return quantity; }
+        public void setQuantity(String quantity) { this.quantity = quantity; }
         public List<String> getAllergensTags() { return allergensTags; }
         public void setAllergensTags(List<String> allergensTags) { this.allergensTags = allergensTags; }
         public List<String> getTracesTags() { return tracesTags; }
@@ -170,8 +175,6 @@ public class OffProductDto {
         public void setSources(List<Source> sources) { this.sources = sources; }
         public Map<String, Object> getSourcesFields() { return sourcesFields; }
         public void setSourcesFields(Map<String, Object> sourcesFields) { this.sourcesFields = sourcesFields; }
-        public Map<String, Object> getTagsSources() { return tagsSources; }
-        public void setTagsSources(Map<String, Object> tagsSources) { this.tagsSources = tagsSources; }
         public Nutriments getNutriments() { return nutriments; }
         public void setNutriments(Nutriments nutriments) { this.nutriments = nutriments; }
         public Nutrition getNutrition() { return nutrition; }

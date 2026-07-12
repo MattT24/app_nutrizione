@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+
+<style th:fragment="styles">
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Inter', Helvetica, Arial, sans-serif; color: #0f172a; background: #ffffff; font-size: 12px; line-height: 1.45; }
+  @page { size: A4; margin: 13mm 14mm; }
+  .sheet { background: #ffffff; }
+  .ic { display: inline-block; width: 1em; height: 1em; vertical-align: middle; }
+  .avoid { page-break-inside: avoid; }
+
+  /* ============ MASTHEAD (referti + schede) ============ */
+  .mast { width: 100%; border-collapse: collapse; }
+  .mast td { vertical-align: middle; }
+  .mast-logo img { height: 58px; width: auto; display: block; }
+  .brandmark { border-collapse: collapse; }
+  .brandmark td { vertical-align: middle; }
+  .emblem { width: 42px; height: 42px; color: #059669; display: block; }
+  .brand-name { font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1; letter-spacing: -.01em; }
+  .brand-tag { font-size: 8px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #10b981; margin-top: 3px; }
+  .mast-doc { text-align: right; }
+  .mast-doc .kicker { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #94a3b8; }
+  .mast-doc .title { font-size: 19px; font-weight: 800; color: #0f172a; margin-top: 4px; letter-spacing: -.01em; }
+  .rule { border: 0; border-top: 2px solid #0f172a; margin: 12px 0 16px; height: 0; }
+
+  /* ============ PATIENT STRIP ============ */
+  .strip { border: 1px solid #e8ebef; border-radius: 12px; overflow: hidden; }
+  .strip table { width: 100%; border-collapse: collapse; }
+  .strip td { padding: 11px 16px; vertical-align: top; border-left: 1px solid #e8ebef; }
+  .strip td.first { border-left: 0; }
+  .sk { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #94a3b8; }
+  .sv { font-size: 13.5px; font-weight: 700; color: #0f172a; margin-top: 4px; line-height: 1.25; }
+  .sv2 { font-size: 11px; font-weight: 500; color: #475569; margin-top: 2px; line-height: 1.3; }
+  .badge { display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #047857; background: #d1fae5; border-radius: 999px; padding: 4px 11px; margin-top: 5px; }
+
+  /* ============ SECTION LABEL ============ */
+  .sec { width: 100%; border-collapse: collapse; margin: 18px 0 10px; }
+  .sec td { vertical-align: middle; }
+  .sec .ico { width: 24px; color: #059669; font-size: 17px; }
+  .sec h2 { margin: 0; font-size: 13.5px; font-weight: 800; letter-spacing: .01em; color: #0f172a; }
+  .sec .meta { text-align: right; font-size: 9.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #94a3b8; white-space: nowrap; }
+
+  /* ============ KPI CARDS ============ */
+  .grid3 { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .grid3 > tbody > tr > td { vertical-align: top; padding-left: 6px; padding-right: 6px; }
+  .grid3 > tbody > tr > td.first { padding-left: 0; }
+  .grid3 > tbody > tr > td.last { padding-right: 0; }
+  .kpi { border: 1px solid #e8ebef; border-radius: 12px; padding: 12px 15px; }
+  .kpi.hero { border-color: #a7f3d0; background: #f0fdf7; }
+  .kpi-top { width: 100%; border-collapse: collapse; }
+  .kpi-well { width: 30px; height: 30px; border-radius: 9px; background: #ecfdf5; text-align: center; vertical-align: middle; color: #059669; font-size: 15px; }
+  .kpi-lab { padding-left: 9px; font-size: 9px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #94a3b8; vertical-align: middle; line-height: 1.15; }
+  .kpi-num { margin-top: 11px; }
+  .kpi-num b { font-size: 30px; font-weight: 800; letter-spacing: -.02em; color: #0f172a; }
+  .kpi-num span { font-size: 13px; font-weight: 700; color: #94a3b8; margin-left: 4px; }
+  .kpi-foot { margin-top: 9px; }
+  .kpi-cap { margin-top: 9px; font-size: 10px; font-weight: 600; color: #94a3b8; }
+  .kpi-from { font-size: 10.5px; color: #94a3b8; font-weight: 600; margin-left: 7px; white-space: nowrap; }
+
+  /* ============ PILL (delta, semantico) ============ */
+  .pill { display: inline-block; font-size: 10.5px; font-weight: 800; padding: 2px 9px; border-radius: 999px; white-space: nowrap; background: #f1f5f9; color: #64748b; }
+  .pill .ic { width: 0.85em; height: 0.85em; margin-right: 2px; }
+  .pill.down { background: #d1fae5; color: #047857; }
+  .pill.up { background: #fee2e2; color: #b91c1c; }
+  .pill.flat { background: #f1f5f9; color: #64748b; }
+
+  /* ============ DATA TABLE ============ */
+  .wrap { border: 1px solid #e8ebef; border-radius: 12px; overflow: hidden; }
+  .mt { width: 100%; border-collapse: collapse; }
+  .mt thead th { background: #f6f8fa; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #475569; text-align: left; padding: 9px 16px; border-bottom: 1px solid #e8ebef; }
+  .mt thead th.n { text-align: right; }
+  .mt td { padding: 8px 16px; border-bottom: 1px solid #eef1f4; font-size: 13px; vertical-align: middle; }
+  .mt tr.last td { border-bottom: 0; }
+  .mt tr.pending td { background: #fcfdfe; }
+  .mt tr.sum td { background: #f6f8fa; border-top: 1px solid #e8ebef; }
+  .mt tr.result td { background: #f4fdf8; }
+  .mname { width: 100%; border-collapse: collapse; }
+  .mname .mi { width: 34px; vertical-align: middle; }
+  .mrk { width: 26px; height: 26px; border-radius: 8px; background: #ecfdf5; text-align: center; line-height: 26px; color: #059669; font-size: 14px; }
+  .mrk.off { background: #f1f5f9; color: #94a3b8; }
+  .mrk.dark { background: #0f172a; color: #ffffff; }
+  .mlabel { font-weight: 700; color: #0f172a; vertical-align: middle; }
+  .mlabel.off { color: #94a3b8; font-weight: 600; }
+  .mlabel.strong { font-weight: 800; }
+  .mlabel .sub { font-size: 9.5px; font-weight: 600; color: #94a3b8; margin-left: 5px; }
+  .n { text-align: right; white-space: nowrap; }
+  .read { font-weight: 700; color: #0f172a; }
+  .read .u { font-size: 10px; font-weight: 600; color: #94a3b8; margin-left: 2px; }
+  .read.empty { color: #cbd5e1; font-weight: 600; }
+  .todo { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #cbd5e1; }
+
+  /* ============ NOTE BOX ============ */
+  .notebox { border: 1px solid #e8ebef; border-radius: 12px; padding: 11px 15px; font-size: 11.5px; color: #475569; font-style: italic; line-height: 1.5; }
+
+  /* ============ TREND ============ */
+  .trend { border: 1px solid #e8ebef; border-radius: 12px; padding: 3px 16px; color: #059669; }
+  .trow { width: 100%; border-collapse: collapse; }
+  .trow td { vertical-align: middle; padding: 10px 0; border-bottom: 1px solid #eef1f4; }
+  .trow.last td { border-bottom: 0; }
+  .tname { text-align: left; }
+  .tn { font-size: 13px; font-weight: 700; color: #0f172a; }
+  .ts { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #94a3b8; margin-top: 2px; }
+  .tplot { width: 300px; padding: 0 18px; }
+  .tplot svg { display: block; }
+  .tend { width: 92px; text-align: right; white-space: nowrap; }
+  .tend b { font-size: 16px; font-weight: 800; color: #0f172a; }
+  .tend b span { font-size: 9.5px; font-weight: 700; color: #94a3b8; margin-left: 2px; }
+  .tend .d { font-size: 10.5px; font-weight: 800; color: #047857; margin-top: 1px; }
+
+  /* ============ REFERTO FOOTER ============ */
+  .foot { width: 100%; border-collapse: collapse; margin-top: 20px; }
+  .foot td { vertical-align: bottom; }
+  .sign-line { border-top: 1px solid #334155; width: 240px; margin-bottom: 8px; }
+  .sign-k { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; }
+  .sign-v { font-size: 13px; font-weight: 700; color: #0f172a; margin-top: 3px; }
+  .sign-q { font-size: 10px; color: #475569; margin-top: 2px; max-width: 300px; line-height: 1.35; }
+  .brand { text-align: right; font-size: 9.5px; color: #94a3b8; line-height: 1.6; }
+  .brand b { color: #059669; font-weight: 800; }
+
+  /* ============ SCHEDA — SUMMARY BAND ============ */
+  .summary { border: 1px solid #e8ebef; border-radius: 14px; margin-top: 16px; padding: 13px 8px; page-break-inside: avoid; }
+  .sumt { width: 100%; border-collapse: collapse; }
+  .sumt > tbody > tr > td { vertical-align: middle; }
+  .sum-donut { width: 122px; text-align: center; padding: 0 10px; }
+  .sum-donut svg { display: block; margin: 0 auto; }
+  .sum-title { font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #94a3b8; margin-top: 6px; }
+  .sum-leg { padding: 0 18px; border-left: 1px solid #eef1f4; }
+  .leg { width: 100%; border-collapse: collapse; }
+  .leg td { padding: 4px 0; vertical-align: middle; }
+  .leg .ld { width: 16px; }
+  .leg .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: middle; }
+  .leg .ll { font-size: 11.5px; color: #475569; font-weight: 600; }
+  .leg .lv { text-align: right; font-size: 12px; font-weight: 800; color: #0f172a; white-space: nowrap; padding-left: 12px; }
+  .leg .lp { text-align: right; font-size: 10.5px; color: #94a3b8; font-weight: 600; width: 44px; padding-left: 8px; white-space: nowrap; }
+  .sum-hyd { width: 200px; padding: 0 16px; border-left: 1px solid #eef1f4; vertical-align: middle; }
+  .hyd-lab { font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #94a3b8; }
+  .hyd-big { font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 2px; letter-spacing: -.01em; }
+  .hyd-big span { font-size: 12px; font-weight: 700; color: #94a3b8; }
+  .glasses { margin-top: 7px; }
+  .glass { display: inline-block; margin: 0 2px 0 0; vertical-align: middle; }
+  .hyd-cap { font-size: 9px; color: #94a3b8; font-weight: 600; margin-top: 5px; }
+
+  /* ============ SCHEDA — MEAL CARD (giornaliera) ============ */
+  .meal { border: 1px solid #e8ebef; border-radius: 13px; overflow: hidden; margin-bottom: 11px; page-break-inside: avoid; }
+  .meal-h { width: 100%; border-collapse: collapse; background-color: #059669; background-image: linear-gradient(90deg,#10b981,#059669); }
+  .meal-h td { vertical-align: middle; padding: 9px 15px; }
+  .meal-ico { width: 36px; }
+  .meal-well { width: 27px; height: 27px; border-radius: 8px; background: #ffffff; text-align: center; line-height: 27px; color: #059669; font-size: 15px; }
+  .meal-nm { font-size: 13.5px; font-weight: 800; color: #ffffff; }
+  .meal-time { text-align: right; font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #d1fae5; white-space: nowrap; }
+  .foods { width: 100%; border-collapse: collapse; }
+  .foods td { padding: 7px 15px; border-bottom: 1px solid #f1f4f7; vertical-align: baseline; }
+  .foods tr.lastfood td { border-bottom: 0; }
+  .foods tr.altrow td { border-bottom: 1px solid #f1f4f7; padding-top: 0; padding-bottom: 9px; }
+  .foods tr.lastfood.altrow td { border-bottom: 0; }
+  .fnm { font-size: 12.5px; font-weight: 700; color: #0f172a; }
+  .fcat { text-align: right; font-size: 10px; color: #94a3b8; font-weight: 500; white-space: nowrap; padding-right: 12px; }
+  .fqty { text-align: right; font-size: 12.5px; font-weight: 800; color: #047857; white-space: nowrap; width: 78px; }
+  .alts-lab { font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: #047857; font-weight: 800; white-space: nowrap; }
+  .achip { display: inline-block; font-size: 10px; font-weight: 600; color: #374151; background: #f3f5f7; border: 1px solid #e8ebef; border-radius: 999px; padding: 2px 9px; margin: 3px 4px 0 0; white-space: nowrap; }
+  .achip b { color: #047857; font-weight: 800; margin-left: 3px; }
+
+  /* ============ SCHEDA — DAY CARD + MEAL GRID (settimanale) ============ */
+  .day { border: 1px solid #e8ebef; border-radius: 13px; overflow: hidden; margin-top: 12px; page-break-inside: avoid; }
+  .day-h { display: table; width: 100%; background-color: #059669; background-image: linear-gradient(90deg,#10b981,#059669); }
+  .day-h .dn { display: table-cell; width: 100%; vertical-align: middle; padding: 7px 4px 7px 15px; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #ffffff; }
+  .day-h .dm { display: table-cell; vertical-align: middle; text-align: right; white-space: nowrap; padding: 7px 15px 7px 4px; font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d1fae5; }
+  .mgrid { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .mcell { width: 33.33%; vertical-align: top; padding: 9px 13px 10px; border-left: 1px solid #eef1f4; border-top: 1px solid #eef1f4; }
+  .mcell.c0 { border-left: 0; }
+  .mcell.r0 { border-top: 0; }
+  .mcell.empty { background: #fcfdfe; }
+  .mc-h { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
+  .mc-h td { vertical-align: middle; }
+  .mc-ico { width: 22px; }
+  .mc-well { width: 18px; height: 18px; border-radius: 6px; background: #ecfdf5; text-align: center; line-height: 18px; color: #059669; font-size: 11px; }
+  .mc-nm { font-size: 11.5px; font-weight: 800; color: #0f172a; padding-left: 2px; }
+  .mc-time { font-size: 8.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #94a3b8; margin: 1px 0 7px 24px; white-space: nowrap; }
+  .mc-foods { width: 100%; border-collapse: collapse; }
+  .mc-foods td { padding: 3px 0; border-bottom: 1px solid #f4f6f8; vertical-align: baseline; }
+  .mc-foods tr.lf td { border-bottom: 0; }
+  .mf-n { font-size: 11px; font-weight: 600; color: #0f172a; }
+  .mf-q { text-align: right; font-size: 11px; font-weight: 800; color: #047857; white-space: nowrap; }
+  .mf-alt td { border-bottom: 0; padding-top: 4px; }
+  .alt-lab { font-size: 7.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #047857; }
+
+  /* ============ SCHEDA — EXTRAS (indicazioni) ============ */
+  .extras { width: 100%; border-collapse: collapse; margin-top: 12px; page-break-inside: avoid; }
+  .extras > tbody > tr > td { vertical-align: top; }
+  .extras td.l { width: 62%; padding-right: 8px; }
+  .extras td.r { width: 38%; padding-left: 8px; }
+  .rc { border: 1px solid #e8ebef; border-radius: 14px; padding: 13px 16px; }
+  .rc-h { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .rc-h td { vertical-align: middle; }
+  .rc-h .ci { width: 22px; color: #059669; font-size: 15px; }
+  .rc-h .t { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #0f172a; }
+  .tip { width: 100%; border-collapse: collapse; }
+  .tip td { vertical-align: top; padding: 4px 0; }
+  .tip .ti { width: 22px; color: #059669; font-size: 14px; }
+  .tip .tx { font-size: 11px; color: #374151; line-height: 1.42; }
+
+  /* ============ SCHEDA — FOOTER ============ */
+  .foot-note { text-align: right; font-size: 9px; color: #94a3b8; line-height: 1.45; max-width: 250px; }
+  .foot-note b { color: #047857; font-weight: 800; }
+  .foot-brand { border-top: 1px solid #e8ebef; margin-top: 14px; padding-top: 9px; width: 100%; border-collapse: collapse; font-size: 9px; color: #94a3b8; }
+  .foot-brand .b { font-weight: 800; color: #0f172a; letter-spacing: .03em; }
+  .foot-brand .r { text-align: right; }
+
+  /* ============ TEMA ROSSO (override accenti emerald -> rosso) ============ */
+  .t-red .emblem { color: #dc2626; }
+  .t-red .brand-tag { color: #ef4444; }
+  .t-red .brand b { color: #dc2626; }
+  .t-red .badge { color: #b91c1c; background: #fee2e2; }
+  .t-red .sec .ico { color: #dc2626; }
+  .t-red .kpi.hero { border-color: #fecaca; background: #fef2f2; }
+  .t-red .kpi-well { background: #fef2f2; color: #dc2626; }
+  .t-red .mrk { background: #fef2f2; color: #dc2626; }
+  .t-red .mrk.off { background: #f1f5f9; color: #94a3b8; }
+  .t-red .mrk.dark { background: #0f172a; color: #ffffff; }
+  .t-red .mt tr.result td { background: #fdf5f5; }
+  .t-red .trend { color: #dc2626; }
+  .t-red .tend .d { color: #b91c1c; }
+  .t-red .meal-h { background-color: #dc2626; background-image: linear-gradient(90deg,#ef4444,#dc2626); }
+  .t-red .day-h { background-color: #dc2626; background-image: linear-gradient(90deg,#ef4444,#dc2626); }
+  .t-red .meal-time, .t-red .day-h .dm { color: #fee2e2; }
+  .t-red .meal-well { color: #dc2626; }
+  .t-red .fqty, .t-red .mf-q { color: #b91c1c; }
+  .t-red .alts-lab, .t-red .alt-lab { color: #b91c1c; }
+  .t-red .achip b { color: #b91c1c; }
+  .t-red .rc-h .ci { color: #dc2626; }
+  .t-red .tip .ti { color: #dc2626; }
+  .t-red .foot-note b { color: #b91c1c; }
+</style>
+
+<!-- ============ ICONE (SVG inline, currentColor) ============ -->
+<!-- dispatch dinamico: ico('chart') -> include il fragment ic_chart -->
+<th:block th:fragment="ico(name)"><th:block th:replace="~{pdf/fragments/pdf :: ${'ic_' + name}}"></th:block></th:block>
+
+<svg th:fragment="ic_weight" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 8h14l1.5 11a1 1 0 0 1-1 1.1H4.5a1 1 0 0 1-1-1.1L5 8Z"/><path d="M9 8a3 3 0 0 1 6 0"/></svg>
+<svg th:fragment="ic_ruler" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="8" width="18" height="8" rx="1.6"/><path d="M7.5 8v3M12 8v4M16.5 8v3"/></svg>
+<svg th:fragment="ic_arrows" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h4M16 12h4M8 8v8M16 8v8"/></svg>
+<svg th:fragment="ic_lungs" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5c0 3-3 3-3 7 0 4 3 7 7 7s7-3 7-7c0-4-3-4-3-7"/></svg>
+<svg th:fragment="ic_dumbbell" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9v6M6 8v8M18 8v8M20 9v6M6 12h12"/></svg>
+<svg th:fragment="ic_walk" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3l1 7-2 6 3 5M14 3l-1 6 3 6-1 5"/></svg>
+<svg th:fragment="ic_chart" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M4 20h16"/></svg>
+<svg th:fragment="ic_percent" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18L18 6"/><circle cx="7.6" cy="7.6" r="2.4"/><circle cx="16.4" cy="16.4" r="2.4"/></svg>
+<svg th:fragment="ic_sum" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5Z"/><path d="M3 13l9 5 9-5"/></svg>
+<svg th:fragment="ic_drop" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3.5s6 6.2 6 10.2a6 6 0 0 1-12 0C6 9.7 12 3.5 12 3.5Z"/></svg>
+<svg th:fragment="ic_muscle" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20v-6a4 4 0 0 1 4-4h3l4-4 1 2-2 3 1 3a4 4 0 0 1-4 4Z"/></svg>
+<svg th:fragment="ic_plica" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="18" rx="1.4"/><path d="M9 7h3M9 11h3M9 15h3"/></svg>
+<svg th:fragment="ic_meal" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3v7a2.5 2.5 0 0 0 5 0V3M7.5 3v18"/><path d="M17 3c-1.7 0-3 2-3 5s1.3 4 3 4M17 3v18"/></svg>
+<svg th:fragment="ic_swap" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3.4-3.4M20 16H7l3.4 3.4"/></svg>
+<svg th:fragment="ic_bulb" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.5 17h5M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/></svg>
+<svg th:fragment="ic_clock" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+<svg th:fragment="ic_leaf" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 19c0-9 7-13 14-13 0 9-5 14-14 13Z"/><path d="M5 19c3-5 6-7 9-8"/></svg>
+<svg th:fragment="ic_cal" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="16" rx="2.2"/><path d="M3.5 9h17M8 3v3M16 3v3"/></svg>
+<svg th:fragment="ic_down" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M6 13l6 6 6-6"/></svg>
+<svg th:fragment="ic_up" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V5M6 11l6-6 6 6"/></svg>
+
+<!-- ============ REFERTO FOOTER ============ -->
+<table th:fragment="footReferto(nota)" class="foot avoid">
+  <tr>
+    <td>
+      <div class="sign-line"></div>
+      <div class="sign-k">Firma del professionista</div>
+      <div class="sign-v" th:text="${nutrizionista != null} ? ${nutrizionista.nome + ' ' + nutrizionista.cognome} : 'Professionista'">Nome Cognome</div>
+      <div class="sign-q" th:if="${nutrizionista != null and nutrizionista.email != null}" th:text="${nutrizionista.email}">email</div>
+    </td>
+    <td class="brand">
+      <b>Statera</b> &#8212; Gestione nutrizionale<br/>
+      <span th:text="${nota}">nota</span>
+    </td>
+  </tr>
+</table>
+
+</head>
+<body>
+
+<!-- ============ MASTHEAD (kicker + titolo) ============ -->
+<th:block th:fragment="mast(kicker,titolo)">
+  <table class="mast">
+    <tr>
+      <td class="mast-logo">
+        <img th:if="${logoBase64 != null}" th:src="${logoBase64}" alt="Studio"/>
+        <table th:unless="${logoBase64 != null}" class="brandmark"><tr>
+          <td style="padding-right:12px;">
+            <svg class="emblem" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="M5.5 6h13"/><path d="M5.5 6 3.4 10.6a2.4 2.4 0 0 0 4.7 0L5.5 6Z"/><path d="M18.5 6l-2.1 4.6a2.4 2.4 0 0 0 4.7 0L18.5 6Z"/><path d="M9 21h6"/><path d="M12 6v15"/></svg>
+          </td>
+          <td>
+            <div class="brand-name">Statera</div>
+            <div class="brand-tag">Nutrizione &amp; Composizione Corporea</div>
+          </td>
+        </tr></table>
+      </td>
+      <td class="mast-doc">
+        <div class="kicker" th:text="${kicker}">Referto</div>
+        <div class="title" th:text="${titolo}">Titolo</div>
+      </td>
+    </tr>
+  </table>
+  <hr class="rule"/>
+</th:block>
+
+<!-- ============ SCHEDA — PATIENT STRIP ============ -->
+<div th:fragment="schedaPstrip" class="strip avoid">
+  <table>
+    <tr>
+      <td class="first" style="width:36%">
+        <div class="sk">Paziente</div>
+        <div class="sv" th:text="${pazienteNome != null and !pazienteNome.isEmpty()} ? ${pazienteNome} : '—'">Paziente</div>
+      </td>
+      <td style="width:38%">
+        <div class="sk">Piano</div>
+        <div class="sv" th:text="${scheda.nome}">Nome piano</div>
+        <div class="sv2"><span th:if="${!dataCreazione.isEmpty()}" th:text="${dataCreazione}">01/01/2026</span><span th:if="${!dataCreazione.isEmpty()}"> &#183; </span><span th:text="${totalePasti}">6</span> pasti &#183; <span th:text="${totaleAlimenti}">14</span> alimenti</div>
+      </td>
+      <td style="width:26%">
+        <div class="sk">Professionista</div>
+        <div class="sv" th:text="${nutrizionista != null} ? ${nutrizionista.nome + ' ' + nutrizionista.cognome} : '—'">Professionista</div>
+        <div class="badge" th:text="${tipoLabel}">Tipo</div>
+      </td>
+    </tr>
+  </table>
+</div>
+
+<!-- ============ SCHEDA — SUMMARY BAND (donut + legenda + idratazione) ============ -->
+<div th:fragment="schedaSummary(totLabel)" class="summary">
+  <table class="sumt"><tr>
+    <td class="sum-donut">
+      <svg width="112" height="112" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#eef1f4" stroke-width="4.4"></circle>
+        <circle th:each="seg : ${donut}" cx="18" cy="18" r="15.915" fill="none" stroke-width="4.4"
+                th:attr="stroke=${seg.color},stroke-dasharray=|${seg.len} ${seg.gap}|,stroke-dashoffset=${seg.offset}"
+                transform="rotate(-90 18 18)"></circle>
+        <text x="18" y="17.6" text-anchor="middle" font-size="7" font-weight="700" fill="#0f172a" th:text="${kcalTot}">2200</text>
+        <text x="18" y="22.2" text-anchor="middle" font-size="2.8" font-weight="700" letter-spacing="0.3" fill="#94a3b8">KCAL</text>
+      </svg>
+      <div class="sum-title" th:text="${totLabel}">Totale</div>
+    </td>
+    <td class="sum-leg">
+      <table class="leg">
+        <tr th:each="m : ${macro}">
+          <td class="ld"><span class="dot" th:style="'background:' + ${m.color}"></span></td>
+          <td class="ll" th:text="${m.label}">Macro</td>
+          <td class="lv" th:text="${m.grammi} + ' g'">0 g</td>
+          <td class="lp" th:text="${m.pct} + '%'">0%</td>
+        </tr>
+        <tr th:if="${fibreG != null}">
+          <td class="ld"><span class="dot" style="background:#10b981"></span></td>
+          <td class="ll">Fibre</td>
+          <td class="lv" th:text="${fibreG} + ' g'">0 g</td>
+          <td class="lp"></td>
+        </tr>
+      </table>
+    </td>
+    <td class="sum-hyd">
+      <div class="hyd-lab">Idratazione</div>
+      <div class="hyd-big">2,0 <span>L</span></div>
+      <div class="glasses"><th:block th:each="i : ${#numbers.sequence(1,8)}"><svg class="glass" width="15" height="19" viewBox="0 0 24 30" xmlns="http://www.w3.org/2000/svg" fill="none"><path d="M4 3h16l-1.5 23a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8L4 3Z" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.6" stroke-linejoin="round"/><path d="M4.7 10h14.6" stroke="#3b82f6" stroke-width="1.3"/></svg></th:block></div>
+      <div class="hyd-cap">8 bicchieri &#183; ~250 ml</div>
+    </td>
+  </tr></table>
+</div>
+
+<!-- ============ SCHEDA — CARD PASTO (giornaliera) ============ -->
+<div th:fragment="mealCard(pasto)" class="meal">
+  <table class="meal-h"><tr>
+    <td class="meal-ico"><div class="meal-well"><th:block th:replace="~{pdf/fragments/pdf :: ico('meal')}"></th:block></div></td>
+    <td class="meal-nm" th:text="${pasto.nome}">Pasto</td>
+    <td class="meal-time" th:if="${pasto.orario != null and !pasto.orario.isEmpty()}" th:text="${pasto.orario}">07:00 – 09:00</td>
+  </tr></table>
+  <table class="foods">
+    <th:block th:each="a,ai : ${pasto.alimenti}">
+      <tr th:classappend="${ai.last and a.alternative.isEmpty()} ? 'lastfood'">
+        <td class="fnm" th:text="${a.nome}">Alimento</td>
+        <td class="fcat" th:text="${a.categoria}">categoria</td>
+        <td class="fqty" th:text="${a.qty}">150 g</td>
+      </tr>
+      <tr class="altrow" th:if="${!a.alternative.isEmpty()}" th:classappend="${ai.last} ? 'lastfood'">
+        <td colspan="3">
+          <span class="alts-lab"><th:block th:replace="~{pdf/fragments/pdf :: ico('swap')}"></th:block> Oppure</span>
+          <th:block th:each="alt : ${a.alternative}"><span class="achip"><span th:text="${alt.nome}">Alternativa</span><b th:if="${!alt.qty.isEmpty()}" th:text="${alt.qty}">q</b></span></th:block>
+        </td>
+      </tr>
+    </th:block>
+  </table>
+</div>
+
+<!-- ============ SCHEDA — CELLA PASTO (settimanale, compatta) ============ -->
+<div th:fragment="mealCell(pasto)">
+  <table class="mc-h"><tr>
+    <td class="mc-ico"><div class="mc-well"><th:block th:replace="~{pdf/fragments/pdf :: ico('meal')}"></th:block></div></td>
+    <td class="mc-nm" th:text="${pasto.nome}">Pasto</td>
+  </tr></table>
+  <div class="mc-time" th:if="${pasto.orario != null and !pasto.orario.isEmpty()}" th:text="${pasto.orario}">07:00</div>
+  <table class="mc-foods">
+    <th:block th:each="a,ai : ${pasto.alimenti}">
+      <tr th:classappend="${ai.last and a.alternative.isEmpty()} ? 'lf'">
+        <td class="mf-n" th:text="${a.nome}">Alimento</td>
+        <td class="mf-q" th:text="${a.qty}">100 g</td>
+      </tr>
+      <tr class="mf-alt" th:if="${!a.alternative.isEmpty()}" th:classappend="${ai.last} ? 'lf'">
+        <td colspan="2">
+          <span class="alt-lab"><th:block th:replace="~{pdf/fragments/pdf :: ico('swap')}"></th:block> Oppure</span><br/>
+          <th:block th:each="alt : ${a.alternative}"><span class="achip"><span th:text="${alt.nome}">Alternativa</span><b th:if="${!alt.qty.isEmpty()}" th:text="${alt.qty}">q</b></span></th:block>
+        </td>
+      </tr>
+    </th:block>
+  </table>
+</div>
+
+<!-- ============ SCHEDA — INDICAZIONI (extras band) ============ -->
+<table th:fragment="schedaIndicazioni" class="extras"><tr>
+  <td class="l">
+    <div class="rc">
+      <table class="rc-h"><tr>
+        <td class="ci"><th:block th:replace="~{pdf/fragments/pdf :: ico('bulb')}"></th:block></td>
+        <td class="t">Indicazioni</td>
+      </tr></table>
+      <table class="tip"><tr>
+        <td class="ti"><th:block th:replace="~{pdf/fragments/pdf :: ico('clock')}"></th:block></td>
+        <td class="tx">Rispetta gli orari dei pasti: aiutano a gestire fame, energia e qualità del sonno.</td>
+      </tr></table>
+      <table class="tip"><tr>
+        <td class="ti"><th:block th:replace="~{pdf/fragments/pdf :: ico('leaf')}"></th:block></td>
+        <td class="tx">Mastica lentamente e senza schermi: migliora sazietà e digestione.</td>
+      </tr></table>
+      <table class="tip"><tr>
+        <td class="ti"><th:block th:replace="~{pdf/fragments/pdf :: ico('walk')}"></th:block></td>
+        <td class="tx">Concediti una camminata leggera (10–15 min) dopo i pasti principali.</td>
+      </tr></table>
+    </div>
+  </td>
+  <td class="r">
+    <div class="rc">
+      <table class="rc-h"><tr>
+        <td class="ci"><th:block th:replace="~{pdf/fragments/pdf :: ico('drop')}"></th:block></td>
+        <td class="t">Idratazione</td>
+      </tr></table>
+      <table class="tip"><tr>
+        <td class="ti"><th:block th:replace="~{pdf/fragments/pdf :: ico('drop')}"></th:block></td>
+        <td class="tx">Bevi acqua durante tutta la giornata (~2 L), anche lontano dai pasti.</td>
+      </tr></table>
+      <table class="tip"><tr>
+        <td class="ti"><th:block th:replace="~{pdf/fragments/pdf :: ico('cal')}"></th:block></td>
+        <td class="tx">Consulta il professionista prima di modificare il piano.</td>
+      </tr></table>
+    </div>
+  </td>
+</tr></table>
+
+<!-- ============ SCHEDA — FOOTER ============ -->
+<th:block th:fragment="schedaFoot">
+  <table class="foot avoid">
+    <tr>
+      <td>
+        <div class="sign-line"></div>
+        <div class="sign-k">Firma del professionista</div>
+        <div class="sign-v" th:text="${nutrizionista != null} ? ${nutrizionista.nome + ' ' + nutrizionista.cognome} : 'Professionista'">Nome</div>
+        <div class="sign-q" th:if="${nutrizionista != null and nutrizionista.email != null}" th:text="${nutrizionista.email}">email</div>
+      </td>
+      <td class="foot-note">Le alternative <b>oppure</b> sono equivalenti e intercambiabili.<br/>Consultare il professionista prima di modificare il piano.</td>
+    </tr>
+  </table>
+  <table class="foot-brand avoid">
+    <tr>
+      <td><span class="b">Statera</span> &#8212; Gestione nutrizionale</td>
+      <td class="r"><span th:text="'Piano ' + ${#strings.toLowerCase(tipoLabel)}">Piano</span> &#183; <span th:text="${pazienteNome}">Paziente</span><span th:if="${!dataCreazione.isEmpty()}"> &#183; <span th:text="${dataCreazione}">data</span></span></td>
+    </tr>
+  </table>
+</th:block>
+
+</body>
+</html>

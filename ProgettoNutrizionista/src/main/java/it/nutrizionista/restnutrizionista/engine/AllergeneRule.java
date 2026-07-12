@@ -14,18 +14,23 @@ import it.nutrizionista.restnutrizionista.dto.ValutazioneClinicaDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AvversionePersonale;
 import it.nutrizionista.restnutrizionista.enums.Allergene;
+import it.nutrizionista.restnutrizionista.enums.DefaultAllergene;
 import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
 import it.nutrizionista.restnutrizionista.enums.StatoAllergene;
 import it.nutrizionista.restnutrizionista.enums.TagStandard;
 
 /**
  * Regola clinica <strong>data-driven</strong> per i 14 allergeni UE + le intolleranze
- * glutine (NCGS) e lattosio. Sostituisce le 3 regole hardcoded
- * (AllergiaGlutineRule/IntolleranzaLattosioRule/IntolleranzaNcgsRule) leggendo la mappa tri-stato
- * {@code AlimentoBase.allergeni}.
+ * glutine (NCGS) e lattosio. È il motore allergeni di default: legge la mappa tri-stato
+ * {@code AlimentoBase.allergeni} (sostituisce le vecchie regole hardcoded, ora rimosse).
  *
- * <p>Attiva solo con {@code clinica.engine.use-allergen-rule=true} (feature flag di transizione,
- * piano E.11). Quando attiva, le 3 regole legacy sono disattivate dallo stesso flag.
+ * <p>Attiva di default: {@code @ConditionalOnProperty(... matchIfMissing=true)}, con override
+ * esplicito {@code clinica.engine.use-allergen-rule=true} in {@code application.properties}.
+ *
+ * <p><strong>Risoluzione Opzione C</strong> (ponte con lo storage Fase 2): per ogni
+ * {@code (alimento, allergene)} lo stato è quello della riga esplicita in {@code alimento_allergene};
+ * se la riga manca si usa {@code alimenti_base.allergeni_default} — vedi {@link #effettivo}. Così i
+ * ~700 alimenti con default ASSENTE danno SAFE (non INFO) per gli allergeni non elencati.
  *
  * <p>Mapping tag→esito (piano §3.1):
  * <pre>
@@ -33,11 +38,11 @@ import it.nutrizionista.restnutrizionista.enums.TagStandard;
  *  Intolleranza INT_ presente→WARNING                                    SCONOSCIUTO→INFO
  * </pre>
  *
- * @order 1 — priorità massima (rischio anafilattico/autoimmune), come AllergiaGlutineRule.
+ * @order 1 — priorità massima (rischio anafilattico/autoimmune).
  */
 @Component
 @Order(1)
-@ConditionalOnProperty(name = "clinica.engine.use-allergen-rule", havingValue = "true")
+@ConditionalOnProperty(name = "clinica.engine.use-allergen-rule", havingValue = "true", matchIfMissing = true)
 public class AllergeneRule implements AlimentoRuleValidator {
 
     private static final List<String> LOW_LACTOSE_KEYWORDS =
@@ -63,7 +68,7 @@ public class AllergeneRule implements AlimentoRuleValidator {
             // ── Allergie ALL_* ──
             Allergene allergene = TagStandardAllergeneMapping.allergeneFor(tag);
             if (allergene != null) {
-                StatoAllergene stato = stati.get(allergene);
+                StatoAllergene stato = effettivo(stati, alimento, allergene);
                 String label = TagStandardAllergeneMapping.label(allergene);
                 LivelloAllerta lvl = null;
                 String msg = null;
@@ -84,38 +89,54 @@ public class AllergeneRule implements AlimentoRuleValidator {
                 continue;
             }
 
-            // ── Intolleranza NCGS (glutine) ──
+            // ── Intolleranza NCGS (glutine) ── (Opzione C: riga esplicita ?? allergeni_default)
             if (tag == TagStandard.INT_GLUTINE_NCGS) {
-                StatoAllergene g = stati.get(Allergene.GLUTINE);
+                StatoAllergene g = effettivo(stati, alimento, Allergene.GLUTINE);
                 if (g == StatoAllergene.PRESENTE) {
                     motivi.add(new MotivoValutazioneDto("INT_GLUTINE_NCGS",
                             "🟡 Contiene glutine. Il paziente ha sensibilità al glutine non celiaca (Tag: INT_GLUTINE_NCGS)."));
                     if (ordine(LivelloAllerta.WARNING) > ordine(peggiore)) peggiore = LivelloAllerta.WARNING;
-                } else if (g == null || g == StatoAllergene.TRACCE) {
+                } else if (g == StatoAllergene.TRACCE || g == StatoAllergene.SCONOSCIUTO) {
                     motivi.add(new MotivoValutazioneDto("INT_GLUTINE_NCGS",
                             "ⓘ Presenza di glutine non verificata per questo prodotto (Tag: INT_GLUTINE_NCGS)."));
                     if (ordine(LivelloAllerta.INFO) > ordine(peggiore)) peggiore = LivelloAllerta.INFO;
                 }
+                // ASSENTE → SAFE
                 continue;
             }
 
-            // ── Intolleranza al lattosio (LATTE ≠ lattosio: helper) ──
+            // ── Intolleranza al lattosio (LATTE ≠ lattosio: helper) ── (Opzione C)
             if (tag == TagStandard.INT_LATTOSIO) {
-                StatoAllergene latte = stati.get(Allergene.LATTE);
-                if (latte == null) {
-                    motivi.add(new MotivoValutazioneDto("INT_LATTOSIO",
-                            "ⓘ Presenza di lattosio non verificata per questo prodotto (Tag: INT_LATTOSIO)."));
-                    if (ordine(LivelloAllerta.INFO) > ordine(peggiore)) peggiore = LivelloAllerta.INFO;
-                } else if (lattosioPresente(alimento, latte)) {
+                StatoAllergene latte = effettivo(stati, alimento, Allergene.LATTE);
+                if (lattosioPresente(alimento, latte)) {
                     motivi.add(new MotivoValutazioneDto("INT_LATTOSIO",
                             "🟡 Contiene lattosio. Il paziente è intollerante al lattosio (Tag: INT_LATTOSIO)."));
                     if (ordine(LivelloAllerta.WARNING) > ordine(peggiore)) peggiore = LivelloAllerta.WARNING;
+                } else if (latte == StatoAllergene.SCONOSCIUTO) {
+                    motivi.add(new MotivoValutazioneDto("INT_LATTOSIO",
+                            "ⓘ Presenza di lattosio non verificata per questo prodotto (Tag: INT_LATTOSIO)."));
+                    if (ordine(LivelloAllerta.INFO) > ordine(peggiore)) peggiore = LivelloAllerta.INFO;
                 }
-                // altrimenti (lactose-free o stagionato/burro o LATTE ASSENTE) → SAFE
+                // ASSENTE / lactose-free / stagionato-burro → SAFE
             }
         }
 
         return new ValutazioneClinicaDto(peggiore, List.copyOf(motivi));
+    }
+
+    /**
+     * Risoluzione Opzione C: stato effettivo di un allergene per un alimento.
+     * Riga esplicita in {@code alimenti.allergeni} se presente; altrimenti il default
+     * dell'alimento ({@code allergeni_default}): {@code ASSENTE→ASSENTE} (SAFE),
+     * {@code SCONOSCIUTO} o default nullo {@code →SCONOSCIUTO} (INFO, "non verificato").
+     * Il valore restituito non è mai {@code null}, così i rami chiamanti gestiscono i 4 stati.
+     */
+    private static StatoAllergene effettivo(Map<Allergene, StatoAllergene> stati,
+                                            AlimentoBase alimento, Allergene allergene) {
+        StatoAllergene s = stati.get(allergene);
+        if (s != null) return s;
+        DefaultAllergene def = alimento.getAllergeniDefault();
+        return def == DefaultAllergene.ASSENTE ? StatoAllergene.ASSENTE : StatoAllergene.SCONOSCIUTO;
     }
 
     /** Lattosio presente = LATTE presente/tracce AND non lactose-free AND non low-lactose per nome (E.9). */

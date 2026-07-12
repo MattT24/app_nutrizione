@@ -36,11 +36,11 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 String username = jwtUtils.getUserNameFromJwtToken(jwt);
                 
                 // Estrai le authorities dal token
-                Claims claims = Jwts.parserBuilder()
-                        .setSigningKey(jwtUtils.getKey())
+                Claims claims = Jwts.parser()
+                        .verifyWith(jwtUtils.getKey())
                         .build()
-                        .parseClaimsJws(jwt)
-                        .getBody();
+                        .parseSignedClaims(jwt)
+                        .getPayload();
                 
                 @SuppressWarnings("unchecked")
                 List<String> authorities = claims.get("authorities", List.class);

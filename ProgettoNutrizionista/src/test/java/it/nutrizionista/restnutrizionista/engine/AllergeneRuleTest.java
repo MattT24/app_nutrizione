@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import it.nutrizionista.restnutrizionista.dto.ValutazioneClinicaDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.enums.Allergene;
+import it.nutrizionista.restnutrizionista.enums.DefaultAllergene;
 import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
 import it.nutrizionista.restnutrizionista.enums.StatoAllergene;
 import it.nutrizionista.restnutrizionista.enums.TagStandard;
@@ -143,5 +144,54 @@ class AllergeneRuleTest {
         AlimentoBase a = aliment("Salame", Map.of(Allergene.GLUTINE, StatoAllergene.PRESENTE));
         // PAT_IPERTENSIONE non è gestito da AllergeneRule → SAFE
         assertThat(valuta(a, TagStandard.PAT_IPERTENSIONE).stato()).isEqualTo(LivelloAllerta.SAFE);
+    }
+
+    // ── Opzione C: risoluzione via allergeni_default quando manca la riga esplicita ──
+
+    @Test
+    void defaultAssente_senzaRiga_daSafe() {
+        // Il fix dei ~706 alimenti CREA default=ASSENTE: allergene non elencato → SAFE, non INFO.
+        AlimentoBase a = aliment("Petto di pollo", Map.of());
+        a.setAllergeniDefault(DefaultAllergene.ASSENTE);
+        ValutazioneClinicaDto r = valuta(a, TagStandard.ALL_FRUTTA_GUSCIO);
+        assertThat(r.stato()).isEqualTo(LivelloAllerta.SAFE);
+        assertThat(r.motivi()).isEmpty();
+    }
+
+    @Test
+    void defaultSconosciuto_senzaRiga_daInfo() {
+        AlimentoBase a = aliment("Prodotto trasformato", Map.of());
+        a.setAllergeniDefault(DefaultAllergene.SCONOSCIUTO);
+        assertThat(valuta(a, TagStandard.ALL_FRUTTA_GUSCIO).stato()).isEqualTo(LivelloAllerta.INFO);
+    }
+
+    @Test
+    void rigaEsplicita_vinceSulDefaultAssente() {
+        // Il default non deve mai mascherare un PRESENTE reale.
+        AlimentoBase a = aliment("Cioccolato con nocciole",
+                Map.of(Allergene.FRUTTA_GUSCIO, StatoAllergene.PRESENTE));
+        a.setAllergeniDefault(DefaultAllergene.ASSENTE);
+        assertThat(valuta(a, TagStandard.ALL_FRUTTA_GUSCIO).stato()).isEqualTo(LivelloAllerta.ALERT_GRAVE);
+    }
+
+    @Test
+    void defaultAssente_ncgs_daSafe() {
+        AlimentoBase a = aliment("Petto di pollo", Map.of());
+        a.setAllergeniDefault(DefaultAllergene.ASSENTE);
+        assertThat(valuta(a, TagStandard.INT_GLUTINE_NCGS).stato()).isEqualTo(LivelloAllerta.SAFE);
+    }
+
+    @Test
+    void defaultAssente_lattosio_daSafe() {
+        AlimentoBase a = aliment("Petto di pollo", Map.of());
+        a.setAllergeniDefault(DefaultAllergene.ASSENTE);
+        assertThat(valuta(a, TagStandard.INT_LATTOSIO).stato()).isEqualTo(LivelloAllerta.SAFE);
+    }
+
+    @Test
+    void defaultSconosciuto_lattosio_daInfo() {
+        AlimentoBase a = aliment("Prodotto trasformato", Map.of());
+        a.setAllergeniDefault(DefaultAllergene.SCONOSCIUTO);
+        assertThat(valuta(a, TagStandard.INT_LATTOSIO).stato()).isEqualTo(LivelloAllerta.INFO);
     }
 }

@@ -576,9 +576,11 @@ public class DtoMapper {
 		a.setSenzaGlutine(dto.getSenzaGlutine());
 		a.setSenzaLattosio(dto.getSenzaLattosio());
 		a.setVegano(dto.getVegano());
+		a.setVegetariano(dto.getVegetariano());
 
 		// Integrazione OpenFoodFacts
 		a.setBarcode(dto.getBarcode());
+		a.setMarca(dto.getMarca());
 		if (dto.getAllergeni() != null && !dto.getAllergeni().isEmpty())
 			a.setAllergeni(new java.util.EnumMap<>(dto.getAllergeni()));
 		a.setFonteAllergeni(dto.getFonteAllergeni());
@@ -614,9 +616,11 @@ public class DtoMapper {
 		a.setSenzaGlutine(form.getSenzaGlutine());
 		a.setSenzaLattosio(form.getSenzaLattosio());
 		a.setVegano(form.getVegano());
+		a.setVegetariano(form.getVegetariano());
 
 		// Integrazione OFF — preserva i valori esistenti se il form non li fornisce
 		if (form.getBarcode() != null) a.setBarcode(form.getBarcode());
+		if (form.getMarca() != null) a.setMarca(form.getMarca());
 		if (form.getAllergeni() != null && !form.getAllergeni().isEmpty())
 			a.setAllergeni(new java.util.EnumMap<>(form.getAllergeni()));
 		if (form.getFonteAllergeni() != null) a.setFonteAllergeni(form.getFonteAllergeni());
@@ -654,6 +658,7 @@ public class DtoMapper {
 		dto.setSenzaGlutine(a.getSenzaGlutine());
 		dto.setSenzaLattosio(a.getSenzaLattosio());
 		dto.setVegano(a.getVegano());
+		dto.setVegetariano(a.getVegetariano());
 		applyOffFields(dto, a);
 		return dto;
 	}
@@ -686,6 +691,7 @@ public class DtoMapper {
 		dto.setSenzaGlutine(a.getSenzaGlutine());
 		dto.setSenzaLattosio(a.getSenzaLattosio());
 		dto.setVegano(a.getVegano());
+		dto.setVegetariano(a.getVegetariano());
 		applyOffFields(dto, a);
 		return dto;
 	}
@@ -693,6 +699,7 @@ public class DtoMapper {
 	/** Popola i campi OpenFoodFacts (allergeni tri-stato, score, qualità) sul DTO di output. */
 	private static void applyOffFields(AlimentoBaseDto dto, AlimentoBase a) {
 		dto.setBarcode(a.getBarcode());
+		dto.setMarca(a.getMarca());
 		dto.setFonteAllergeni(a.getFonteAllergeni());
 		dto.setNutriscoreGrade(a.getNutriscoreGrade());
 		dto.setNovaGroup(a.getNovaGroup());
@@ -706,6 +713,31 @@ public class DtoMapper {
 				? new java.util.HashMap<>(a.getNutrientLevels()) : null);
 		dto.setAdditivi(a.getAdditivi() != null && !a.getAdditivi().isEmpty()
 				? new java.util.HashSet<>(a.getAdditivi()) : null);
+	}
+
+	/**
+	 * Mapper per le LISTE del catalogo (card + indice di ricerca). Rispetto a
+	 * {@link #toAlimentoBaseDtoLight} NON tocca {@code nutrientLevels}/{@code additivi}
+	 * (nessun consumatore di lista) né i campi OFF scalari → niente over-fetch di quelle
+	 * due @ElementCollection e payload più snello. Mantiene {@code tracce} (filtro
+	 * "escludi tracce" client-side) e {@code allergeni} (badge nel modal aggiungi-alimento).
+	 * Il resto resta null e, con {@code @JsonInclude(NON_NULL)} sul DTO, non viene serializzato.
+	 */
+	public static AlimentoBaseDto toAlimentoBaseDtoCard(AlimentoBase a) {
+		if (a == null) return null;
+		AlimentoBaseDto dto = new AlimentoBaseDto();
+		dto.setId(a.getId());
+		dto.setNome(a.getNome());
+		dto.setMisuraInGrammi(a.getMisuraInGrammi());
+		dto.setMacroNutrienti(toMacroDtoLight(a.getMacronutrienti()));
+		dto.setCategoria(a.getCategoria());
+		dto.setTracce(a.getTracce() != null ? new java.util.HashSet<>(a.getTracce()) : null);
+		dto.setPersonale(a.getCreatedBy() != null);
+		dto.setBarcode(a.getBarcode());
+		dto.setMarca(a.getMarca());
+		java.util.Map<it.nutrizionista.restnutrizionista.enums.Allergene, it.nutrizionista.restnutrizionista.enums.StatoAllergene> alg = a.getAllergeni();
+		dto.setAllergeni(alg == null || alg.isEmpty() ? null : new java.util.EnumMap<>(alg));
+		return dto;
 	}
 
 	// Mapper Minimal: Solo info base, NIENTE macro/micro per evitare loop
