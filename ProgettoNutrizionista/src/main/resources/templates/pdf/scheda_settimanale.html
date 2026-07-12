@@ -1,289 +1,49 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
-
+<html lang="it" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8" />
-    <title>Piano Alimentare Settimanale</title>
-    <style>
-        @page { size: A4; margin: 10mm 12mm 10mm 12mm; }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: Helvetica, Arial, sans-serif;
-            color: #0f172a;
-            font-size: 12px;
-            line-height: 1.5;
-            background: #fff;
-        }
-
-        /* ─── NUTRIZIONISTA HEADER ─── */
-        .nutri-header {
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 3px solid #10b981;
-        }
-        .nutri-header table { width: 100%; }
-        .nutri-header td { border: none; padding: 0; vertical-align: middle; }
-        .nutri-logo-cell { width: 90px; }
-        .nutri-logo { max-width: 80px; max-height: 80px; width: auto; height: auto; border: 1px solid #e2e8f0; border-radius: 6px; }
-        .nutri-name { font-size: 15px; font-weight: 800; color: #10b981; }
-        .nutri-info { font-size: 10px; color: #64748b; line-height: 1.6; margin-top: 2px; }
-
-        /* ─── DOC HEADER ─── */
-        .doc-header {
-            border-bottom: 2px solid #e2e8f0;
-            padding-bottom: 12px;
-            margin-bottom: 18px;
-        }
-        .doc-header table { width: 100%; }
-        .doc-header td { vertical-align: bottom; border: none; padding: 0; }
-        .doc-title { font-size: 22px; font-weight: 800; color: #0f172a; margin-top: 2px; }
-        .doc-subtitle { font-size: 10px; color: #10b981; font-weight: 700;
-                        text-transform: uppercase; letter-spacing: 1px; margin-bottom: 3px; }
-        .doc-date { text-align: right; font-size: 10px; color: #64748b; line-height: 1.8; }
-
-        /* ─── PATIENT BAR ─── */
-        .patient-bar {
-            background: #f0fdf4;
-            border-left: 4px solid #10b981;
-            border-radius: 0 6px 6px 0;
-            padding: 9px 16px;
-            margin-bottom: 20px;
-        }
-        .patient-bar table { width: 100%; }
-        .patient-bar td { border: none; padding: 2px 0; font-size: 11px; }
-        .patient-bar .lbl {
-            color: #64748b; text-transform: uppercase;
-            font-size: 8px; font-weight: 800; letter-spacing: 0.6px;
-        }
-        .patient-bar .val { font-weight: 700; color: #0f172a; font-size: 13px; }
-
-        /* ─── GIORNO HEADER ─── */
-        .day-header {
-            background: #10b981;
-            color: #ffffff;
-            padding: 9px 16px;
-            margin-top: 22px;
-            margin-bottom: 12px;
-            font-size: 13px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            border-radius: 6px;
-            page-break-after: avoid;
-        }
-
-        /* ─── PASTO ─── */
-        .pasto {
-            margin-bottom: 14px;
-            page-break-inside: avoid;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            overflow: hidden;
-        }
-        .pasto-head {
-            background: #f8fafc;
-            border-bottom: 1px solid #e2e8f0;
-            padding: 7px 14px;
-            font-size: 12px;
-            font-weight: 700;
-        }
-        .pasto-head table { width: 100%; }
-        .pasto-head td { border: none; padding: 0; color: #0f172a; }
-        .pasto-name { color: #0f172a; font-weight: 800; font-size: 13px; }
-        .pasto-time { text-align: right; font-size: 11px; font-weight: 500; color: #64748b; }
-        .pasto-desc {
-            background: #fafafa;
-            padding: 5px 14px;
-            font-size: 10px;
-            color: #64748b;
-            font-style: italic;
-            border-bottom: 1px solid #f1f5f9;
-        }
-
-        /* ─── FOOD TABLE ─── */
-        .food-table { width: 100%; border-collapse: collapse; }
-        .food-table th {
-            background: #f1f5f9;
-            text-align: left;
-            padding: 6px 14px;
-            font-size: 8px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: #64748b;
-            border-bottom: 1px solid #e2e8f0;
-        }
-        .food-table th.qty-col { text-align: right; width: 100px; }
-        .food-table td {
-            padding: 7px 14px;
-            border-bottom: 1px solid #f1f5f9;
-            vertical-align: middle;
-        }
-        .food-table tr:last-child td { border-bottom: none; }
-        .food-table tr:nth-child(even) td { background: #fafafa; }
-        .food-name { font-weight: 700; color: #0f172a; font-size: 12px; }
-        .food-cat { font-size: 9px; color: #94a3b8; margin-top: 1px; }
-        .food-qty { text-align: right; font-weight: 800; color: #10b981; font-size: 12px; }
-
-        /* ─── ALTERNATIVE ─── */
-        .alt-row td {
-            padding: 4px 14px 6px 28px !important;
-            border-bottom: 1px solid #f8f9fa !important;
-            background: #fafdfb !important;
-        }
-        .alt-name { font-size: 10px; color: #64748b; font-style: italic; }
-        .alt-prefix {
-            color: #10b981; font-weight: 800;
-            margin-right: 4px; font-style: normal;
-            font-size: 9px; text-transform: uppercase;
-        }
-
-        /* ─── FOOTER ─── */
-        .doc-footer {
-            margin-top: 20px;
-            padding-top: 8px;
-            border-top: 1px solid #e2e8f0;
-            text-align: center;
-            font-size: 8px;
-            color: #94a3b8;
-            line-height: 1.8;
-        }
-    </style>
+  <meta charset="utf-8"/>
+  <style th:replace="~{pdf/fragments/pdf :: styles}"></style>
+  <style>@page { size: A4; margin: 12mm 13mm; }</style>
 </head>
-
 <body>
+<div class="sheet" th:classappend="${temaRosso} ? 't-red'">
 
-    <!-- INTESTAZIONE NUTRIZIONISTA -->
-    <div class="nutri-header" th:if="${nutrizionista != null}">
-        <table>
-            <tr>
-                <td class="nutri-logo-cell" th:if="${logoBase64 != null}">
-                    <img class="nutri-logo" th:src="${logoBase64}" alt="Logo" />
-                </td>
-                <td>
-                    <div class="nutri-name" th:text="${'Dott. ' + (nutrizionista?.nome ?: '') + ' ' + (nutrizionista?.cognome ?: '')}">Dott. Nome Cognome</div>
-                    <div class="nutri-info">
-                        <span th:if="${nutrizionista?.email != null}" th:text="${nutrizionista.email}">email@example.com</span>
-                        <span th:if="${nutrizionista?.telefono != null}"> &#160;|&#160; </span>
-                        <span th:if="${nutrizionista?.telefono != null}" th:text="${nutrizionista.telefono}">333 1234567</span>
-                        <br th:if="${nutrizionista?.indirizzo != null}" />
-                        <span th:if="${nutrizionista?.indirizzo != null}" th:text="${nutrizionista.indirizzo}">Via Roma 1, Milano</span>
-                    </div>
-                </td>
-            </tr>
-        </table>
+  <!-- MASTHEAD -->
+  <div th:replace="~{pdf/fragments/pdf :: mast('Scheda Alimentare', 'Piano Settimanale')}"></div>
+
+  <!-- PATIENT STRIP -->
+  <div th:replace="~{pdf/fragments/pdf :: schedaPstrip}"></div>
+
+  <!-- RIEPILOGO MACRO + IDRATAZIONE -->
+  <th:block th:if="${mostraMacro and hasMacro}">
+    <div th:replace="~{pdf/fragments/pdf :: schedaSummary('Totale Settimanale')}"></div>
+  </th:block>
+
+  <!-- GIORNI -->
+  <th:block th:each="g : ${giorni}">
+    <div class="day" th:with="n=${g.pasti.size()}">
+      <div class="day-h">
+        <div class="dn" th:text="${g.nome}">Giorno</div>
+        <div class="dm"><span th:text="${n}">6</span> pasti</div>
+      </div>
+      <table class="mgrid" th:if="${n > 0}" th:with="rows=${(n + 2) / 3}">
+        <tr th:each="r : ${#numbers.sequence(0, rows - 1)}">
+          <th:block th:each="c : ${#numbers.sequence(0, 2)}">
+            <td class="mcell" th:with="idx=${r * 3 + c}" th:classappend="${(c == 0 ? 'c0 ' : '') + (r == 0 ? 'r0 ' : '') + (idx >= n ? 'empty' : '')}">
+              <th:block th:if="${idx &lt; n}"><div th:replace="~{pdf/fragments/pdf :: mealCell(${g.pasti[idx]})}"></div></th:block>
+            </td>
+          </th:block>
+        </tr>
+      </table>
     </div>
+  </th:block>
 
-    <!-- TITOLO SCHEDA -->
-    <div class="doc-header">
-        <table>
-            <tr>
-                <td>
-                    <div class="doc-title" th:text="${scheda?.nome ?: 'Piano Alimentare Settimanale'}">Piano Alimentare</div>
-                </td>
-                <td class="doc-date">
-                    <div th:if="${scheda.dataCreazione != null}" th:text="${#temporals.format(scheda.dataCreazione, 'dd/MM/yyyy')}">26/03/2026</div>
-                    <div th:text="'Settimanale'">Tipo: SETTIMANALE</div>
-                </td>
-            </tr>
-        </table>
-    </div>
+  <!-- INDICAZIONI -->
+  <div th:replace="~{pdf/fragments/pdf :: schedaIndicazioni}"></div>
 
-    <!-- INFO PAZIENTE -->
-    <div class="patient-bar" th:if="${scheda.cliente != null}">
-        <table>
-            <tr>
-                <td>
-                    <span class="lbl">Paziente</span><br />
-                    <span class="val" th:text="${(scheda.cliente?.nome ?: '') + ' ' + (scheda.cliente?.cognome ?: '')}">Mario Rossi</span>
-                </td>
-            </tr>
-        </table>
-    </div>
+  <!-- FOOTER -->
+  <div th:replace="~{pdf/fragments/pdf :: schedaFoot}"></div>
 
-    <!-- PASTI RAGGRUPPATI PER GIORNO -->
-    <th:block th:each="entry : ${groupedPasti}">
-        <div class="day-header" th:text="${entry.key == T(it.nutrizionista.restnutrizionista.entity.GiornoSettimana).LUNEDI ? 'Lunedì' : 
-                                          entry.key == T(it.nutrizionista.restnutrizionista.entity.GiornoSettimana).MARTEDI ? 'Martedì' :
-                                          entry.key == T(it.nutrizionista.restnutrizionista.entity.GiornoSettimana).MERCOLEDI ? 'Mercoledì' :
-                                          entry.key == T(it.nutrizionista.restnutrizionista.entity.GiornoSettimana).GIOVEDI ? 'Giovedì' :
-                                          entry.key == T(it.nutrizionista.restnutrizionista.entity.GiornoSettimana).VENERDI ? 'Venerdì' :
-                                          entry.key == T(it.nutrizionista.restnutrizionista.entity.GiornoSettimana).SABATO ? 'Sabato' : 'Domenica'}">
-            Giorno
-        </div>
-        <th:block th:each="pasto : ${entry.value}">
-            <div th:replace="~{::pasto-content(pasto=${pasto})}"></div>
-        </th:block>
-    </th:block>
-
-    <!-- FRAGMENT PER IL CONTENUTO DEL PASTO -->
-    <th:block th:fragment="pasto-content(pasto)">
-        <div class="pasto" th:if="${pasto != null}">
-            <div class="pasto-head">
-                <table>
-                    <tr>
-                        <td>
-                            <span class="pasto-name" th:text="${pasto?.nome ?: 'Pasto'}">Colazione</span>
-                        </td>
-                        <td class="pasto-time">
-                            <span th:if="${pasto?.orarioInizio != null}" th:text="${#temporals.format(pasto.orarioInizio, 'HH:mm')}">08:00</span>
-                            <span th:if="${pasto?.orarioInizio != null and pasto?.orarioFine != null}"> — </span>
-                            <span th:if="${pasto?.orarioFine != null}" th:text="${#temporals.format(pasto.orarioFine, 'HH:mm')}">08:30</span>
-                        </td>
-                    </tr>
-                </table>
-            </div>
-
-            <div class="pasto-desc" th:if="${pasto?.descrizione != null and !pasto.descrizione.isEmpty()}">
-                <span th:text="${pasto.descrizione}">Descrizione del pasto</span>
-            </div>
-
-            <table class="food-table">
-                <thead>
-                    <tr>
-                        <th>Alimento</th>
-                        <th class="qty-col">Quantità</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <th:block th:each="ap : ${pasto.alimentiPasto}">
-                        <tr>
-                            <td>
-                                <div class="food-name"
-                                     th:text="${ap.nomeOverride != null ? ap.nomeOverride.nomeCustom : (ap.alimento != null ? ap.alimento.nome : 'N/D')}">
-                                    Alimento
-                                </div>
-                                <div class="food-cat"
-                                     th:if="${ap.alimento != null and ap.alimento.categoria != null}"
-                                     th:text="${ap.alimento.categoria}">Categoria</div>
-                            </td>
-                            <td class="food-qty"
-                                th:text="${ap.quantita > 0 ? ap.quantita + ' g' : 'A volontà'}">100 g</td>
-                        </tr>
-                        <!-- Alternative -->
-                        <tr th:each="alt : ${ap.alternative}" class="alt-row">
-                            <td>
-                                <div class="alt-name">
-                                    <span class="alt-prefix">Oppure:</span> 
-                                    <span th:text="${alt.nomeCustom != null ? alt.nomeCustom : (alt.alimentoAlternativo != null ? alt.alimentoAlternativo.nome : 'N/D')}">Alimento</span>
-                                    <span th:if="${alt.note != null and !alt.note.empty}" th:text="' (' + ${alt.note} + ')'"> (note)</span>
-                                </div>
-                            </td>
-                            <td class="food-qty" th:text="${alt.quantita > 0 ? alt.quantita + ' g' : 'A volontà'}">100 g</td>
-                        </tr>
-                    </th:block>
-                </tbody>
-            </table>
-        </div>
-    </th:block>
-
-    <!-- FOOTER -->
-    <div class="doc-footer">
-        <p>Documento riservato al destinatario — generato digitalmente da Statera Nutrition</p>
-        <p>Consultare il professionista prima di modificare il piano</p>
-    </div>
-
+</div>
 </body>
 </html>
