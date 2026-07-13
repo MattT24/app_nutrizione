@@ -15,14 +15,18 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 
 import it.nutrizionista.restnutrizionista.dto.*;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.enums.MetodoRegistrazione;
 import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
+import it.nutrizionista.restnutrizionista.exception.TooManyRequestsException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import it.nutrizionista.restnutrizionista.security.GoogleTokenVerifier;
 import it.nutrizionista.restnutrizionista.security.JwtUtils;
+import it.nutrizionista.restnutrizionista.security.LoginAttemptService;
 import it.nutrizionista.restnutrizionista.security.UserDetailsServiceImpl;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -37,21 +41,38 @@ public class AuthService {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private GoogleTokenVerifier googleTokenVerifier;
     @Autowired private GamificationService gamificationService;
+    @Autowired private LoginAttemptService loginAttemptService;
 
 
     /** Esegue il login e costruisce la LoginResponse completa. */
 
-    public LoginResponse login(@Valid LoginRequest req) {
+    public LoginResponse login(@Valid LoginRequest req, String clientIp) {
+        // 0) Anti brute-force: blocco temporaneo dopo troppi tentativi falliti per email+IP
+        if (loginAttemptService.isBlocked(req.getEmail(), clientIp)) {
+            throw new TooManyRequestsException("Troppi tentativi falliti. Riprova tra qualche minuto.");
+        }
+
         // 1) Autentica credenziali (esegue la super query una volta sola)
-        Authentication auth = authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
-        );
+        Authentication auth;
+        try {
+            auth = authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
+            );
+        } catch (org.springframework.security.core.AuthenticationException e) {
+            loginAttemptService.registraFallimento(req.getEmail(), clientIp);
+            throw e; // il GlobalExceptionHandler risponde 401 con messaggio generico
+        }
+        loginAttemptService.registraSuccesso(req.getEmail(), clientIp);
         SecurityContextHolder.getContext().setAuthentication(auth);
-        
+
         // 2) Recupera l'utente direttamente dal Principal autenticato! ZERO QUERY!
-        UserDetailsServiceImpl.CustomUserDetails userDetails = 
+        UserDetailsServiceImpl.CustomUserDetails userDetails =
                 (UserDetailsServiceImpl.CustomUserDetails) auth.getPrincipal();
         Utente u = userDetails.getUtente();
+
+        // Traccia l'ultimo accesso (usato dalla dashboard super admin per attivo/inattivo)
+        u.setLastLoginAt(Instant.now());
+        utenteRepository.save(u);
 
         // Gamification: registra l'accesso giornaliero (idempotente, al più uno al giorno)
         gamificationService.registraEvento(u, TipoEventoGamification.ACCESSO_GIORNALIERO, null);
@@ -140,6 +161,7 @@ public class AuthService {
         u.setTelefono(req.getTelefono());
         u.setIndirizzo(req.getIndirizzo());
         u.setRuolo(ruoloUser);
+        u.setMetodoRegistrazione(MetodoRegistrazione.EMAIL);
 
         return utenteRepository.save(u);
     }
@@ -203,6 +225,7 @@ public class AuthService {
         // Serve solo a soddisfare il vincolo NOT NULL esistente su Utente.password.
         u.setPassword(passwordEncoder.encode(UUID.randomUUID().toString() + UUID.randomUUID().toString()));
         u.setRuolo(ruoloUser);
+        u.setMetodoRegistrazione(MetodoRegistrazione.GOOGLE);
 
         Utente saved = utenteRepository.save(u);
         Utente withAuthorities = utenteRepository.findWithAuthoritiesByEmail(saved.getEmail())
@@ -235,6 +258,10 @@ public class AuthService {
     private LoginResponse buildLoginResponseFor(Utente u) {
         // Gamification: registra l'accesso giornaliero anche per il login via Google (idempotente)
         gamificationService.registraEvento(u, TipoEventoGamification.ACCESSO_GIORNALIERO, null);
+
+        // Traccia l'ultimo accesso anche per il login via Google
+        u.setLastLoginAt(Instant.now());
+        utenteRepository.save(u);
 
         List<String> authorities = u.getRuolo() != null
                 ? u.getRuolo().getRuoloPermessi().stream()
