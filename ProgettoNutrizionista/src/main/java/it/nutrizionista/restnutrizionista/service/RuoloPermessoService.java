@@ -10,6 +10,7 @@ import it.nutrizionista.restnutrizionista.dto.RuoloPermessoRequest;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.RuoloPermesso;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.PermessoRepository;
 import it.nutrizionista.restnutrizionista.repository.RuoloPermessoRepository;
@@ -42,9 +43,9 @@ public class RuoloPermessoService {
     @Transactional
     public RuoloDto creaAssociazione(RuoloPermessoRequest req) {
         Ruolo ruolo = ruoloRepo.findById(req.getRuoloId())
-                .orElseThrow(() -> new RuntimeException("Ruolo non trovato"));
+                .orElseThrow(() -> new NotFoundException("Ruolo non trovato"));
         Permesso perm = permRepo.findById(req.getPermesso().getId())
-                .orElseThrow(() -> new RuntimeException("Permesso non trovato"));
+                .orElseThrow(() -> new NotFoundException("Permesso non trovato"));
 
         if (!rpRepo.existsByRuolo_IdAndPermesso_Id(ruolo.getId(), perm.getId())) {
             rpRepo.save(new RuoloPermesso(ruolo, perm));
@@ -58,7 +59,7 @@ public class RuoloPermessoService {
     public RuoloDto eliminaAssociazione(RuoloPermessoRequest req) {
         rpRepo.deleteByRuolo_IdAndPermesso_Id(req.getRuoloId(), req.getPermesso().getId());
         Ruolo ruolo = ruoloRepo.findById(req.getRuoloId())
-                .orElseThrow(() -> new RuntimeException("Ruolo non trovato"));
+                .orElseThrow(() -> new NotFoundException("Ruolo non trovato"));
         return DtoMapper.toRuoloDtoWithAssoc(ruolo);
     }
 }

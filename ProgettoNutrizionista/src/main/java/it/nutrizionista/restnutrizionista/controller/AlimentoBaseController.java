@@ -15,7 +15,6 @@ import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.service.AlimentoBaseService;
 import jakarta.validation.Valid;
 
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/alimenti_base")
 public class AlimentoBaseController {

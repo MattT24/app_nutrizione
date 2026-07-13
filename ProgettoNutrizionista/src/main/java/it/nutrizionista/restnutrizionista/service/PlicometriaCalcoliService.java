@@ -8,6 +8,7 @@ import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Metodo;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 
 @Service
 public class PlicometriaCalcoliService {
@@ -22,14 +23,14 @@ public class PlicometriaCalcoliService {
 
     public Risultati calcola(Plicometria p, Cliente cliente) {
     	
-    	if (p.getMetodo() == null) throw new RuntimeException("Metodo mancante");
+    	if (p.getMetodo() == null) throw new BadRequestException("Metodo mancante");
 
-        if (p.getDataMisurazione() == null) throw new RuntimeException("Data misurazione mancante");
-        if (cliente.getSesso() == null) throw new RuntimeException("Sesso cliente mancante");
-        if (cliente.getDataNascita() == null) throw new RuntimeException("Data nascita cliente mancante");
+        if (p.getDataMisurazione() == null) throw new BadRequestException("Data misurazione mancante");
+        if (cliente.getSesso() == null) throw new BadRequestException("Sesso cliente mancante");
+        if (cliente.getDataNascita() == null) throw new BadRequestException("Data nascita cliente mancante");
         
         double pesoKg = cliente.getPeso();
-        if (pesoKg <= 0) throw new RuntimeException("Peso cliente non valido (<=0)");
+        if (pesoKg <= 0) throw new BadRequestException("Peso cliente non valido (<=0)");
 
         int eta = java.time.Period.between(cliente.getDataNascita(), p.getDataMisurazione()).getYears();
     
@@ -38,7 +39,7 @@ public class PlicometriaCalcoliService {
         // Metodi manuali: richiedono %MG già valorizzata (in entity)
         if (p.getMetodo() == Metodo.MISURAZIONE_LIBERA || p.getMetodo() == Metodo.PARILLO) {
             if (p.getPercentualeMassaGrassa() == null) {
-                throw new RuntimeException("Per il metodo " + p.getMetodo() + " inserire manualmente la % massa grassa");
+                throw new BadRequestException("Per il metodo " + p.getMetodo() + " inserire manualmente la % massa grassa");
             }
             double perc = p.getPercentualeMassaGrassa();
             double mgKg = pesoKg * (perc / 100.0);
@@ -94,7 +95,7 @@ public class PlicometriaCalcoliService {
     private void validaPlicheNecessarie(Plicometria p, Sesso sesso) {
         for (String plica : getPlicheUsate(p.getMetodo(), sesso)) {
             if (getValorePlica(p, plica) == null) {
-                throw new RuntimeException("Inserire tutte le pliche richieste dal metodo selezionato");
+                throw new BadRequestException("Inserire tutte le pliche richieste dal metodo selezionato");
             }
         }
     }
@@ -163,7 +164,7 @@ public class PlicometriaCalcoliService {
     }
 
     private double n(Double v) {
-        if (v == null) throw new RuntimeException("Pliche mancanti");
+        if (v == null) throw new BadRequestException("Pliche mancanti");
         return v;
     }
 }

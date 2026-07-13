@@ -22,7 +22,10 @@ import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.enums.AuditAction;
+import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
 import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
@@ -49,6 +52,8 @@ public class ClienteService {
 	@Autowired private AlimentoAlternativoRepository alimentoAlternativoRepository;
 	@Autowired private AppuntamentoRepository appuntamentoRepository;
 	@Autowired private GamificationService gamificationService;
+	@Autowired private FascicoloService fascicoloService;
+	@Autowired private AuditService auditService;
 
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
@@ -70,7 +75,7 @@ public class ClienteService {
 
 	@Transactional
 	public ClienteDto update(@Valid ClienteFormDto form) {
-		if (form.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
+		if (form.getId() == null) throw new BadRequestException("Id cliente obbligatorio per update");
 		Cliente c = ownershipValidator.getOwnedCliente(form.getId());
 		// Controllo duplicati escludendo il cliente stesso
 		if (repo.existsByCodiceFiscaleAndIdNot(form.getCodiceFiscale(), form.getId())) {
@@ -85,7 +90,7 @@ public class ClienteService {
 
 	@Transactional
 	public ClienteDto updatePesoAltezza(@Valid PesoAltezzaRequest req) {
-		if (req.getId() == null) throw new RuntimeException("Id cliente obbligatorio per update");
+		if (req.getId() == null) throw new BadRequestException("Id cliente obbligatorio per update");
 		Cliente c = ownershipValidator.getOwnedCliente(req.getId());
 		if (req.getPeso() != null) c.setPeso(req.getPeso());
 		if (req.getAltezza() != null) c.setAltezza(req.getAltezza());
@@ -96,10 +101,13 @@ public class ClienteService {
 
 	@Transactional
 	public void deleteMyCliente(Long id) {
-	    if (id == null) throw new RuntimeException("Id cliente obbligatorio per il delete");
+	    if (id == null) throw new BadRequestException("Id cliente obbligatorio per il delete");
 
 	    // Verifica ownership (carica solo il cliente, non l'albero delle schede)
 	    Cliente c = ownershipValidator.getOwnedCliente(id);
+
+	    // Audit critico (A7): DELETE nella STESSA transazione → la riga committa iff il delete committa.
+	    auditService.recordCriticalSameTx(AuditAction.DELETE, AuditEntityType.CLIENTE, id, id);
 
 	    // 1. Svuota in modo robusto l'albero profondo di OGNI scheda del cliente.
 	    //    Non ci si può affidare al solo cascade ORM: AlimentoAlternativo ha due FK
@@ -120,7 +128,12 @@ public class ClienteService {
 	    // 3. Storico dei calcoli TDEE associati a questo cliente.
 	    calcoloTdeeRepository.deleteByClienteId(id);
 
-	    // 4. Infine il cliente: il cascade ORM gestisce ora solo le collezioni mono-FK
+	    // 4. Documenti di fascicolo: record + file su disco. La FK cliente_id è NOT NULL e NON è
+	    //    in cascade dal Cliente → vanno rimossi esplicitamente (A5.1), altrimenti restano
+	    //    orfani (violazione FK) e i PDF sanitari rimangono su disco.
+	    fascicoloService.eliminaDocumentiDiCliente(id);
+
+	    // 5. Infine il cliente: il cascade ORM gestisce ora solo le collezioni mono-FK
 	    //    (schede ormai vuote, misurazioni, plicometrie, obiettivi, blacklist, tag).
 	    repo.delete(c);
 	}
@@ -178,6 +191,8 @@ public class ClienteService {
 	@Transactional(readOnly = true)
     public ClienteInfoDto dettaglio(Long id) {
         Cliente c = ownershipValidator.getOwnedCliente(id);
+        // Audit A7 (async): la vista clinica completa del paziente è l'accesso in lettura più forte.
+        auditService.record(AuditAction.READ, AuditEntityType.CLIENTE, id, id);
         return DtoMapper.toClienteInfoDto(c);
     }
 	//manca cliente Fabbisogno, da studiare un attimo

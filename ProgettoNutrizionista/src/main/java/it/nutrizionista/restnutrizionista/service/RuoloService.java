@@ -12,6 +12,8 @@ import it.nutrizionista.restnutrizionista.dto.RuoloUtenteRequest;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
@@ -39,9 +41,9 @@ public class RuoloService {
     /** Aggiorna ruolo (nome/alias). */
     @Transactional
     public RuoloDto update(RuoloFormDto form) {
-        if (form.getId() == null) throw new RuntimeException("Id ruolo obbligatorio per update");
+        if (form.getId() == null) throw new BadRequestException("Id ruolo obbligatorio per update");
         Ruolo r = repo.findById(form.getId())
-                .orElseThrow(() -> new RuntimeException("Ruolo non trovato"));
+                .orElseThrow(() -> new NotFoundException("Ruolo non trovato"));
         r.setNome(form.getNome());
         r.setAlias(form.getAlias());
         return DtoMapper.toRuoloDtoLight(repo.save(r));
@@ -55,7 +57,7 @@ public class RuoloService {
     @Transactional(readOnly = true)
     public RuoloDto getById(Long id) {
         Ruolo r = repo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Ruolo non trovato"));
+                .orElseThrow(() -> new NotFoundException("Ruolo non trovato"));
         return DtoMapper.toRuoloDtoWithAssoc(r);
     }
 

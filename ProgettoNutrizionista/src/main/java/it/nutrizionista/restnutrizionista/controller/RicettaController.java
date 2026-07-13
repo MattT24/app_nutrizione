@@ -11,7 +11,6 @@ import it.nutrizionista.restnutrizionista.dto.PastoTemplateDto;
 import it.nutrizionista.restnutrizionista.dto.RicettaDto;
 import it.nutrizionista.restnutrizionista.service.RicettaService;
 
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/ricette")
 public class RicettaController {

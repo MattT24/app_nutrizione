@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,21 +23,18 @@ import it.nutrizionista.restnutrizionista.dto.SchedaListItemDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaPreviewDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.service.SchedaService;
-import it.nutrizionista.restnutrizionista.service.PdfService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import jakarta.validation.Valid;
-import it.nutrizionista.restnutrizionista.service.EmailService;
+import it.nutrizionista.restnutrizionista.service.PdfShareService;
 import it.nutrizionista.restnutrizionista.dto.ShareRequest;
 
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/schede")
 public class SchedaController {
 
 	@Autowired private SchedaService service;
-	@Autowired private PdfService pdfService;
-	@Autowired private EmailService emailService;
+	@Autowired private PdfShareService pdfShareService;
 
 	@PostMapping
 	@PreAuthorize("hasAuthority('SCHEDA_CREATE')")
@@ -135,7 +131,7 @@ public class SchedaController {
 	@PreAuthorize("hasAuthority('SCHEDA_READ')")
 	public ResponseEntity<byte[]> getPdf(@PathVariable("id") Long id,
 			@org.springframework.web.bind.annotation.RequestParam(name = "macro", defaultValue = "true") boolean macro) {
-		byte[] pdf = pdfService.generaPdfScheda(id, macro);
+		byte[] pdf = service.exportPdf(id, macro);
 		return ResponseEntity.ok()
 				.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"scheda_" + id + ".pdf\"")
 				.contentType(MediaType.APPLICATION_PDF)
@@ -145,14 +141,7 @@ public class SchedaController {
 	@PostMapping("/{id}/share")
 	@PreAuthorize("hasAuthority('SCHEDA_READ')")
 	public ResponseEntity<java.util.Map<String, String>> sharePdfViaEmail(@PathVariable("id") Long id, @Valid @RequestBody ShareRequest req) {
-		byte[] pdf = pdfService.generaPdfScheda(id);
-		emailService.sendPdfEmail(
-				req.getEmail(),
-				"La tua Scheda Nutrizionale",
-				"In allegato trovi la tua scheda nutrizionale in formato PDF.",
-				pdf,
-				"scheda_" + id + ".pdf"
-		);
+		pdfShareService.shareScheda(id, req);
 		return ResponseEntity.ok(java.util.Map.of("message", "Email inviata con successo!"));
 	}
 

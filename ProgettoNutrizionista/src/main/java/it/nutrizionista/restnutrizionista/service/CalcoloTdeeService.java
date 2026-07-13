@@ -4,9 +4,9 @@ import it.nutrizionista.restnutrizionista.dto.CalcoloTdeeDto;
 import it.nutrizionista.restnutrizionista.dto.CalcoloTdeeFormDto;
 import it.nutrizionista.restnutrizionista.entity.CalcoloTdee;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
-import it.nutrizionista.restnutrizionista.exception.NotFoundException;
+import it.nutrizionista.restnutrizionista.enums.AuditAction;
+import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
 import it.nutrizionista.restnutrizionista.repository.CalcoloTdeeRepository;
-import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,12 +22,17 @@ public class CalcoloTdeeService {
     private CalcoloTdeeRepository calcoloTdeeRepository;
 
     @Autowired
-    private ClienteRepository clienteRepository;
+    private OwnershipValidator ownershipValidator;
+
+    @Autowired
+    private CurrentUserService currentUserService;
+
+    @Autowired
+    private AuditService auditService;
 
     @Transactional
     public CalcoloTdeeDto calcolaESalva(CalcoloTdeeFormDto form) {
-        Cliente cliente = clienteRepository.findById(form.getClienteId())
-                .orElseThrow(() -> new NotFoundException("Cliente non trovato con ID: " + form.getClienteId()));
+        Cliente cliente = ownershipValidator.getOwnedCliente(form.getClienteId());
 
         double bmr = (10 * form.getPeso()) + (6.25 * form.getAltezza()) - (5 * form.getEta());
         if (form.getSesso().equalsIgnoreCase("M") || form.getSesso().equalsIgnoreCase("MASCHIO")) {
@@ -56,27 +61,30 @@ public class CalcoloTdeeService {
 
     @Transactional(readOnly = true)
     public List<CalcoloTdeeDto> getStoricoCliente(Long clienteId) {
+        ownershipValidator.getOwnedCliente(clienteId); // difesa in profondità
+        auditService.record(AuditAction.LIST, AuditEntityType.CALCOLO_TDEE, null, clienteId);
         List<CalcoloTdee> calcoli = calcoloTdeeRepository.findByClienteIdOrderByDataCalcoloDesc(clienteId);
         return calcoli.stream().map(this::mapToDto).collect(Collectors.toList());
     }
-    
+
     @Transactional
     public void eliminaCalcolo(Long calcoloId) {
-        if (!calcoloTdeeRepository.existsById(calcoloId)) {
-            throw new NotFoundException("Calcolo non trovato");
-        }
-        calcoloTdeeRepository.deleteById(calcoloId);
+        CalcoloTdee calcolo = ownershipValidator.getOwnedCalcoloTdee(calcoloId);
+        calcoloTdeeRepository.delete(calcolo);
     }
-    
+
+    @Transactional(readOnly = true)
     public List<CalcoloTdeeDto> getUltimiCalcoli() {
-        return calcoloTdeeRepository.findTop10ByOrderByIdDesc()
+        Long nutrizionistaId = currentUserService.getMe().getId();
+        return calcoloTdeeRepository.findTop10ByCliente_Nutrizionista_IdOrderByIdDesc(nutrizionistaId)
                 .stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
-    
+
     @Transactional
     public void eliminaTuttiCalcoliCliente(Long clienteId) {
+        ownershipValidator.getOwnedCliente(clienteId); // difesa in profondità
         calcoloTdeeRepository.deleteByClienteId(clienteId);
     }
 

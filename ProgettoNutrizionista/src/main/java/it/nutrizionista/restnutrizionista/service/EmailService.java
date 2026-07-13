@@ -27,10 +27,23 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromAddress;
 
-    @Async
+    /** Maschera il local-part dell'email nei log (minimizzazione GDPR: niente indirizzi in chiaro). */
+    private static String mask(String email) {
+        if (email == null || email.isBlank()) return "<n/d>";
+        int at = email.indexOf('@');
+        if (at <= 1) return "***" + (at >= 0 ? email.substring(at) : "");
+        return email.charAt(0) + "***" + email.substring(at);
+    }
+
+    /**
+     * Invio <b>sincrono</b> di un PDF sanitario. A differenza delle altre email (fire-and-forget
+     * {@code @Async}), qui il chiamante attende l'esito e le eccezioni risalgono: è un evento critico
+     * di audit (A7, scelta "sincrona bloccante") in cui l'audit del SHARE/DOWNLOAD deve riflettere la
+     * reale divulgazione (il chiamante registra {@code SUCCESS} prima dell'invio e {@code FAILURE} se fallisce).
+     */
     public void sendPdfEmail(String to, String subject, String text, byte[] pdfBytes, String filename) {
         try {
-            log.info("Invio email a {} con allegato '{}'...", to, filename);
+            log.info("Invio email a {} con allegato '{}'...", mask(to), filename);
 
             MimeMessage message = javaMailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
@@ -38,16 +51,18 @@ public class EmailService {
             helper.setFrom(fromAddress);
             helper.setTo(to);
             helper.setSubject(subject);
-            helper.setText(text, false);
+            helper.setText(text
+                    + "\n\n—\nStatera è uno strumento di supporto al professionista e non sostituisce il parere medico; il piano resta responsabilità del nutrizionista.",
+                    false);
 
             ByteArrayResource pdfResource = new ByteArrayResource(pdfBytes);
             helper.addAttachment(filename, pdfResource);
 
             javaMailSender.send(message);
-            log.info("Email inviata con successo a {}", to);
+            log.info("Email inviata con successo a {}", mask(to));
 
         } catch (MessagingException e) {
-            log.error("Errore durante l'invio dell'email a {}: {}", to, e.getMessage(), e);
+            log.error("Errore durante l'invio dell'email a {}: {}", mask(to), e.getMessage(), e);
             throw new RuntimeException("Errore nell'invio dell'email", e);
         }
     }
@@ -101,9 +116,9 @@ public class EmailService {
 
             helper.setText(body.toString(), false);
             javaMailSender.send(message);
-            log.info("Email di conferma appuntamento inviata a {}", to);
+            log.info("Email di conferma appuntamento inviata a {}", mask(to));
         } catch (MessagingException e) {
-            log.error("Errore durante l'invio della conferma appuntamento a {}: {}", to, e.getMessage(), e);
+            log.error("Errore durante l'invio della conferma appuntamento a {}: {}", mask(to), e.getMessage(), e);
         }
     }
 
@@ -156,9 +171,9 @@ public class EmailService {
 
             helper.setText(body.toString(), false);
             javaMailSender.send(message);
-            log.info("Email promemoria appuntamento inviata a {}", to);
+            log.info("Email promemoria appuntamento inviata a {}", mask(to));
         } catch (MessagingException e) {
-            log.error("Errore durante l'invio del promemoria appuntamento a {}: {}", to, e.getMessage(), e);
+            log.error("Errore durante l'invio del promemoria appuntamento a {}: {}", mask(to), e.getMessage(), e);
         }
     }
 
@@ -181,9 +196,9 @@ public class EmailService {
 
             helper.setText(body.toString(), false);
             javaMailSender.send(message);
-            log.info("Email traguardo gamification inviata a {}", to);
+            log.info("Email traguardo gamification inviata a {}", mask(to));
         } catch (MessagingException e) {
-            log.error("Errore durante l'invio dell'email traguardo gamification a {}: {}", to, e.getMessage(), e);
+            log.error("Errore durante l'invio dell'email traguardo gamification a {}: {}", mask(to), e.getMessage(), e);
         }
     }
 }

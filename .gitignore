@@ -1,4 +1,5 @@
 application.properties
+.env
 .classpath
 ProgettoNutrizionista/docs/migrations/001_permessi_plicometria.sql
 ProgettoNutrizionista/docs/migrations/003_permessi_meals.sql

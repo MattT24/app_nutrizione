@@ -20,7 +20,6 @@ import java.util.List;
  * - delete = dissocia permesso da ruolo;
  * - read lista permessi di un ruolo (non paginata).
  */
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/ruoli-permessi")
 public class RuoloPermessoController {

@@ -17,7 +17,6 @@ import jakarta.validation.Valid;
 /**
  * Controller REST per la gestione degli alimenti alternativi
  */
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/alimenti_alternativi")
 public class AlimentoAlternativoController {

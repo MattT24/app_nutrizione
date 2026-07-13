@@ -26,6 +26,7 @@ import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplate;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlimento;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlternativo;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.ForbiddenException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
@@ -123,7 +124,7 @@ public class PastoTemplateApplyService {
 			if (restriction.warning) {
 				skipped.add(skipped("WARNING_RESTRIZIONE", alimentoId, null, restriction.message));
 				if (restrizioniPolicy == PastoApplyTemplateRestrizioniPolicy.FAIL_ON_WARNING) {
-					throw new RuntimeException(restriction.message);
+					throw new BadRequestException(restriction.message);
 				}
 				continue;
 			}

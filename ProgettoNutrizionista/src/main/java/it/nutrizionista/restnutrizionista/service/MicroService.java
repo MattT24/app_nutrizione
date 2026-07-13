@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import it.nutrizionista.restnutrizionista.dto.MicroDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.entity.Micro;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.MicroRepository;
 
@@ -21,7 +22,7 @@ public class MicroService {
 	}
 	@Transactional(readOnly = true)
 	public MicroDto getByNome(String nome) {
-		Micro m = repo.findByNome(nome).orElseThrow(() -> new RuntimeException("Micronutriente non trovato"));
+		Micro m = repo.findByNome(nome).orElseThrow(() -> new NotFoundException("Micronutriente non trovato"));
 		return DtoMapper.toMicroDto(m);
 	}
 }

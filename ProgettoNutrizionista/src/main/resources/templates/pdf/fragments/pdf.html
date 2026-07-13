@@ -273,6 +273,11 @@
       <span th:text="${nota}">nota</span>
     </td>
   </tr>
+  <tr>
+    <td colspan="2" style="padding-top:8px;font-size:8px;color:#8a8f98;font-style:italic;">
+      Statera &#232; uno strumento di supporto al professionista e non sostituisce il parere medico; il piano resta responsabilit&#224; del nutrizionista.
+    </td>
+  </tr>
 </table>
 
 </head>
@@ -470,6 +475,9 @@
       <td class="r"><span th:text="'Piano ' + ${#strings.toLowerCase(tipoLabel)}">Piano</span> &#183; <span th:text="${pazienteNome}">Paziente</span><span th:if="${!dataCreazione.isEmpty()}"> &#183; <span th:text="${dataCreazione}">data</span></span></td>
     </tr>
   </table>
+  <table class="foot-brand avoid"><tr><td style="font-size:8px;color:#8a8f98;font-style:italic;padding-top:4px;">
+    Statera &#232; uno strumento di supporto al professionista e non sostituisce il parere medico; il piano resta responsabilit&#224; del nutrizionista.
+  </td></tr></table>
 </th:block>
 
 </body>

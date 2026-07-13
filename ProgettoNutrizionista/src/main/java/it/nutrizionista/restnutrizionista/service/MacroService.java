@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.MacroDto;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.MacroRepository;
 
@@ -15,6 +16,6 @@ public class MacroService {
 	
 	@Transactional(readOnly = true)
 	public MacroDto getByAlimento(Long id) {
-		return repo.findByAlimento_Id(id).map(DtoMapper::toMacroDto).orElseThrow(() -> new RuntimeException("Macronutrienti non trovati"));
+		return repo.findByAlimento_Id(id).map(DtoMapper::toMacroDto).orElseThrow(() -> new NotFoundException("Macronutrienti non trovati"));
 	}
 }

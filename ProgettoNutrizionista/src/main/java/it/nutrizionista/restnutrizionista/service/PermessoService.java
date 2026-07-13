@@ -10,6 +10,8 @@ import it.nutrizionista.restnutrizionista.dto.PermessoDto;
 import it.nutrizionista.restnutrizionista.dto.PermessoFormDto;
 import it.nutrizionista.restnutrizionista.entity.Gruppo;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.GruppoRepository;
 import it.nutrizionista.restnutrizionista.repository.PermessoRepository;
@@ -32,7 +34,7 @@ public class PermessoService {
         p.setAlias(form.getAlias());
         if (form.getGruppo() != null && form.getGruppo().getId() != null) {
             Gruppo g = gruppoRepo.findById(form.getGruppo().getId())
-                    .orElseThrow(() -> new RuntimeException("Gruppo non trovato"));
+                    .orElseThrow(() -> new NotFoundException("Gruppo non trovato"));
             p.setGruppo(g);
         }
         return DtoMapper.toPermessoDtoLight(repo.save(p));
@@ -41,9 +43,9 @@ public class PermessoService {
     /** Aggiorna permesso (nome, alias, gruppo). */
     @Transactional
     public PermessoDto update(PermessoFormDto form) {
-        if (form.getId() == null) throw new RuntimeException("Id permesso obbligatorio per update");
+        if (form.getId() == null) throw new BadRequestException("Id permesso obbligatorio per update");
         Permesso p = repo.findById(form.getId())
-                .orElseThrow(() -> new RuntimeException("Permesso non trovato"));
+                .orElseThrow(() -> new NotFoundException("Permesso non trovato"));
         p.setNome(form.getNome());
         p.setAlias(form.getAlias());
         if (form.getGruppo() != null) {
@@ -51,7 +53,7 @@ public class PermessoService {
                 p.setGruppo(null);
             } else {
                 Gruppo g = gruppoRepo.findById(form.getGruppo().getId())
-                        .orElseThrow(() -> new RuntimeException("Gruppo non trovato"));
+                        .orElseThrow(() -> new NotFoundException("Gruppo non trovato"));
                 p.setGruppo(g);
             }
         }
@@ -67,7 +69,7 @@ public class PermessoService {
     public PermessoDto getById(Long id) {
         return repo.findById(id)
                 .map(DtoMapper::toPermessoDtoLight)
-                .orElseThrow(() -> new RuntimeException("Permesso non trovato"));
+                .orElseThrow(() -> new NotFoundException("Permesso non trovato"));
     }
 
     /** Lista paginata (light). */

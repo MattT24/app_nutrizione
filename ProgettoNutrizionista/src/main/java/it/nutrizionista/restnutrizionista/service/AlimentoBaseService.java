@@ -27,6 +27,9 @@ import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Micro;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.entity.ValoreMicro;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
+import it.nutrizionista.restnutrizionista.exception.ForbiddenException;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
 import it.nutrizionista.restnutrizionista.repository.MicroRepository;
@@ -76,10 +79,10 @@ public class AlimentoBaseService {
 	@Transactional
 	public AlimentoBaseDto update(@Valid AlimentoBaseFormDto form) {
 	    if (form.getId() == null) {
-	        throw new RuntimeException("Id Alimento obbligatorio per update");
+	        throw new BadRequestException("Id Alimento obbligatorio per update");
 	    }
 	    AlimentoBase a = repo.findById(form.getId())
-	            .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+	            .orElseThrow(() -> new NotFoundException("Alimento non trovato"));
 	    DtoMapper.updateAlimentoBaseFromForm(a, form);
 	    applyMicronutrienti(a, form.getMicroNutrienti());
 	    return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
@@ -102,7 +105,7 @@ public class AlimentoBaseService {
 			if (dto.getMicronutriente().getId() != null) {
 				// Fast path: riferimento per ID (es. da autocomplete)
 				micro = microRepository.findById(dto.getMicronutriente().getId())
-						.orElseThrow(() -> new RuntimeException(
+						.orElseThrow(() -> new NotFoundException(
 								"Micronutriente con id " + dto.getMicronutriente().getId() + " non trovato"));
 			} else {
 				// Find-or-create per nome
@@ -139,10 +142,12 @@ public class AlimentoBaseService {
 	@Transactional
 	public void deletePersonale(Long id) {
 		AlimentoBase a = repo.findById(id)
-				.orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+				.orElseThrow(() -> new NotFoundException("Alimento non trovato"));
 		Utente current = getCurrentUtente();
+		// AlimentoBase è un catalogo in parte globale: l'ownership è una regola di business inline
+		// (non via OwnershipValidator, che è per risorse tenant-owned uniformi). Diniego = 403.
 		if (a.getCreatedBy() == null || !a.getCreatedBy().getId().equals(current.getId())) {
-			throw new RuntimeException("Non puoi eliminare questo alimento");
+			throw new ForbiddenException("Non puoi eliminare questo alimento");
 		}
 		repo.deleteById(id);
 	}
@@ -184,22 +189,22 @@ public class AlimentoBaseService {
 
 	@Transactional(readOnly = true)
 	public AlimentoBaseDto getById(Long id) {
-		return  repo.findById(id).map(DtoMapper::toAlimentoBaseDtoLight).orElseThrow(()-> new RuntimeException("Alimento non trovato"));
+		return  repo.findById(id).map(DtoMapper::toAlimentoBaseDtoLight).orElseThrow(()-> new NotFoundException("Alimento non trovato"));
 	}
 	
 	@Transactional(readOnly = true)
 	public AlimentoBaseDto dettaglio(Long id) {
-		return repo.findByIdWithDetails(id).map(DtoMapper::toAlimentoBaseDto).orElseThrow(()-> new RuntimeException("Alimento non trovato"));
+		return repo.findByIdWithDetails(id).map(DtoMapper::toAlimentoBaseDto).orElseThrow(()-> new NotFoundException("Alimento non trovato"));
 	}
 	@Transactional(readOnly = true)
 	public AlimentoBaseDto dettaglioMacro(Long id) {
-		return repo.findById(id).map(DtoMapper::toAlimentoBaseDtoMacro).orElseThrow(()-> new RuntimeException("Alimento non trovato"));
+		return repo.findById(id).map(DtoMapper::toAlimentoBaseDtoMacro).orElseThrow(()-> new NotFoundException("Alimento non trovato"));
 	}
 	
 	@Transactional(readOnly = true)
 	public AlimentoBaseDto getByNome(@Valid String nome) {
 		AlimentoBase a = repo.findByNome(nome)
-                .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+                .orElseThrow(() -> new NotFoundException("Alimento non trovato"));
 		return DtoMapper.toAlimentoBaseDtoLight(a);
 	}
 
@@ -336,7 +341,7 @@ public class AlimentoBaseService {
 	public void addPreferito(Long alimentoId) {
 		Utente current = getCurrentUtente();
 		AlimentoBase alimento = repo.findById(alimentoId)
-				.orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+				.orElseThrow(() -> new NotFoundException("Alimento non trovato"));
 
 		if (!preferitoRepository.existsByUtenteIdAndAlimentoId(current.getId(), alimentoId)) {
 			UtentePreferito preferito = new UtentePreferito(current, alimento);
@@ -354,7 +359,7 @@ public class AlimentoBaseService {
 	private Utente getCurrentUtente() {
 		String email = SecurityContextHolder.getContext().getAuthentication().getName();
 		return utenteRepository.findByEmail(email)
-				.orElseThrow(() -> new RuntimeException("Utente non trovato"));
+				.orElseThrow(() -> new NotFoundException("Utente non trovato"));
 	}
 }
 

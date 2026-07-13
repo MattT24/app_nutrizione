@@ -11,7 +11,11 @@ import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
+import it.nutrizionista.restnutrizionista.enums.AuditAction;
+import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
+import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
 import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
@@ -25,6 +29,20 @@ public class MisurazioneAntropometricaService {
     @Autowired private CurrentUserService currentUserService;
     @Autowired private OwnershipValidator ownershipValidator;
     @Autowired private GamificationService gamificationService;
+    @Autowired private PdfService pdfService;
+    @Autowired private AuditService auditService;
+
+    /**
+     * Export PDF della misurazione per il download diretto ({@code GET /api/misurazioni_antropometriche/{id}/pdf}).
+     * Registra l'audit critico EXPORT_PDF (A7) prima di generare il PDF.
+     */
+    @Transactional(readOnly = true)
+    public byte[] exportPdf(Long id) {
+        MisurazioneAntropometrica m = ownershipValidator.getOwnedMisurazioneAntropometrica(id);
+        Long clienteId = m.getCliente() != null ? m.getCliente().getId() : null;
+        auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.MISURAZIONE_ANTROPOMETRICA, id, clienteId, null, AuditOutcome.SUCCESS);
+        return pdfService.generaPdfMisurazione(id);
+    }
 
     @Transactional
     public MisurazioneAntropometricaDto create(@Valid MisurazioneAntropometricaFormDto form) {
@@ -41,7 +59,7 @@ public class MisurazioneAntropometricaService {
 
 	@Transactional
 	public MisurazioneAntropometricaDto update(@Valid MisurazioneAntropometricaFormDto form) {
-		if (form.getId() == null) throw new RuntimeException("Id Misurazione obbligatoria per update");
+		if (form.getId() == null) throw new BadRequestException("Id Misurazione obbligatoria per update");
 		MisurazioneAntropometrica m = ownershipValidator.getOwnedMisurazioneAntropometrica(form.getId());
 		DtoMapper.updateMisurazioneFromForm(m, form);
 		return DtoMapper.toMisurazioneDtoLight(repo.save(m));
@@ -55,6 +73,7 @@ public class MisurazioneAntropometricaService {
 	@Transactional(readOnly = true)
 	public PageResponse<MisurazioneAntropometricaDto> allMisurazioniCliente(Long id,Pageable pageable) {
         ownershipValidator.getOwnedCliente(id);
+		auditService.record(AuditAction.LIST, AuditEntityType.MISURAZIONE_ANTROPOMETRICA, null, id);
 		return PageResponse.from(repo.findByCliente_IdOrderByDataMisurazioneDesc(id,pageable).map(DtoMapper::toMisurazioneDtoLight));
 	}
 
