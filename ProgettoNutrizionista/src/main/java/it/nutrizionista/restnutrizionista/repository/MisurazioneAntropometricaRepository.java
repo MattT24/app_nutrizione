@@ -16,4 +16,8 @@ public interface MisurazioneAntropometricaRepository extends JpaRepository<Misur
 
 	// Conteggio totale misurazioni dei clienti del nutrizionista (gamification)
 	long countByCliente_Nutrizionista_Id(Long nutrizionistaId);
+
+	// Rilevazione precedente dello stesso cliente (per il confronto nel PDF)
+	Optional<MisurazioneAntropometrica> findFirstByCliente_IdAndDataMisurazioneLessThanOrderByDataMisurazioneDesc(
+			Long clienteId, java.time.LocalDate data);
 }
