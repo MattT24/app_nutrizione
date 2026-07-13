@@ -33,6 +33,7 @@ public class AppuntamentoService {
     private final CurrentUserService currentUserService;
     private final EmailService emailService;
     private final GamificationService gamificationService;
+    private final OwnershipValidator ownershipValidator;
 
     public AppuntamentoService(
             AppuntamentoRepository appuntamentoRepository,
@@ -40,13 +41,15 @@ public class AppuntamentoService {
             ClienteRepository clienteRepository,
             CurrentUserService currentUserService,
             EmailService emailService,
-            GamificationService gamificationService) {
+            GamificationService gamificationService,
+            OwnershipValidator ownershipValidator) {
         this.appuntamentoRepository = appuntamentoRepository;
         this.orariStudioRepository = orariStudioRepository;
         this.clienteRepository = clienteRepository;
         this.currentUserService = currentUserService;
         this.emailService = emailService;
         this.gamificationService = gamificationService;
+        this.ownershipValidator = ownershipValidator;
     }
 
     @Transactional
@@ -87,13 +90,8 @@ public class AppuntamentoService {
 
     @Transactional
     public AppuntamentoDto update(Long id, AppuntamentoFormDto form) {
-        Appuntamento esistente = appuntamentoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
-        
-        Utente nutrizionista = currentUserService.getMe();
-        if (!esistente.getNutrizionista().getId().equals(nutrizionista.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non hai i permessi per modificare questo appuntamento");
-        }
+        // Ownership via validator canonico: 403 se l'appuntamento non è del nutrizionista corrente (o non esiste)
+        Appuntamento esistente = ownershipValidator.getOwnedAppuntamento(id);
 
         mapFormToEntity(form, esistente);
         validaSlotOrario(esistente);
@@ -103,17 +101,13 @@ public class AppuntamentoService {
     }
 
     public AppuntamentoDto getById(Long id) {
-        Appuntamento appuntamento = appuntamentoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
-        verificaProprietario(appuntamento);
+        Appuntamento appuntamento = ownershipValidator.getOwnedAppuntamento(id);
         return convertToDto(appuntamento);
     }
 
     @Transactional
     public void delete(Long id) {
-        Appuntamento esistente = appuntamentoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
-        verificaProprietario(esistente);
+        Appuntamento esistente = ownershipValidator.getOwnedAppuntamento(id);
         esistente.setStato(Appuntamento.StatoAppuntamento.ANNULLATO);
         appuntamentoRepository.save(esistente);
     }
@@ -190,9 +184,7 @@ public class AppuntamentoService {
      */
     @Transactional
     public AppuntamentoDto moveResize(Long id, LocalDateTime start, LocalDateTime end) {
-        Appuntamento esistente = appuntamentoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
-        verificaProprietario(esistente);
+        Appuntamento esistente = ownershipValidator.getOwnedAppuntamento(id);
 
         esistente.setData(start.toLocalDate());
         esistente.setOra(start.toLocalTime());
@@ -213,9 +205,7 @@ public class AppuntamentoService {
 
     @Transactional
     public AppuntamentoDto updateStato(Long id, String stato) {
-        Appuntamento esistente = appuntamentoRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Appuntamento non trovato"));
-        verificaProprietario(esistente);
+        Appuntamento esistente = ownershipValidator.getOwnedAppuntamento(id);
         Appuntamento.StatoAppuntamento nuovoStato = Appuntamento.StatoAppuntamento.valueOf(stato);
         esistente.setStato(nuovoStato);
         Appuntamento salvato = appuntamentoRepository.save(esistente);
@@ -249,13 +239,6 @@ public class AppuntamentoService {
     // ==========================================
     // METODI PRIVATI DI VALIDAZIONE E MAPPATURA
     // ==========================================
-
-    private void verificaProprietario(Appuntamento app) {
-        Utente current = currentUserService.getMe();
-        if (!app.getNutrizionista().getId().equals(current.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non hai i permessi su questo appuntamento");
-        }
-    }
 
     private void validaSlotOrario(Appuntamento nuovoApp) {
         if (nuovoApp.isAllDay() || nuovoApp.getOra() == null || nuovoApp.getEndOra() == null) return;
@@ -326,7 +309,8 @@ public class AppuntamentoService {
         app.setClienteCognome(form.getClienteCognome());
 
         if (form.getClienteId() != null) {
-            Cliente cliente = clienteRepository.findById(form.getClienteId()).orElse(null);
+            // Ownership: si può agganciare solo un cliente del nutrizionista corrente (evita IDOR cross-tenant)
+            Cliente cliente = ownershipValidator.getOwnedCliente(form.getClienteId());
             app.setCliente(cliente);
             if (form.getEmailCliente() != null && !form.getEmailCliente().isBlank()) {
                 app.setEmailCliente(form.getEmailCliente());

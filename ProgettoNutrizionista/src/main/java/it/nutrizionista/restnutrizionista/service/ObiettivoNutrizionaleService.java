@@ -16,6 +16,9 @@ import it.nutrizionista.restnutrizionista.entity.LivelloDiAttivita;
 import it.nutrizionista.restnutrizionista.entity.ObiettivoNutrizionale;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import it.nutrizionista.restnutrizionista.entity.TipoObiettivo;
+import it.nutrizionista.restnutrizionista.enums.AuditAction;
+import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.ObiettivoNutrizionaleRepository;
 import jakarta.validation.Valid;
@@ -27,6 +30,8 @@ public class ObiettivoNutrizionaleService {
 	private ObiettivoNutrizionaleRepository repo;
 	@Autowired
 	private OwnershipValidator ownershipValidator;
+	@Autowired
+	private AuditService auditService;
 
 	/**
 	 * Restituisce l'obiettivo nutrizionale ATTIVO del cliente (se esiste).
@@ -34,6 +39,7 @@ public class ObiettivoNutrizionaleService {
 	@Transactional(readOnly = true)
 	public ObiettivoNutrizionaleDto getByClienteId(Long clienteId) {
 		ownershipValidator.getOwnedCliente(clienteId);
+		auditService.record(AuditAction.READ, AuditEntityType.OBIETTIVO_NUTRIZIONALE, null, clienteId);
 		return repo.findByCliente_IdAndAttivoTrue(clienteId)
 				.map(DtoMapper::toObiettivoNutrizionaleDto)
 				.orElse(null);
@@ -46,6 +52,7 @@ public class ObiettivoNutrizionaleService {
 	@Transactional(readOnly = true)
 	public List<ObiettivoNutrizionaleDto> getStoricoByClienteId(Long clienteId) {
 		ownershipValidator.getOwnedCliente(clienteId);
+		auditService.record(AuditAction.LIST, AuditEntityType.OBIETTIVO_NUTRIZIONALE, null, clienteId);
 		return repo.findByCliente_IdOrderByDataCreazioneDescCreatedAtDesc(clienteId)
 				.stream()
 				.map(DtoMapper::toObiettivoNutrizionaleDto)
@@ -168,7 +175,7 @@ public class ObiettivoNutrizionaleService {
 		// Attiva quello selezionato
 		ObiettivoNutrizionale target = repo.findById(obiettivoId)
 				.filter(ob -> ob.getCliente().getId().equals(clienteId))
-				.orElseThrow(() -> new RuntimeException("Obiettivo non trovato"));
+				.orElseThrow(() -> new NotFoundException("Obiettivo non trovato"));
 
 		target.setAttivo(true);
 		return DtoMapper.toObiettivoNutrizionaleDto(repo.save(target));
@@ -183,7 +190,7 @@ public class ObiettivoNutrizionaleService {
 		ownershipValidator.getOwnedCliente(clienteId);
 		ObiettivoNutrizionale ob = repo.findById(obiettivoId)
 				.filter(o -> o.getCliente().getId().equals(clienteId))
-				.orElseThrow(() -> new RuntimeException("Obiettivo non trovato"));
+				.orElseThrow(() -> new NotFoundException("Obiettivo non trovato"));
 		String trimmed = nome != null ? nome.trim() : null;
 		ob.setNome(trimmed == null || trimmed.isEmpty() ? null : trimmed);
 		return DtoMapper.toObiettivoNutrizionaleDto(repo.save(ob));

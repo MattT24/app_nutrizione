@@ -16,6 +16,8 @@ import it.nutrizionista.restnutrizionista.dto.UtenteFormDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteProfileUpdateDto;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
@@ -49,18 +51,18 @@ public class UtenteService {
     /** Aggiorna utente. */
     @Transactional
     public UtenteDto update(UtenteFormDto form) {
-        if (form.getId() == null) throw new RuntimeException("Id utente obbligatorio per update");
+        if (form.getId() == null) throw new BadRequestException("Id utente obbligatorio per update");
         Utente u = repo.findById(form.getId())
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         apply(u, form, false);
         return DtoMapper.toUtenteDto(repo.save(u)); // Ruolo light
     }
     /** Aggiorna Profilo Utente. */
     @Transactional
     public UtenteDto updateProfile(UtenteFormDto form) {
-        if (form.getId() == null) throw new RuntimeException("Id utente obbligatorio per update");
+        if (form.getId() == null) throw new BadRequestException("Id utente obbligatorio per update");
         Utente u = repo.findById(form.getId())
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new NotFoundException("Utente non trovato"));
         apply(u, form, false);
         return DtoMapper.toUtenteDtoLight(repo.save(u)); // Senza Ruolo
     }
@@ -79,7 +81,7 @@ public class UtenteService {
     public UtenteDto getById(Long id) {
         return repo.findById(id)
                 .map(DtoMapper::toUtenteDto)
-                .orElseThrow(() -> new RuntimeException("Utente non trovato"));
+                .orElseThrow(() -> new NotFoundException("Utente non trovato"));
     }
 
     /** Lista paginata utenti (mapper light). */
@@ -130,7 +132,7 @@ public class UtenteService {
         u.setIndirizzo(form.getIndirizzo());
 
         Ruolo ruolo = ruoloRepo.findById(form.getRuolo().getId())
-                .orElseThrow(() -> new RuntimeException("Ruolo non trovato"));
+                .orElseThrow(() -> new NotFoundException("Ruolo non trovato"));
         u.setRuolo(ruolo);
     }
     
@@ -152,7 +154,7 @@ public class UtenteService {
         Utente utente = currentUserService.getMe();
        
         if (!dto.getPassword().equals(dto.getConfermaPassword())) {
-            throw new RuntimeException("Le password inserite non coincidono");
+            throw new BadRequestException("Le password inserite non coincidono");
         }
        
         utente.setPassword(encoder.encode(dto.getPassword()));     
@@ -163,7 +165,7 @@ public class UtenteService {
     public UtenteDto updateLogo (LogoRequestDto logo) throws IOException {
         Utente utente = currentUserService.getMe();
         
-        if (utente.getId() != logo.getUtenteId()) throw new RuntimeException("L'utente non corrisponde");
+        if (utente.getId() != logo.getUtenteId()) throw new BadRequestException("L'utente non corrisponde");
         
         MultipartFile file = logo.getImage();
 	    if (file != null && !file.isEmpty()) {

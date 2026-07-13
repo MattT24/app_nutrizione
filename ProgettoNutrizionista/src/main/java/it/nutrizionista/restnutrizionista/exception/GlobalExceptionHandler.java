@@ -6,12 +6,16 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Gestione centralizzata delle eccezioni comuni.
  */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(ForbiddenException.class)
     public ResponseEntity<String> handleForbidden(ForbiddenException ex) {
@@ -80,7 +84,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntime(RuntimeException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+        // Catch-all per eccezioni NON previste (tecniche/interne): niente information disclosure al client.
+        // Il dettaglio completo resta nei log lato server; i messaggi destinati all'utente usano BadRequestException.
+        log.error("Errore non gestito", ex);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Si è verificato un errore interno. Riprova più tardi.");
     }
     
     @ExceptionHandler(AuthenticationException.class)

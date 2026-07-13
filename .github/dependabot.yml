@@ -1,0 +1,21 @@
+version: 2
+updates:
+  # Dipendenze Maven del backend (pom in sottocartella).
+  - package-ecosystem: maven
+    directory: /ProgettoNutrizionista
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    groups:
+      maven-dependencies:
+        patterns:
+          - "*"
+  # Aggiornamenti delle GitHub Actions usate nei workflow.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - "*"

@@ -11,6 +11,10 @@ import it.nutrizionista.restnutrizionista.dto.PlicometriaFormDto;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.enums.AuditAction;
+import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
+import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
@@ -25,6 +29,20 @@ public class PlicometriaService {
     @Autowired private ClienteRepository clienteRepo;
     @Autowired private CurrentUserService currentUserService;
     @Autowired private OwnershipValidator ownershipValidator;
+    @Autowired private PdfService pdfService;
+    @Autowired private AuditService auditService;
+
+    /**
+     * Export PDF della plicometria per il download diretto ({@code GET /api/plicometrie/{id}/pdf}).
+     * Registra l'audit critico EXPORT_PDF (A7) prima di generare il PDF.
+     */
+    @Transactional(readOnly = true)
+    public byte[] exportPdf(Long id) {
+        Plicometria p = ownershipValidator.getOwnedPlicometria(id);
+        Long clienteId = p.getCliente() != null ? p.getCliente().getId() : null;
+        auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.PLICOMETRIA, id, clienteId, null, AuditOutcome.SUCCESS);
+        return pdfService.generaPdfPlicometria(id);
+    }
 
     @Transactional
     public PlicometriaDto create(@Valid PlicometriaFormDto form) {
@@ -51,7 +69,7 @@ public class PlicometriaService {
     @Transactional
     public PlicometriaDto update(@Valid PlicometriaFormDto form) {
         if (form.getId() == null) {
-            throw new RuntimeException("Id Plicometria obbligatorio per update");
+            throw new BadRequestException("Id Plicometria obbligatorio per update");
         }
 
         Plicometria p = ownershipValidator.getOwnedPlicometria(form.getId());
@@ -82,6 +100,7 @@ public class PlicometriaService {
     @Transactional(readOnly = true)
     public PageResponse<PlicometriaDto> allPlicometrieByCliente(Long clienteId, Pageable pageable) {
         ownershipValidator.getOwnedCliente(clienteId);
+        auditService.record(AuditAction.LIST, AuditEntityType.PLICOMETRIA, null, clienteId);
 
         // Recupero paginato ordinato per data decrescente
         return PageResponse.from(

@@ -145,6 +145,14 @@
       <version>3.3.4</version>
     </dependency>
 
+    <!-- Caricamento segreti da file .env in dev (i ${VAR} in application.properties si risolvono da qui).
+         In assenza di .env non fa nulla: in prod si usano variabili d'ambiente reali. -->
+    <dependency>
+      <groupId>me.paulschwarz</groupId>
+      <artifactId>spring-dotenv</artifactId>
+      <version>4.0.0</version>
+    </dependency>
+
   </dependencies>
 
 

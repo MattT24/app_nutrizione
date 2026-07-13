@@ -11,6 +11,8 @@ import it.nutrizionista.restnutrizionista.dto.GruppoPermessiRequest;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.entity.Gruppo;
 import it.nutrizionista.restnutrizionista.entity.Permesso;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.GruppoRepository;
 import it.nutrizionista.restnutrizionista.repository.PermessoRepository;
@@ -37,9 +39,9 @@ public class GruppoService {
     /** Aggiorna nome/alias gruppo. */
     @Transactional
     public GruppoDto update(GruppoFormDto form) {
-        if (form.getId() == null) throw new RuntimeException("Id gruppo obbligatorio per update");
+        if (form.getId() == null) throw new BadRequestException("Id gruppo obbligatorio per update");
         Gruppo g = gruppoRepo.findById(form.getId())
-                .orElseThrow(() -> new RuntimeException("Gruppo non trovato"));
+                .orElseThrow(() -> new NotFoundException("Gruppo non trovato"));
         g.setNome(form.getNome());
         g.setAlias(form.getAlias());
         return DtoMapper.toGruppoDtoLight(gruppoRepo.save(g));
@@ -53,7 +55,7 @@ public class GruppoService {
     @Transactional(readOnly = true)
     public GruppoDto getById(Long id, boolean withPermessi) {
         Gruppo g = gruppoRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Gruppo non trovato"));
+                .orElseThrow(() -> new NotFoundException("Gruppo non trovato"));
         return withPermessi ? DtoMapper.toGruppoDtoWithPermessi(g)
                             : DtoMapper.toGruppoDtoLight(g);
     }
@@ -80,10 +82,10 @@ public class GruppoService {
     /** Associa i permessi al gruppo impostando il gruppo nei permessi. */
     public GruppoDto associaPermessi(GruppoPermessiRequest req) {
         Gruppo g = gruppoRepo.findById(req.getGruppoId())
-                .orElseThrow(() -> new RuntimeException("Gruppo non trovato"));
+                .orElseThrow(() -> new NotFoundException("Gruppo non trovato"));
         for (var pDto : req.getPermessi()) {
             Permesso p = permessoRepo.findById(pDto.getId())
-                    .orElseThrow(() -> new RuntimeException("Permesso non trovato id=" + pDto.getId()));
+                    .orElseThrow(() -> new NotFoundException("Permesso non trovato id=" + pDto.getId()));
             p.setGruppo(g);
             permessoRepo.save(p);
         }
@@ -93,10 +95,10 @@ public class GruppoService {
     /** Dissocia i permessi dal gruppo (gruppo = null). */
     public GruppoDto dissociaPermessi(GruppoPermessiRequest req) {
         gruppoRepo.findById(req.getGruppoId())
-                .orElseThrow(() -> new RuntimeException("Gruppo non trovato"));
+                .orElseThrow(() -> new NotFoundException("Gruppo non trovato"));
         for (var pDto : req.getPermessi()) {
             Permesso p = permessoRepo.findById(pDto.getId())
-                    .orElseThrow(() -> new RuntimeException("Permesso non trovato id=" + pDto.getId()));
+                    .orElseThrow(() -> new NotFoundException("Permesso non trovato id=" + pDto.getId()));
             if (p.getGruppo() != null && p.getGruppo().getId().equals(req.getGruppoId())) {
                 p.setGruppo(null);
                 permessoRepo.save(p);

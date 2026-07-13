@@ -4,7 +4,6 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,7 +19,6 @@ import it.nutrizionista.restnutrizionista.service.GamificationService;
  * API REST gamification per il nutrizionista (punti, livello, badge). Nessun endpoint di
  * scrittura: i punti si generano solo lato server in risposta ad azioni reali già autenticate.
  */
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/gamification")
 public class GamificationController {

@@ -48,8 +48,10 @@ import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
 import it.nutrizionista.restnutrizionista.dto.SystemTagDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.ValoreMicroDto;
+import it.nutrizionista.restnutrizionista.dto.AuditLogDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
+import it.nutrizionista.restnutrizionista.entity.AuditLog;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPastoSchedaTemplate;
 import it.nutrizionista.restnutrizionista.entity.AlimentoSchedaTemplateAlternativa;
@@ -82,6 +84,15 @@ import it.nutrizionista.restnutrizionista.enums.TagStandard;
  * per evitare confusione ed eliminare ricorsioni.
  */
 public class DtoMapper {
+
+	/** Riga di audit (A7) → DTO di consultazione. */
+	public static AuditLogDto toAuditLogDto(AuditLog a) {
+		if (a == null) return null;
+		return new AuditLogDto(
+				a.getId(), a.getUtenteId(), a.getUtenteEmail(), a.getAction(), a.getEntityType(),
+				a.getEntityId(), a.getClienteId(), a.getEsito(), a.getIpAddress(), a.getUserAgent(),
+				a.getDestinatario(), a.getCreatedAt());
+	}
 
 	/** Gruppo "light": solo campi del gruppo, senza lista dei permessi. */
 	public static GruppoDto toGruppoDtoLight(Gruppo g) {

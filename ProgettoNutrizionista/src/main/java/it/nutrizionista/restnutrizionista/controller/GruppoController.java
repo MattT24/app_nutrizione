@@ -16,7 +16,6 @@ import it.nutrizionista.restnutrizionista.service.GruppoService;
 import java.util.List;
 
 /** API REST per Gruppi. */
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/gruppi")
 public class GruppoController {

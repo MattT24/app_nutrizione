@@ -16,6 +16,8 @@ import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
@@ -39,30 +41,30 @@ public class AlimentoPastoService {
         
         // 1. Recupera il clienteId in modo leggero (1 sola query scalare, no Scheda/Cliente entity)
         Long clienteId = repoPasto.findClienteIdByPastoId(pastoId)
-                .orElseThrow(() -> new RuntimeException("Pasto non trovato"));
+                .orElseThrow(() -> new NotFoundException("Pasto non trovato"));
         
         AlimentoBase a = repoAlimento.findById(alimentoId)
-                .orElseThrow(() -> new RuntimeException("Alimento non trovato"));
+                .orElseThrow(() -> new NotFoundException("Alimento non trovato"));
         
         Cliente cliente = clienteRepo.findById(clienteId)
-                .orElseThrow(() -> new RuntimeException("Cliente non trovato"));
+                .orElseThrow(() -> new NotFoundException("Cliente non trovato"));
                 
         // 2. Controllo Restrizioni cliniche via MDSS
         ValutazioneClinicaDto valutazione = clinicalEngineService.valuta(a, cliente);
 
         if (valutazione.stato() == LivelloAllerta.ALERT_GRAVE) {
             String msg = valutazione.motivi().isEmpty() ? "Errore clinico grave" : valutazione.motivi().get(0).messaggio();
-            throw new RuntimeException("BLOCCO SICUREZZA: " + msg);
+            throw new BadRequestException("BLOCCO SICUREZZA: " + msg);
         }
 
         if (valutazione.stato() == LivelloAllerta.WARNING && !req.isForzaInserimento()) {
             String msg = valutazione.motivi().isEmpty() ? "Avviso clinico" : valutazione.motivi().get(0).messaggio();
-            throw new RuntimeException("WARNING_RESTRIZIONE: " + msg + " Vuoi forzare l'inserimento?");
+            throw new BadRequestException("WARNING_RESTRIZIONE: " + msg + " Vuoi forzare l'inserimento?");
         }
 
         // 3. Controllo Duplicati
         if (repo.existsByPasto_IdAndAlimento_Id(pastoId, a.getId())) {
-             throw new RuntimeException("Alimento già presente nel pasto");
+             throw new BadRequestException("Alimento già presente nel pasto");
         }
 
         // 4. Salvataggio — serve un Pasto reference (basta un proxy, non serve il full tree)
@@ -72,7 +74,7 @@ public class AlimentoPastoService {
         
         // 5. Carica l'albero completo solo per il response mapping (1 sola query)
         Pasto refreshed = repoPasto.findByIdWithFullTree(pastoId)
-                .orElseThrow(() -> new RuntimeException("Pasto non trovato dopo salvataggio"));
+                .orElseThrow(() -> new NotFoundException("Pasto non trovato dopo salvataggio"));
         
         return DtoMapper.toPastoDtoWithAssoc(refreshed);
     }
@@ -81,7 +83,7 @@ public class AlimentoPastoService {
     public PastoDto eliminaAssociazione(Long pastoId, Long alimentoId) {
         // Carica il pasto con albero completo
         Pasto p = repoPasto.findByIdWithFullTree(pastoId)
-                .orElseThrow(() -> new RuntimeException("Pasto non trovato"));
+                .orElseThrow(() -> new NotFoundException("Pasto non trovato"));
         
         // Rimuovi l'alimento dalla collection - orphanRemoval=true lo cancellerà dal DB
         if (p.getAlimentiPasto() != null) {
@@ -115,7 +117,7 @@ public class AlimentoPastoService {
         // OTTIMIZZAZIONE: Cerchiamo direttamente l'associazione.
         // Non serve caricare prima Pasto e Alimento separatamente.
         AlimentoPasto ap = repo.findByPasto_IdAndAlimento_Id(req.getPasto().getId(), req.getAlimento().getId())
-                .orElseThrow(() -> new RuntimeException("Associazione alimento-pasto non trovata"));
+                .orElseThrow(() -> new NotFoundException("Associazione alimento-pasto non trovata"));
         
         // Aggiorna quantità
         ap.setQuantita(req.getQuantita());
@@ -125,7 +127,7 @@ public class AlimentoPastoService {
         
         // Ri-carica con albero completo per il mapper
         Pasto refreshed = repoPasto.findByIdWithFullTree(ap.getPasto().getId())
-                .orElseThrow(() -> new RuntimeException("Pasto non trovato dopo aggiornamento"));
+                .orElseThrow(() -> new NotFoundException("Pasto non trovato dopo aggiornamento"));
         
         return DtoMapper.toPastoDtoWithAssoc(refreshed);
     }

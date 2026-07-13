@@ -18,7 +18,6 @@ import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/appuntamenti")
-@CrossOrigin(origins = "http://localhost:4200")
 public class AppuntamentoController {
 
     private final AppuntamentoService service;

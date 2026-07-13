@@ -13,7 +13,6 @@ import it.nutrizionista.restnutrizionista.dto.CalcoloTdeeFormDto;
 import it.nutrizionista.restnutrizionista.service.CalcoloTdeeService;
 import jakarta.validation.Valid;
 
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/tdee")
 public class CalcoloTdeeController {

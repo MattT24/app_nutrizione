@@ -17,7 +17,6 @@ import it.nutrizionista.restnutrizionista.service.RuoloService;
 import java.util.List;
 
 /** API REST per Ruoli (CRUD; associazioni gestite in RuoloPermessoController). */
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/ruoli")
 public class RuoloController {

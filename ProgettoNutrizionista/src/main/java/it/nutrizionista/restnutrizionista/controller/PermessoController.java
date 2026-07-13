@@ -16,7 +16,6 @@ import it.nutrizionista.restnutrizionista.service.PermessoService;
 import java.util.List;
 
 /** API REST per Permessi. */
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/permessi")
 public class PermessoController {
