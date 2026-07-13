@@ -17,7 +17,6 @@ import it.nutrizionista.restnutrizionista.service.OpenFoodFactsService;
  * La ricerca usa Search-a-licious (Elasticsearch) via proxy backend
  * perché nessun endpoint OFF supporta CORS per chiamate browser.
  */
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/openfoodfacts")
 public class OpenFoodFactsController {

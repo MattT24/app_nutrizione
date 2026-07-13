@@ -13,9 +13,12 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // es: http://localhost:8081/uploads/loghi/foto.jpg
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + uploadDir + "/");
+        // Solo i loghi del nutrizionista sono serviti staticamente (risorse non sensibili).
+        // I documenti di fascicolo (dati sanitari) NON sono esposti staticamente: si scaricano
+        // esclusivamente via GET /api/fascicolo/{id}/download con ownership check.
+        // es: http://localhost:8080/uploads/loghi/foto.jpg
+        registry.addResourceHandler("/uploads/loghi/**")
+                .addResourceLocations("file:" + uploadDir + "/loghi/");
     }
     
     

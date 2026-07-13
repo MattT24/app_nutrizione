@@ -25,6 +25,7 @@ import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaListItemDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaPreviewDto;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
@@ -35,6 +36,9 @@ import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
 import it.nutrizionista.restnutrizionista.entity.Macro;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
+import it.nutrizionista.restnutrizionista.enums.AuditAction;
+import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
+import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
 import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
@@ -57,17 +61,32 @@ public class SchedaService {
 	@Autowired private AlimentoPastoNomeOverrideRepository repoNomeOverride;
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private GamificationService gamificationService;
+	@Autowired private PdfService pdfService;
+	@Autowired private AuditService auditService;
 
 	@Transactional(readOnly = true)
 	public long countAttive() {
 		return repo.countByAttivaTrueAndCliente_Nutrizionista_Id(currentUserService.getMe().getId());
+	}
+
+	/**
+	 * Export PDF della scheda per il download diretto (endpoint {@code GET /api/schede/{id}/pdf}).
+	 * Wrapper che registra l'audit critico EXPORT_PDF (A7) prima di generare il PDF; {@code PdfService}
+	 * resta puro (chiamato anche da share/salvataggio-fascicolo, che NON devono generare un EXPORT_PDF).
+	 */
+	@Transactional(readOnly = true)
+	public byte[] exportPdf(Long id, boolean mostraMacro) {
+		Scheda scheda = ownershipValidator.getOwnedScheda(id);
+		Long clienteId = scheda.getCliente() != null ? scheda.getCliente().getId() : null;
+		auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.SCHEDA, id, clienteId, null, AuditOutcome.SUCCESS);
+		return pdfService.generaPdfScheda(id, mostraMacro);
 	}
 	
 
 	@Transactional
 	public SchedaDto create(@Valid SchedaFormDto form) {
 
-		if (form.getId() != null) throw new RuntimeException("Id non richiesto per create");
+		if (form.getId() != null) throw new BadRequestException("Id non richiesto per create");
 		Cliente cliente = ownershipValidator.getOwnedCliente(form.getCliente().getId());
 		
 		// Determina se la nuova scheda sarà attiva (default true se null)
@@ -155,7 +174,7 @@ public class SchedaService {
 }
 	@Transactional
 	public SchedaDto update(SchedaFormDto form) {
-		if (form.getId() == null) throw new RuntimeException("Id scheda obbligatorio per update");
+		if (form.getId() == null) throw new BadRequestException("Id scheda obbligatorio per update");
 		Scheda s = ownershipValidator.getOwnedScheda(form.getId());
 		DtoMapper.updateSchedaFromForm(s, form);
 		return DtoMapper.toSchedaDtoLight(repo.save(s));
@@ -170,7 +189,7 @@ public class SchedaService {
 	 */
 	@Transactional
 	public void delete(Long id) {
-		if (id == null) throw new RuntimeException("Id scheda obbligatorio per il delete");
+		if (id == null) throw new BadRequestException("Id scheda obbligatorio per il delete");
 		// Verifica ownership (senza caricare l'albero)
 		Scheda s = ownershipValidator.getOwnedScheda(id);
 
@@ -189,12 +208,15 @@ public class SchedaService {
 	@Transactional(readOnly = true)
 	public SchedaDto getById(Long id) {
 		Scheda s = ownershipValidator.getOwnedSchedaFullDetails(id);
+		Long clienteId = s.getCliente() != null ? s.getCliente().getId() : null;
+		auditService.record(AuditAction.READ, AuditEntityType.SCHEDA, id, clienteId);
 		return DtoMapper.toSchedaDto(s);
 	}
 
 	@Transactional(readOnly = true)
 	public PageResponse<SchedaListItemDto> schedeByCliente(Long clienteId, Pageable pageable) {
         ownershipValidator.getOwnedCliente(clienteId);
+		auditService.record(AuditAction.LIST, AuditEntityType.SCHEDA, null, clienteId);
 	    Page<Scheda> page = repo.findByCliente_IdOrderByDataCreazioneDescIdDesc(clienteId, pageable);
 	    Page<SchedaListItemDto> dtoPage = page.map(DtoMapper::toSchedaListItemDto);
 	    return PageResponse.from(dtoPage);

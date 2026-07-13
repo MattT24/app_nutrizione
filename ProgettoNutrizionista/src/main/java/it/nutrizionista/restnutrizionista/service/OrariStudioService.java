@@ -11,6 +11,7 @@ import it.nutrizionista.restnutrizionista.dto.OrariStudioDto;
 import it.nutrizionista.restnutrizionista.dto.OrariStudioFormDto;
 import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
@@ -24,11 +25,14 @@ public class OrariStudioService {
     @Autowired
     private UtenteRepository utenteRepository;
 
+    @Autowired
+    private OwnershipValidator ownershipValidator;
+
     // Ritorna la LISTA degli orari di tutti i giorni della settimana
     @Transactional(readOnly = true)
     public List<OrariStudioDto> getOrariStudioMe(String email) {
         Utente nutrizionista = utenteRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Nutrizionista non trovato con email: " + email));
+                .orElseThrow(() -> new BadRequestException("Nutrizionista non trovato con email: " + email));
 
         List<OrariStudio> orari = orariStudioRepository.findByNutrizionista(nutrizionista);
 
@@ -41,7 +45,7 @@ public class OrariStudioService {
     @Transactional
     public OrariStudioDto upsertOrariStudioMe(String email, OrariStudioFormDto formDto) {
         Utente nutrizionista = utenteRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Nutrizionista non trovato con email: " + email));
+                .orElseThrow(() -> new BadRequestException("Nutrizionista non trovato con email: " + email));
 
         validateOrariStudio(formDto);
 
@@ -69,20 +73,17 @@ public class OrariStudioService {
 
     @Transactional
     public void deleteOrariStudio(Long id) {
-        OrariStudio esistente = orariStudioRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Orario studio non trovato"));
-        
-        // Verifica se appartiene a chi lo sta cancellando potrebbe essere fatto qui o nel controller
+        OrariStudio esistente = ownershipValidator.getOwnedOrariStudio(id);
         orariStudioRepository.delete(esistente);
     }
 
     private void validateOrariStudio(OrariStudioFormDto formDto) {
         if (formDto == null) {
-            throw new RuntimeException("Dati orari studio mancanti");
+            throw new BadRequestException("Dati orari studio mancanti");
         }
 
         if (formDto.getGiornoSettimana() == null) {
-            throw new RuntimeException("Giorno della settimana obbligatorio");
+            throw new BadRequestException("Giorno della settimana obbligatorio");
         }
 
         // Se il giorno è impostato come "NON lavorativo", skippiamo i controlli sugli orari
@@ -91,28 +92,28 @@ public class OrariStudioService {
         }
 
         if (formDto.getOraApertura() == null) {
-            throw new RuntimeException("Ora apertura obbligatoria nei giorni lavorativi");
+            throw new BadRequestException("Ora apertura obbligatoria nei giorni lavorativi");
         }
         if (formDto.getOraChiusura() == null) {
-            throw new RuntimeException("Ora chiusura obbligatoria nei giorni lavorativi");
+            throw new BadRequestException("Ora chiusura obbligatoria nei giorni lavorativi");
         }
         if (!formDto.getOraApertura().isBefore(formDto.getOraChiusura())) {
-            throw new RuntimeException("L'ora di apertura deve essere antecedente all'ora di chiusura");
+            throw new BadRequestException("L'ora di apertura deve essere antecedente all'ora di chiusura");
         }
 
         // Validazione Pausa (opzionale, ma se si valorizza un campo, servono entrambi)
         if (formDto.getInizioPausaPranzo() != null || formDto.getFinePausaPranzo() != null) {
             
             if (formDto.getInizioPausaPranzo() == null || formDto.getFinePausaPranzo() == null) {
-                throw new RuntimeException("Pausa non valida: specifica sia inizio che fine");
+                throw new BadRequestException("Pausa non valida: specifica sia inizio che fine");
             }
             if (!formDto.getInizioPausaPranzo().isBefore(formDto.getFinePausaPranzo())) {
-                throw new RuntimeException("Pausa non valida: l'inizio deve essere antecedente alla fine");
+                throw new BadRequestException("Pausa non valida: l'inizio deve essere antecedente alla fine");
             }
             // Controllo che la pausa sia dentro i margini di lavoro
             if (formDto.getInizioPausaPranzo().isBefore(formDto.getOraApertura())
                     || formDto.getFinePausaPranzo().isAfter(formDto.getOraChiusura())) {
-                throw new RuntimeException("Pausa non valida: deve stare dentro l'orario di apertura/chiusura dello studio");
+                throw new BadRequestException("Pausa non valida: deve stare dentro l'orario di apertura/chiusura dello studio");
             }
         }
     }

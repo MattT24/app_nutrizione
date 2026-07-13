@@ -16,7 +16,6 @@ import it.nutrizionista.restnutrizionista.entity.TipoScheda;
 import it.nutrizionista.restnutrizionista.enums.TemaPdf;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
 import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
-import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,19 +40,19 @@ public class PdfService {
     private final TemplateEngine templateEngine;
     private final MisurazioneAntropometricaRepository misurazioneRepository;
     private final PlicometriaRepository plicometriaRepository;
-    private final SchedaRepository schedaRepository;
     private final PlicometriaCalcoliService plicometriaCalcoli;
+    private final OwnershipValidator ownershipValidator;
 
     public PdfService(@Qualifier("pdfTemplateEngine") TemplateEngine templateEngine,
                       MisurazioneAntropometricaRepository misurazioneRepository,
                       PlicometriaRepository plicometriaRepository,
-                      SchedaRepository schedaRepository,
-                      PlicometriaCalcoliService plicometriaCalcoli) {
+                      PlicometriaCalcoliService plicometriaCalcoli,
+                      OwnershipValidator ownershipValidator) {
         this.templateEngine = templateEngine;
         this.misurazioneRepository = misurazioneRepository;
         this.plicometriaRepository = plicometriaRepository;
-        this.schedaRepository = schedaRepository;
         this.plicometriaCalcoli = plicometriaCalcoli;
+        this.ownershipValidator = ownershipValidator;
     }
 
     // ─────────────────────────────────────────── MISURAZIONI ───────────────────────────────────────────
@@ -75,8 +74,7 @@ public class PdfService {
 
     @Transactional(readOnly = true)
     public byte[] generaPdfMisurazione(Long id) {
-        MisurazioneAntropometrica corrente = misurazioneRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Misurazione non trovata"));
+        MisurazioneAntropometrica corrente = ownershipValidator.getOwnedMisurazioneAntropometrica(id);
         MisurazioneAntropometrica precedente = null;
         if (corrente.getCliente() != null && corrente.getDataMisurazione() != null) {
             precedente = misurazioneRepository
@@ -127,8 +125,7 @@ public class PdfService {
 
     @Transactional(readOnly = true)
     public byte[] generaPdfPlicometria(Long id) {
-        Plicometria corrente = plicometriaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Plicometria non trovata"));
+        Plicometria corrente = ownershipValidator.getOwnedPlicometria(id);
         Plicometria precedente = null;
         if (corrente.getCliente() != null && corrente.getDataMisurazione() != null) {
             precedente = plicometriaRepository
@@ -224,8 +221,7 @@ public class PdfService {
 
     @Transactional(readOnly = true)
     public byte[] generaPdfScheda(Long id, boolean mostraMacro) {
-        Scheda scheda = schedaRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Scheda non trovata"));
+        Scheda scheda = ownershipValidator.getOwnedScheda(id);
         forzaFetchScheda(scheda);
         return renderScheda(scheda, mostraMacro);
     }

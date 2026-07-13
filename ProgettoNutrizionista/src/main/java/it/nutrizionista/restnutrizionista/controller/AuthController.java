@@ -15,7 +15,6 @@ import it.nutrizionista.restnutrizionista.dto.GoogleAuthResponse;
 import it.nutrizionista.restnutrizionista.service.AuthService;
 
 /** Controller REST per autenticazione: delega tutta la logica ad AuthService. */
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {

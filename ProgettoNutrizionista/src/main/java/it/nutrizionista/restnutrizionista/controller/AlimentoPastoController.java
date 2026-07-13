@@ -13,7 +13,6 @@ import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.service.AlimentoPastoService;
 import jakarta.validation.Valid;
 
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/alimenti_pasto")
 public class AlimentoPastoController {

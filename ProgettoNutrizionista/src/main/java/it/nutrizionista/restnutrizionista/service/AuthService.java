@@ -3,7 +3,6 @@ package it.nutrizionista.restnutrizionista.service;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -17,6 +16,8 @@ import it.nutrizionista.restnutrizionista.dto.*;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.enums.MetodoRegistrazione;
 import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
+import it.nutrizionista.restnutrizionista.exception.BadRequestException;
+import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.exception.TooManyRequestsException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
@@ -30,24 +31,34 @@ import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/** Logica di autenticazione: login (JWT) e costruzione payload autorizzazioni. */
+/**
+ * Logica di autenticazione: login (JWT) e costruzione payload autorizzazioni.
+ */
 @Service
 public class AuthService {
 
-    @Autowired private AuthenticationManager authManager;
-    @Autowired private JwtUtils jwtUtils;
-    @Autowired private UtenteRepository utenteRepository;
-    @Autowired private RuoloRepository ruoloRepository;
-    @Autowired private PasswordEncoder passwordEncoder;
-    @Autowired private GoogleTokenVerifier googleTokenVerifier;
-    @Autowired private GamificationService gamificationService;
-    @Autowired private LoginAttemptService loginAttemptService;
-
+    @Autowired
+    private AuthenticationManager authManager;
+    @Autowired
+    private JwtUtils jwtUtils;
+    @Autowired
+    private UtenteRepository utenteRepository;
+    @Autowired
+    private RuoloRepository ruoloRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private GoogleTokenVerifier googleTokenVerifier;
+    @Autowired
+    private GamificationService gamificationService;
+    @Autowired
+    private LoginAttemptService loginAttemptService;
 
     /** Esegue il login e costruisce la LoginResponse completa. */
 
     public LoginResponse login(@Valid LoginRequest req, String clientIp) {
-        // 0) Anti brute-force: blocco temporaneo dopo troppi tentativi falliti per email+IP
+        // 0) Anti brute-force: blocco temporaneo dopo troppi tentativi falliti per
+        // email+IP
         if (loginAttemptService.isBlocked(req.getEmail(), clientIp)) {
             throw new TooManyRequestsException("Troppi tentativi falliti. Riprova tra qualche minuto.");
         }
@@ -56,8 +67,7 @@ public class AuthService {
         Authentication auth;
         try {
             auth = authManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
-            );
+                    new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword()));
         } catch (org.springframework.security.core.AuthenticationException e) {
             loginAttemptService.registraFallimento(req.getEmail(), clientIp);
             throw e; // il GlobalExceptionHandler risponde 401 con messaggio generico
@@ -66,22 +76,25 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(auth);
 
         // 2) Recupera l'utente direttamente dal Principal autenticato! ZERO QUERY!
-        UserDetailsServiceImpl.CustomUserDetails userDetails =
-                (UserDetailsServiceImpl.CustomUserDetails) auth.getPrincipal();
+        UserDetailsServiceImpl.CustomUserDetails userDetails = (UserDetailsServiceImpl.CustomUserDetails) auth
+                .getPrincipal();
         Utente u = userDetails.getUtente();
 
-        // Traccia l'ultimo accesso (usato dalla dashboard super admin per attivo/inattivo)
+        // Traccia l'ultimo accesso (usato dalla dashboard super admin per
+        // attivo/inattivo)
         u.setLastLoginAt(Instant.now());
         utenteRepository.save(u);
 
-        // Gamification: registra l'accesso giornaliero (idempotente, al più uno al giorno)
+        // Gamification: registra l'accesso giornaliero (idempotente, al più uno al
+        // giorno)
         gamificationService.registraEvento(u, TipoEventoGamification.ACCESSO_GIORNALIERO, null);
 
-        // 3) Estrai le authorities (usiamo direttamente quelle caricate da Spring Security)
+        // 3) Estrai le authorities (usiamo direttamente quelle caricate da Spring
+        // Security)
         List<String> authorities = userDetails.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
-        
+
         // 4) Crea i claims da inserire nel JWT
         Map<String, Object> claims = new HashMap<>();
         claims.put("authorities", authorities); // ← QUESTO È FONDAMENTALE!
@@ -98,17 +111,17 @@ public class AuthService {
                 : List.of();
 
         // 7) Permessi dal ruolo (dedupe per alias)
-        
+
         List<PermessoDto> permessi = u.getRuolo() != null
                 ? u.getRuolo().getRuoloPermessi().stream()
-                    .map(rp -> DtoMapper.toPermessoDtoLight(rp.getPermesso()))
-                    .collect(Collectors.collectingAndThen(
-                            Collectors.toMap(PermessoDto::getAlias, p -> p, (a, b) -> a),
-                            m -> new ArrayList<>(m.values())))
+                        .map(rp -> DtoMapper.toPermessoDtoLight(rp.getPermesso()))
+                        .collect(Collectors.collectingAndThen(
+                                Collectors.toMap(PermessoDto::getAlias, p -> p, (a, b) -> a),
+                                m -> new ArrayList<>(m.values())))
                 : List.of();
 
         // 8) Gruppi dai permessi (DTO già pronti; dedupe per alias)
-        
+
         List<GruppoDto> gruppi = permessi.stream()
                 .map(PermessoDto::getGruppo)
                 .filter(Objects::nonNull)
@@ -119,9 +132,9 @@ public class AuthService {
         // 9) Costruisci risposta
         LoginResponse resp = new LoginResponse();
         resp.setToken(token);
-        //resp.setEmail(u.getEmail());
-        //resp.setNome(u.getNome());
-        //resp.setCognome(u.getCognome());
+        // resp.setEmail(u.getEmail());
+        // resp.setNome(u.getNome());
+        // resp.setCognome(u.getCognome());
         resp.setRuoli(ruoli);
         resp.setPermessi(permessi);
         resp.setGruppi(gruppi);
@@ -139,12 +152,12 @@ public class AuthService {
     public Utente register(@Valid RegisterRequest req) {
         // Verifica email esistente
         utenteRepository.findByEmail(req.getEmail()).ifPresent(u -> {
-            throw new RuntimeException("Email già registrata");
+            throw new BadRequestException("Email già registrata");
         });
 
         // Verifica codice fiscale esistente
         utenteRepository.findByCodiceFiscale(req.getCodiceFiscale()).ifPresent(u -> {
-            throw new RuntimeException("Codice fiscale già registrato");
+            throw new BadRequestException("Codice fiscale già registrato");
         });
 
         // Trova ruolo USER
@@ -204,10 +217,10 @@ public class AuthService {
         String[] nomeCognome = extractNomeCognome(payload, email);
 
         utenteRepository.findByEmail(email).ifPresent(u -> {
-            throw new RuntimeException("Email già registrata");
+            throw new BadRequestException("Email già registrata");
         });
         utenteRepository.findByCodiceFiscale(req.getCodiceFiscale()).ifPresent(u -> {
-            throw new RuntimeException("Codice fiscale già registrato");
+            throw new BadRequestException("Codice fiscale già registrato");
         });
 
         var ruoloUser = ruoloRepository.findByAlias("NUTRIZIONISTA")
@@ -221,7 +234,8 @@ public class AuthService {
         u.setTelefono(req.getTelefono());
         u.setIndirizzo(req.getIndirizzo());
         u.setDataNascita(req.getDataNascita());
-        // Password inutilizzabile e mai esposta: questo utente accede sempre via Google.
+        // Password inutilizzabile e mai esposta: questo utente accede sempre via
+        // Google.
         // Serve solo a soddisfare il vincolo NOT NULL esistente su Utente.password.
         u.setPassword(passwordEncoder.encode(UUID.randomUUID().toString() + UUID.randomUUID().toString()));
         u.setRuolo(ruoloUser);
@@ -229,11 +243,14 @@ public class AuthService {
 
         Utente saved = utenteRepository.save(u);
         Utente withAuthorities = utenteRepository.findWithAuthoritiesByEmail(saved.getEmail())
-                .orElseThrow(() -> new RuntimeException("Errore interno: utente appena creato non trovato"));
+                .orElseThrow(() -> new NotFoundException("Errore interno: utente appena creato non trovato"));
         return buildLoginResponseFor(withAuthorities);
     }
 
-    /** Estrae nome/cognome dal payload Google, con fallback se given_name/family_name assenti. */
+    /**
+     * Estrae nome/cognome dal payload Google, con fallback se
+     * given_name/family_name assenti.
+     */
     private String[] extractNomeCognome(GoogleIdToken.Payload payload, String email) {
         String givenName = (String) payload.get("given_name");
         String familyName = (String) payload.get("family_name");
@@ -254,9 +271,13 @@ public class AuthService {
         return new String[] { givenName, familyName };
     }
 
-    /** Costruisce token + ruoli/permessi/gruppi per un Utente già caricato con ruolo/permessi (stessa logica di login()). */
+    /**
+     * Costruisce token + ruoli/permessi/gruppi per un Utente già caricato con
+     * ruolo/permessi (stessa logica di login()).
+     */
     private LoginResponse buildLoginResponseFor(Utente u) {
-        // Gamification: registra l'accesso giornaliero anche per il login via Google (idempotente)
+        // Gamification: registra l'accesso giornaliero anche per il login via Google
+        // (idempotente)
         gamificationService.registraEvento(u, TipoEventoGamification.ACCESSO_GIORNALIERO, null);
 
         // Traccia l'ultimo accesso anche per il login via Google
@@ -265,8 +286,8 @@ public class AuthService {
 
         List<String> authorities = u.getRuolo() != null
                 ? u.getRuolo().getRuoloPermessi().stream()
-                    .map(rp -> rp.getPermesso().getAlias())
-                    .collect(Collectors.toList())
+                        .map(rp -> rp.getPermesso().getAlias())
+                        .collect(Collectors.toList())
                 : List.of();
 
         Map<String, Object> claims = new HashMap<>();
@@ -283,10 +304,10 @@ public class AuthService {
 
         List<PermessoDto> permessi = u.getRuolo() != null
                 ? u.getRuolo().getRuoloPermessi().stream()
-                    .map(rp -> DtoMapper.toPermessoDtoLight(rp.getPermesso()))
-                    .collect(Collectors.collectingAndThen(
-                            Collectors.toMap(PermessoDto::getAlias, p -> p, (a, b) -> a),
-                            m -> new ArrayList<>(m.values())))
+                        .map(rp -> DtoMapper.toPermessoDtoLight(rp.getPermesso()))
+                        .collect(Collectors.collectingAndThen(
+                                Collectors.toMap(PermessoDto::getAlias, p -> p, (a, b) -> a),
+                                m -> new ArrayList<>(m.values())))
                 : List.of();
 
         List<GruppoDto> gruppi = permessi.stream()

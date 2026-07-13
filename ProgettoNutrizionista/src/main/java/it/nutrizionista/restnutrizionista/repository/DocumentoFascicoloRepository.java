@@ -12,4 +12,7 @@ import java.util.Optional;
 public interface DocumentoFascicoloRepository extends JpaRepository<DocumentoFascicolo, Long> {
     List<DocumentoFascicolo> findByClienteIdOrderByDataCreazioneDesc(Long clienteId);
     Optional<DocumentoFascicolo> findByClienteIdAndTipoDocumentoAndRiferimentoId(Long clienteId, TipoDocumento tipoDocumento, Long riferimentoId);
+
+    // Lookup scoped per ownership (usato da OwnershipValidator.getOwnedDocumentoFascicolo)
+    Optional<DocumentoFascicolo> findByIdAndCliente_Nutrizionista_Id(Long id, Long nutrizionistaId);
 }

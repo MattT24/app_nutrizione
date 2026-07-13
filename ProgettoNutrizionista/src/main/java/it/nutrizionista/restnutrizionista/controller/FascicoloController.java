@@ -5,7 +5,6 @@ import it.nutrizionista.restnutrizionista.dto.SalvaDocumentoRequest;
 import it.nutrizionista.restnutrizionista.dto.ShareRequest;
 import it.nutrizionista.restnutrizionista.entity.DocumentoFascicolo;
 import it.nutrizionista.restnutrizionista.service.FascicoloService;
-import it.nutrizionista.restnutrizionista.service.EmailService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -17,16 +16,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/fascicolo")
 public class FascicoloController {
 
     @Autowired
     private FascicoloService service;
-    
-    @Autowired
-    private EmailService emailService;
 
     @PostMapping("/salva")
     @PreAuthorize("hasAuthority('CLIENTE_UPDATE')")
@@ -54,15 +49,7 @@ public class FascicoloController {
     @PostMapping("/{id}/share")
     @PreAuthorize("hasAuthority('CLIENTE_READ')")
     public ResponseEntity<Map<String, String>> shareViaEmail(@PathVariable("id") Long id, @Valid @RequestBody ShareRequest req) {
-        DocumentoFascicolo entity = service.getDocumentoEntity(id);
-        byte[] pdf = service.downloadDocumento(id);
-        emailService.sendPdfEmail(
-                req.getEmail(),
-                "Il tuo documento: " + entity.getTitolo(),
-                "In allegato trovi il documento richiesto in formato PDF.",
-                pdf,
-                sanitizeFilename(entity.getTitolo()) + ".pdf"
-        );
+        service.shareDocumento(id, req);
         return ResponseEntity.ok(Map.of("message", "Email inviata con successo!"));
     }
 

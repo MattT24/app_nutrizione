@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.List;
 
 /** API REST per Utenti. */
-@CrossOrigin(origins = "http://localhost:4200")
 @RestController
 @RequestMapping("/api/utenti")
 public class UtenteController {

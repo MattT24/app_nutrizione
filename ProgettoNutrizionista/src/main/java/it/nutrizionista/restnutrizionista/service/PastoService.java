@@ -37,7 +37,7 @@ public class PastoService {
 
 	@Transactional
     public PastoDto create(@Valid PastoFormDto form) {
-        if (form.getScheda().getId() == null) throw new RuntimeException("ID Scheda obbligatorio");
+        if (form.getScheda().getId() == null) throw new BadRequestException("ID Scheda obbligatorio");
         var scheda = ownershipValidator.getOwnedScheda(form.getScheda().getId());
         Pasto p = new Pasto();
         p.setNome(form.getNome());
@@ -77,7 +77,7 @@ public class PastoService {
 
 	@Transactional
     public PastoDto update(@Valid PastoFormDto form) {
-        if (form.getId() == null) throw new RuntimeException("Id Pasto obbligatorio");
+        if (form.getId() == null) throw new BadRequestException("Id Pasto obbligatorio");
         Pasto p = ownershipValidator.getOwnedPasto(form.getId());
         if (Boolean.FALSE.equals(p.getEliminabile())) {
         	if (form.getNome() != null && !p.getNome().equalsIgnoreCase(form.getNome())) {
@@ -106,7 +106,7 @@ public class PastoService {
 	
 	@Transactional
 	public PastoDto updateOrari(Long pastoId, java.time.LocalTime orarioInizio, java.time.LocalTime orarioFine) {
-		if (pastoId == null) throw new RuntimeException("Id Pasto obbligatorio");
+		if (pastoId == null) throw new BadRequestException("Id Pasto obbligatorio");
 		Pasto p = ownershipValidator.getOwnedPasto(pastoId);
 		validateOrari(orarioInizio, orarioFine);
 		p.setOrarioInizio(orarioInizio);
