@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.repository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -14,6 +15,11 @@ public interface UtenteRepository extends JpaRepository<Utente, Long> {
     Optional<Utente> findByEmail(String email);
     List<Utente> findByRuolo_Alias(String alias);
     Optional<Utente> findByCodiceFiscale(String codiceFiscale);
+
+    /** Conteggi per la dashboard super admin. */
+    long countByRuolo_Alias(String alias);
+    long countByRuolo_AliasAndLastLoginAtAfter(String alias, Instant after);
+    List<Utente> findByRuolo_AliasOrderByCognomeAscNomeAsc(String alias);
 
     /** Carica utente con ruolo e permessi del ruolo già inizializzati. */
     @Query("SELECT u FROM Utente u " +

@@ -71,7 +71,10 @@ public class SecurityConfig {
                 	    "/configuration/ui",
                 	    "/configuration/security",
                 	    "/webjars/**"
-                	).permitAll()            
+                	).permitAll()
+                // Difesa in profondità: gli endpoint admin richiedono SUPER_ADMIN
+                // già a livello di filter chain, oltre a @PreAuthorize sul controller.
+                .requestMatchers("/api/admin/**").hasAuthority("SUPER_ADMIN")
                 .anyRequest().authenticated()
             )
             //.authenticationProvider(authenticationProvider())
