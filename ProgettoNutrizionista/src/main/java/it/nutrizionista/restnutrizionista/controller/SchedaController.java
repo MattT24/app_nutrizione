@@ -133,8 +133,9 @@ public class SchedaController {
 
 	@GetMapping("/{id}/pdf")
 	@PreAuthorize("hasAuthority('SCHEDA_READ')")
-	public ResponseEntity<byte[]> getPdf(@PathVariable("id") Long id) {
-		byte[] pdf = pdfService.generaPdfScheda(id);
+	public ResponseEntity<byte[]> getPdf(@PathVariable("id") Long id,
+			@org.springframework.web.bind.annotation.RequestParam(name = "macro", defaultValue = "true") boolean macro) {
+		byte[] pdf = pdfService.generaPdfScheda(id, macro);
 		return ResponseEntity.ok()
 				.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"scheda_" + id + ".pdf\"")
 				.contentType(MediaType.APPLICATION_PDF)

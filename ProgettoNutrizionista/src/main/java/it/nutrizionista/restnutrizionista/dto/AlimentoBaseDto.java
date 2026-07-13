@@ -5,10 +5,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import it.nutrizionista.restnutrizionista.enums.Allergene;
 import it.nutrizionista.restnutrizionista.enums.FonteAllergene;
 import it.nutrizionista.restnutrizionista.enums.StatoAllergene;
 
+/**
+ * DTO alimento. {@code @JsonInclude(NON_NULL)}: i campi non popolati dal mapper di lista
+ * ({@code DtoMapper.toAlimentoBaseDtoCard}) non vengono serializzati → payload snello per
+ * catalogo/indice, mentre il dettaglio (mapper completo) resta pieno.
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class AlimentoBaseDto {
 	
     private Long id;
@@ -105,6 +113,7 @@ public class AlimentoBaseDto {
     private Boolean senzaGlutine;
     private Boolean senzaLattosio;
     private Boolean vegano;
+    private Boolean vegetariano;
 
     public Boolean getSenzaGlutine() { return senzaGlutine; }
     public void setSenzaGlutine(Boolean senzaGlutine) { this.senzaGlutine = senzaGlutine; }
@@ -112,12 +121,15 @@ public class AlimentoBaseDto {
     public void setSenzaLattosio(Boolean senzaLattosio) { this.senzaLattosio = senzaLattosio; }
     public Boolean getVegano() { return vegano; }
     public void setVegano(Boolean vegano) { this.vegano = vegano; }
+    public Boolean getVegetariano() { return vegetariano; }
+    public void setVegetariano(Boolean vegetariano) { this.vegetariano = vegetariano; }
 
     public ValutazioneClinicaDto getValutazioneClinica() { return valutazioneClinica; }
     public void setValutazioneClinica(ValutazioneClinicaDto valutazioneClinica) { this.valutazioneClinica = valutazioneClinica; }
 
     // ── Integrazione OpenFoodFacts ──────────────────────────────────
     private String barcode;
+    private String marca;
     private Map<Allergene, StatoAllergene> allergeni;
     private FonteAllergene fonteAllergeni;
     private String nutriscoreGrade;
@@ -131,6 +143,8 @@ public class AlimentoBaseDto {
 
     public String getBarcode() { return barcode; }
     public void setBarcode(String barcode) { this.barcode = barcode; }
+    public String getMarca() { return marca; }
+    public void setMarca(String marca) { this.marca = marca; }
     public Map<Allergene, StatoAllergene> getAllergeni() { return allergeni; }
     public void setAllergeni(Map<Allergene, StatoAllergene> allergeni) { this.allergeni = allergeni; }
     public FonteAllergene getFonteAllergeni() { return fonteAllergeni; }

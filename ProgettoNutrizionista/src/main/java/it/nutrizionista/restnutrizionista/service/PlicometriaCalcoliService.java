@@ -1,5 +1,7 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.util.List;
+
 import org.springframework.stereotype.Service;
 
 import it.nutrizionista.restnutrizionista.entity.Cliente;
@@ -56,31 +58,53 @@ public class PlicometriaCalcoliService {
         return new Risultati(somma, bd, perc, mgKg, mmKg);
     }
 
+    /**
+     * Pliche (chiavi campo) usate dal metodo, nell'ordine di presentazione.
+     * Fonte unica della mappa metodo→pliche: riusata da validazione, somma e dal PDF modulare.
+     * Per Jackson-Pollock 3 il set dipende dal sesso.
+     */
+    public List<String> getPlicheUsate(Metodo metodo, Sesso sesso) {
+        return switch (metodo) {
+            case JACKSON_POLLOCK_3 -> (sesso == Sesso.Maschio)
+                    ? List.of("pettorale", "addominale", "coscia")
+                    : List.of("tricipite", "sovrailiaca", "coscia");
+            case JACKSON_POLLOCK_7 -> List.of("pettorale", "ascellare", "tricipite",
+                    "sottoscapolare", "addominale", "sovrailiaca", "coscia");
+            case DURNIN_WOMERSLEY -> List.of("tricipite", "bicipite", "sottoscapolare", "sovrailiaca");
+            case PARILLO, MISURAZIONE_LIBERA -> List.of();
+        };
+    }
+
+    /** Valore (mm) di una plica per chiave campo; null se non valorizzata. */
+    public Double getValorePlica(Plicometria p, String plica) {
+        return switch (plica) {
+            case "tricipite" -> p.getTricipite();
+            case "bicipite" -> p.getBicipite();
+            case "sottoscapolare" -> p.getSottoscapolare();
+            case "sovrailiaca" -> p.getSovrailiaca();
+            case "addominale" -> p.getAddominale();
+            case "coscia" -> p.getCoscia();
+            case "pettorale" -> p.getPettorale();
+            case "ascellare" -> p.getAscellare();
+            case "polpaccio" -> p.getPolpaccio();
+            default -> null;
+        };
+    }
+
     private void validaPlicheNecessarie(Plicometria p, Sesso sesso) {
-        switch (p.getMetodo()) {
-            case JACKSON_POLLOCK_3 -> {
-                if (sesso == Sesso.Maschio) requireAll(p.getPettorale(), p.getAddominale(), p.getCoscia());
-                else requireAll(p.getTricipite(), p.getSovrailiaca(), p.getCoscia());
+        for (String plica : getPlicheUsate(p.getMetodo(), sesso)) {
+            if (getValorePlica(p, plica) == null) {
+                throw new RuntimeException("Inserire tutte le pliche richieste dal metodo selezionato");
             }
-            case JACKSON_POLLOCK_7 -> requireAll(
-                    p.getPettorale(), p.getAscellare(), p.getTricipite(),
-                    p.getSottoscapolare(), p.getAddominale(), p.getSovrailiaca(), p.getCoscia()
-            );
-            case DURNIN_WOMERSLEY -> requireAll(p.getTricipite(), p.getBicipite(), p.getSottoscapolare(), p.getSovrailiaca());
-            default -> throw new IllegalArgumentException("Metodo non gestito: " + p.getMetodo());
         }
     }
 
     private double sommaPliche(Plicometria p, Sesso sesso) {
-        return switch (p.getMetodo()) {
-            case JACKSON_POLLOCK_3 -> (sesso == Sesso.Maschio)
-                    ? n(p.getPettorale()) + n(p.getAddominale()) + n(p.getCoscia())
-                    : n(p.getTricipite()) + n(p.getSovrailiaca()) + n(p.getCoscia());
-            case JACKSON_POLLOCK_7 -> n(p.getPettorale()) + n(p.getAscellare()) + n(p.getTricipite())
-                    + n(p.getSottoscapolare()) + n(p.getAddominale()) + n(p.getSovrailiaca()) + n(p.getCoscia());
-            case DURNIN_WOMERSLEY -> n(p.getTricipite()) + n(p.getBicipite()) + n(p.getSottoscapolare()) + n(p.getSovrailiaca());
-            default -> throw new IllegalArgumentException("Metodo non gestito: " + p.getMetodo());
-        };
+        double somma = 0;
+        for (String plica : getPlicheUsate(p.getMetodo(), sesso)) {
+            somma += n(getValorePlica(p, plica));
+        }
+        return somma;
     }
 
     private double densitaCorporea(Metodo metodo, Sesso sesso, int eta, double somma) {
@@ -135,12 +159,6 @@ public class PlicometriaCalcoliService {
             if (eta <= 39) return new CoeffDW(1.1423, 0.0632);
             if (eta <= 49) return new CoeffDW(1.1333, 0.0612);
             return new CoeffDW(1.1339, 0.0645);
-        }
-    }
-
-    private void requireAll(Double... values) {
-        for (Double v : values) {
-            if (v == null) throw new RuntimeException("Inserire tutte le pliche richieste dal metodo selezionato");
         }
     }
 

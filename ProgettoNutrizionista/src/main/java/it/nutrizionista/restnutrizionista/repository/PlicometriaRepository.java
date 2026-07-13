@@ -12,4 +12,8 @@ public interface PlicometriaRepository extends JpaRepository<Plicometria, Long> 
 	Page<Plicometria> findByCliente_IdOrderByDataMisurazioneDesc(Long clienteId, Pageable pageable);
 
 	Optional<Plicometria> findByIdAndCliente_Nutrizionista_Id(Long id, Long nutrizionistaId);
+
+	// Rilevazione precedente dello stesso cliente (per il confronto nel PDF)
+	Optional<Plicometria> findFirstByCliente_IdAndDataMisurazioneLessThanOrderByDataMisurazioneDesc(
+			Long clienteId, java.time.LocalDate data);
 }

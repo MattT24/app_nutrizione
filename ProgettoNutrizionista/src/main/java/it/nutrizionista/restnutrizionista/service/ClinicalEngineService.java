@@ -9,6 +9,7 @@ import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
 import it.nutrizionista.restnutrizionista.enums.TagStandard;
 import it.nutrizionista.restnutrizionista.repository.AvversionePersonaleRepository;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -105,6 +106,16 @@ public class ClinicalEngineService {
         Set<AvversionePersonale> blacklistImmutabile = Set.copyOf(
                 avversionePersonaleRepository.findByClienteIdWithAlimenti(cliente.getId())
         );
+
+        // ⚠️ INVARIANTE guard-fetch: ogni associazione LAZY letta dai validatori DEVE essere
+        // inizializzata QUI, sul thread della transazione, PRIMA del parallelStream. La Session
+        // Hibernate non è thread-safe: accedere a una LAZY da un worker del ForkJoinPool (con
+        // open-in-view=false) causerebbe LazyInitializationException/accesso concorrente alla Session.
+        // 'tracce' arriva già via JOIN FETCH dai repository; 'allergeni' (letta da AllergeneRule) NON
+        // è fetch-joined (eviterebbe il prodotto cartesiano di una 2ª @ElementCollection) → la
+        // pre-inizializziamo in batch (@BatchSize=50 → ~ceil(N/50) query). Una futura regola che
+        // legge un'altra LAZY va aggiunta qui.
+        alimenti.forEach(a -> Hibernate.initialize(a.getAllergeni()));
 
         return alimenti.parallelStream()
                 .map(alimento -> eseguiChain(alimento, tagsImmutabili, blacklistImmutabile))

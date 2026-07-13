@@ -1,6 +1,8 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class MacroDto {
 
 	 	private Long id;

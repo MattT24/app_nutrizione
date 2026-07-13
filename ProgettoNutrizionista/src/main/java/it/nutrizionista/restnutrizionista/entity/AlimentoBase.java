@@ -35,6 +35,7 @@ import jakarta.persistence.UniqueConstraint;
 import org.hibernate.annotations.BatchSize;
 
 import it.nutrizionista.restnutrizionista.enums.Allergene;
+import it.nutrizionista.restnutrizionista.enums.DefaultAllergene;
 import it.nutrizionista.restnutrizionista.enums.FonteAllergene;
 import it.nutrizionista.restnutrizionista.enums.StatoAllergene;
 
@@ -90,6 +91,19 @@ public class AlimentoBase {
     @BatchSize(size = 50)
     private Set<String> tracce = new HashSet<>();
 
+    /**
+     * Micronutrienti presenti in tracce (nomi liberi corrispondenti a {@code Micro.nome}, es. "Vitamina E").
+     * Collection distinta da {@link #tracce} (che modella le tracce allergeni OFF). Valorizzata dal seed CREA.
+     */
+    @ElementCollection
+    @CollectionTable(
+        name = "alimento_micro_tracce",
+        joinColumns = @JoinColumn(name = "alimento_id")
+    )
+    @Column(name = "micronutriente")
+    @BatchSize(size = 50)
+    private Set<String> micronutrientiTracce = new HashSet<>();
+
     // ── Tag dietetici certificati (D3) ──────────────────────────────
     @Column(name = "senza_glutine")
     private Boolean senzaGlutine;
@@ -100,10 +114,17 @@ public class AlimentoBase {
     @Column(name = "vegano")
     private Boolean vegano;
 
+    @Column(name = "vegetariano")
+    private Boolean vegetariano;
+
     // ── Integrazione OpenFoodFacts: barcode, allergeni tri-stato, score, qualità ──
     /** EAN/UPC dell'alimento OFF (null per CREA e alimenti manuali). Unique per (created_by, barcode). */
     @Column(name = "barcode", length = 20)
     private String barcode;
+
+    /** Marca/brand OFF human-readable (es. "Ferrero"); null per CREA e alimenti manuali. */
+    @Column(name = "marca")
+    private String marca;
 
     /**
      * Allergeni tri-stato (Reg. UE 1169/2011). L'assenza di una entry = SCONOSCIUTO
@@ -122,6 +143,14 @@ public class AlimentoBase {
     @Enumerated(EnumType.STRING)
     @Column(name = "fonte_allergeni", length = 32)
     private FonteAllergene fonteAllergeni;
+
+    /**
+     * Stato di default per gli allergeni privi di entry esplicita in {@link #allergeni}:
+     * {@code ASSENTE} (libero) o {@code SCONOSCIUTO} (non verificato). Valorizzato dal seed CREA.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "allergeni_default", length = 16)
+    private DefaultAllergene allergeniDefault;
 
     /** Nutri-Score a–e (OFF). String per ospitare "unknown"/"not-applicable" → normalizzati a null in import. */
     @Column(name = "nutriscore_grade")
@@ -158,10 +187,6 @@ public class AlimentoBase {
     @Column(name = "serving_quantity_g")
     private Double servingQuantityG;
 
-    /** Completezza scheda OFF 0–1 (per needsReview). */
-    @Column(name = "completezza_off")
-    private Double completezzaOff;
-
     /** true se dati incompleti/contraddittori → richiede revisione del nutrizionista. */
     @Column(name = "needs_review")
     private Boolean needsReview;
@@ -173,6 +198,14 @@ public class AlimentoBase {
 
     public void setTracce(Set<String> tracce) {
         this.tracce = tracce;
+    }
+
+    public Set<String> getMicronutrientiTracce() {
+        return micronutrientiTracce;
+    }
+
+    public void setMicronutrientiTracce(Set<String> micronutrientiTracce) {
+        this.micronutrientiTracce = micronutrientiTracce;
     }
 	public String getUrlImmagine() {
 		return urlImmagine;
@@ -266,15 +299,24 @@ public class AlimentoBase {
     public Boolean getVegano() { return vegano; }
     public void setVegano(Boolean vegano) { this.vegano = vegano; }
 
+    public Boolean getVegetariano() { return vegetariano; }
+    public void setVegetariano(Boolean vegetariano) { this.vegetariano = vegetariano; }
+
     // ── Getters/Setters integrazione OFF ──
     public String getBarcode() { return barcode; }
     public void setBarcode(String barcode) { this.barcode = barcode; }
+
+    public String getMarca() { return marca; }
+    public void setMarca(String marca) { this.marca = marca; }
 
     public Map<Allergene, StatoAllergene> getAllergeni() { return allergeni; }
     public void setAllergeni(Map<Allergene, StatoAllergene> allergeni) { this.allergeni = allergeni; }
 
     public FonteAllergene getFonteAllergeni() { return fonteAllergeni; }
     public void setFonteAllergeni(FonteAllergene fonteAllergeni) { this.fonteAllergeni = fonteAllergeni; }
+
+    public DefaultAllergene getAllergeniDefault() { return allergeniDefault; }
+    public void setAllergeniDefault(DefaultAllergene allergeniDefault) { this.allergeniDefault = allergeniDefault; }
 
     public String getNutriscoreGrade() { return nutriscoreGrade; }
     public void setNutriscoreGrade(String nutriscoreGrade) { this.nutriscoreGrade = nutriscoreGrade; }
@@ -296,9 +338,6 @@ public class AlimentoBase {
 
     public Double getServingQuantityG() { return servingQuantityG; }
     public void setServingQuantityG(Double servingQuantityG) { this.servingQuantityG = servingQuantityG; }
-
-    public Double getCompletezzaOff() { return completezzaOff; }
-    public void setCompletezzaOff(Double completezzaOff) { this.completezzaOff = completezzaOff; }
 
     public Boolean getNeedsReview() { return needsReview; }
     public void setNeedsReview(Boolean needsReview) { this.needsReview = needsReview; }
