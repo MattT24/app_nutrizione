@@ -1,28 +1,19 @@
-application.properties
+# Config con segreti reali: SOLO il main (usa ${...} da .env). I test (H2, valori fittizi) vanno versionati.
+/ProgettoNutrizionista/src/main/resources/application.properties
 .env
 .classpath
-ProgettoNutrizionista/docs/migrations/001_permessi_plicometria.sql
-ProgettoNutrizionista/docs/migrations/003_permessi_meals.sql
+
+# Docs/scratch personali (non codice)
 ProgettoNutrizionista/docs/ordinamento-alimenti.md
 ProgettoNutrizionista/docs/piano-azione-gestione-pasti-e-override-nomi.md
 ProgettoNutrizionista/docs/testing-sicuro.md
-ProgettoNutrizionista/docs/migrations/002_pasti_custom_e_override.sql
-ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/controller/AlimentoBaseSortingIntegrationTest.java
-ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/MealDefaultsIntegrationTest.java
-ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/ProgettoNutrizionistaApplicationTests.java
-ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/RouteProtectionIntegrationTest.java
-ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/support/SafeTestDatabaseBase.java
-ProgettoNutrizionista/src/test/resources/application-test.properties
-ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/PlicometriaMetodoPersistenceTest.java
+ProgettoNutrizionista/docs/STATER~1.MD
+ProgettoNutrizionista/docs/STATER~2.MD
+GOOGLE_AUTH_IMPLEMENTATION_PLAN.md
+COMMIT_MESSAGES_GOOGLE_LOGIN.txt
+
+# Tooling / artefatti
 repomix-architettura.xml
 repomix.config.json
 ProgettoNutrizionista/.agents/
 ProgettoNutrizionista/skills-lock.json
-GOOGLE_AUTH_IMPLEMENTATION_PLAN.md
-COMMIT_MESSAGES_GOOGLE_LOGIN.txt
-/ProgettoNutrizionista/src/test
-/ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/engine
-ProgettoNutrizionista/src/test/java/it/nutrizionista/restnutrizionista/engine/AllergeneRuleTest.java
-
-ProgettoNutrizionista/docs/STATER~1.MD
-ProgettoNutrizionista/docs/STATER~2.MD
