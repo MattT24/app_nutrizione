@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 
@@ -28,6 +29,16 @@ public class GoogleRegisterRequest {
     @Past(message = "La data di nascita deve essere nel passato")
     private LocalDate dataNascita;
 
+    // A4/A9: accettazione documenti anche per la registrazione via Google.
+    @AssertTrue(message = "Devi prendere visione dell'Informativa Privacy")
+    private boolean accettaPrivacy;
+
+    @AssertTrue(message = "Devi accettare i Termini di Servizio")
+    private boolean accettaTermini;
+
+    @AssertTrue(message = "Devi accettare il DPA (accordo sul trattamento dei dati)")
+    private boolean accettaDpa;
+
     public String getIdToken() { return idToken; }
     public void setIdToken(String idToken) { this.idToken = idToken; }
     public String getCodiceFiscale() { return codiceFiscale; }
@@ -38,4 +49,10 @@ public class GoogleRegisterRequest {
     public void setIndirizzo(String indirizzo) { this.indirizzo = indirizzo; }
     public LocalDate getDataNascita() { return dataNascita; }
     public void setDataNascita(LocalDate dataNascita) { this.dataNascita = dataNascita; }
+    public boolean isAccettaPrivacy() { return accettaPrivacy; }
+    public void setAccettaPrivacy(boolean accettaPrivacy) { this.accettaPrivacy = accettaPrivacy; }
+    public boolean isAccettaTermini() { return accettaTermini; }
+    public void setAccettaTermini(boolean accettaTermini) { this.accettaTermini = accettaTermini; }
+    public boolean isAccettaDpa() { return accettaDpa; }
+    public void setAccettaDpa(boolean accettaDpa) { this.accettaDpa = accettaDpa; }
 }

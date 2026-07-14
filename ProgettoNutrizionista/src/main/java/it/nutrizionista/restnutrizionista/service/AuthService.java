@@ -9,6 +9,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 
@@ -53,6 +54,8 @@ public class AuthService {
     private GamificationService gamificationService;
     @Autowired
     private LoginAttemptService loginAttemptService;
+    @Autowired
+    private AccettazioneService accettazioneService;
 
     /** Esegue il login e costruisce la LoginResponse completa. */
 
@@ -148,7 +151,7 @@ public class AuthService {
     }
 
     /** Registra un nuovo utente con ruolo USER assegnato automaticamente. */
-
+    @Transactional
     public Utente register(@Valid RegisterRequest req) {
         // Verifica email esistente
         utenteRepository.findByEmail(req.getEmail()).ifPresent(u -> {
@@ -176,7 +179,10 @@ public class AuthService {
         u.setRuolo(ruoloUser);
         u.setMetodoRegistrazione(MetodoRegistrazione.EMAIL);
 
-        return utenteRepository.save(u);
+        Utente saved = utenteRepository.save(u);
+        // A4/A9: registra l'accettazione dei documenti (Privacy/Termini/DPA) nella stessa transazione.
+        accettazioneService.registraAccettazioniDiRegistrazione(saved);
+        return saved;
     }
 
     /**
@@ -211,6 +217,7 @@ public class AuthService {
      * su Utente che Google non fornisce (codiceFiscale, telefono, indirizzo).
      * Nome/cognome/email vengono letti dal token riverificato, non dal client.
      */
+    @Transactional
     public LoginResponse registerWithGoogle(@Valid GoogleRegisterRequest req) {
         GoogleIdToken.Payload payload = googleTokenVerifier.verify(req.getIdToken());
         String email = payload.getEmail();
@@ -242,6 +249,8 @@ public class AuthService {
         u.setMetodoRegistrazione(MetodoRegistrazione.GOOGLE);
 
         Utente saved = utenteRepository.save(u);
+        // A4/A9: registra l'accettazione dei documenti (Privacy/Termini/DPA) nella stessa transazione.
+        accettazioneService.registraAccettazioniDiRegistrazione(saved);
         Utente withAuthorities = utenteRepository.findWithAuthoritiesByEmail(saved.getEmail())
                 .orElseThrow(() -> new NotFoundException("Errore interno: utente appena creato non trovato"));
         return buildLoginResponseFor(withAuthorities);

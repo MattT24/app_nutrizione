@@ -48,7 +48,9 @@ import it.nutrizionista.restnutrizionista.dto.SchedaTemplateListDto;
 import it.nutrizionista.restnutrizionista.dto.SystemTagDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.ValoreMicroDto;
+import it.nutrizionista.restnutrizionista.dto.AccettazioneDocumentoDto;
 import it.nutrizionista.restnutrizionista.dto.AuditLogDto;
+import it.nutrizionista.restnutrizionista.entity.AccettazioneDocumento;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AuditLog;
@@ -84,6 +86,12 @@ import it.nutrizionista.restnutrizionista.enums.TagStandard;
  * per evitare confusione ed eliminare ricorsioni.
  */
 public class DtoMapper {
+
+	/** Accettazione documento (A4/A9) → DTO. */
+	public static AccettazioneDocumentoDto toAccettazioneDto(AccettazioneDocumento a) {
+		if (a == null) return null;
+		return new AccettazioneDocumentoDto(a.getTipo(), a.getVersione(), a.getAccettatoAt(), a.getRevocatoAt());
+	}
 
 	/** Riga di audit (A7) → DTO di consultazione. */
 	public static AuditLogDto toAuditLogDto(AuditLog a) {

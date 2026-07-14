@@ -18,7 +18,7 @@
   E2 self-host font/icone · B5 `npm audit` + upgrade Angular a **21.2.18** (entro v21).
 - **Fase 3 Wave 1**: completa e validata (A5.1, A1 residuo, ambienti+profili+CORS, CI+Dependabot).
 - **Fase 3 Wave 2**: **A7 (audit log) completato** — backend **106 test verdi**. Prossimi candidati
-  Wave 2: meccanismo consenso A4/A9, A6 retention (attende durate), A5.3, D1, D4, E2 cookie banner.
+  Wave 2: **A4/A9 accettazione documenti FATTO**; restano A6 retention (attende durate), A5.3, D1, D4, E2 cookie banner.
 
 ## Criterio di ordinamento
 
@@ -88,9 +88,14 @@ spuntare gli item in `COMPLIANCE-STATUS.md`.
   admin) + `/api/audit/me` (`AUDIT_READ_OWN` self, tenant forzato). Retention scheduler ≥24 mesi
   (floor), purge off di default. Migrazione `013_audit_log.sql`. **Indipendente dalla scelta auth**.
   Requisito Garante. *Rimandati:* alert-anomalie automatico e UI "storico accessi".
-- **A4/A9 — Meccanismo consenso (codice, anticipabile).** Entità `Consenso` (versione, data,
-  tipo, revoca) + campo di accettazione su `RegisterRequest`/`Utente` + checkbox FE. Si costruisce
-  ora; al go-live si "cala" solo il testo legale approvato. *(I testi restano in Wave 3/legale.)*
+- **A4/A9 — Meccanismo accettazione documenti. ✅ FATTO.** Entità **`AccettazioneDocumento`** (tipo/versione/
+  accettato_at/revocato_at, no `AuditingListener`) + enum `TipoDocumento` (PRIVACY_POLICY/TERMINI_SERVIZIO/DPA);
+  `@AssertTrue` su `RegisterRequest`/`GoogleRegisterRequest` + hook in `AuthService` (stessa tx); endpoint
+  `/api/accettazioni` (`/me`,`/pending`,`/accetta`,`/me/{tipo}/revoca`) con **gate ri-accettazione server-side** (versioni
+  via `@Value`, default in codice); checkbox FE nei due screen di registrazione; migrazione `014_accettazioni_documento.sql`.
+  **Terminologia:** base giuridica account = **contratto (art. 6(1)(b))**, non "consenso" (presa visione/accettazione).
+  *Rimandati a Wave 3:* i **testi legali** (Privacy/Termini/DPA) e il **gate FE al login** (redirect a pagina di
+  ri-accettazione su `/pending`), da agganciare al bump `app.accettazione.versione.*`.
 - **A6 — Retention/anonimizzazione.** *Prerequisito: durate dal titolare.* Poi: campo "fine
   trattamento/ultimo contatto", soft-delete/archiviazione, job `@Scheduled` di purge/anonimizzazione
   (riuso pattern gamification esistente).
