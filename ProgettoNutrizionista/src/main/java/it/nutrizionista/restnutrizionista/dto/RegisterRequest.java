@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
@@ -26,6 +27,16 @@ public class RegisterRequest {
     @NotBlank(message = "L'indirizzo è obbligatorio")
     private String indirizzo;
 
+    // A4/A9: accettazione documenti alla registrazione (presa visione/accettazione, non "consenso").
+    @AssertTrue(message = "Devi prendere visione dell'Informativa Privacy")
+    private boolean accettaPrivacy;
+
+    @AssertTrue(message = "Devi accettare i Termini di Servizio")
+    private boolean accettaTermini;
+
+    @AssertTrue(message = "Devi accettare il DPA (accordo sul trattamento dei dati)")
+    private boolean accettaDpa;
+
     public String getNome() { return nome; }
     public void setNome(String nome) { this.nome = nome; }
     public String getCognome() { return cognome; }
@@ -40,4 +51,10 @@ public class RegisterRequest {
     public void setTelefono(String telefono) { this.telefono = telefono; }
     public String getIndirizzo() { return indirizzo; }
     public void setIndirizzo(String indirizzo) { this.indirizzo = indirizzo; }
+    public boolean isAccettaPrivacy() { return accettaPrivacy; }
+    public void setAccettaPrivacy(boolean accettaPrivacy) { this.accettaPrivacy = accettaPrivacy; }
+    public boolean isAccettaTermini() { return accettaTermini; }
+    public void setAccettaTermini(boolean accettaTermini) { this.accettaTermini = accettaTermini; }
+    public boolean isAccettaDpa() { return accettaDpa; }
+    public void setAccettaDpa(boolean accettaDpa) { this.accettaDpa = accettaDpa; }
 }
