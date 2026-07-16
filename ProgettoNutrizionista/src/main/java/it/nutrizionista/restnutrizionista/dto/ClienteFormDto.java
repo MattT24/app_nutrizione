@@ -22,10 +22,10 @@ public class ClienteFormDto {
     private String cognome;
     private String telefono;
 
-    @NotBlank(message = "Il codice fiscale è obbligatorio")
+    // Facoltativo: il nutrizionista può compilarlo in seguito.
     private String codiceFiscale;
 
-    @NotBlank(message = "L'email è obbligatoria")
+    // Facoltativa (completabile dopo). @Email tollera null → valida solo il formato se presente.
     @Email(message = "Email non valida")
     private String email;
     private LocalDate dataNascita;

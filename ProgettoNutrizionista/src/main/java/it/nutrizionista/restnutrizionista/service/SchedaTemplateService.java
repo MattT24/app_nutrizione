@@ -5,9 +5,11 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -19,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import it.nutrizionista.restnutrizionista.dto.AlimentoPastoSchedaTemplateUpsertDto;
 import it.nutrizionista.restnutrizionista.dto.ApplicaSchedaTemplateRequest;
 import it.nutrizionista.restnutrizionista.dto.ApplicaTemplateResultDto;
+import it.nutrizionista.restnutrizionista.dto.ConflittoClinicoDto;
 import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
 import it.nutrizionista.restnutrizionista.dto.PastoConflittoDto;
 import it.nutrizionista.restnutrizionista.dto.RisoluzioneConflittoDto;
@@ -42,7 +45,9 @@ import it.nutrizionista.restnutrizionista.entity.PastoSchedaTemplate;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.SchedaTemplate;
 import it.nutrizionista.restnutrizionista.entity.TipoScheda;
+import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
+import it.nutrizionista.restnutrizionista.exception.ConflictException;
 import it.nutrizionista.restnutrizionista.exception.ForbiddenException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
@@ -50,7 +55,6 @@ import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoReposito
 import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoSchedaTemplateRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoSchedaTemplateAlternativaRepository;
-import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoSchedaTemplateRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
@@ -64,7 +68,6 @@ public class SchedaTemplateService {
 	@Autowired private SchedaTemplateRepository repo;
 	@Autowired private AlimentoBaseRepository alimentoBaseRepository;
 	@Autowired private SchedaRepository schedaRepository;
-	@Autowired private ClienteRepository clienteRepository;
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private DefaultMealTimesService defaultMealTimesService;
 	@Autowired private AlimentoSchedaTemplateAlternativaRepository alternativaRepo;
@@ -73,6 +76,9 @@ public class SchedaTemplateService {
 	@Autowired private AlimentoPastoSchedaTemplateRepository alimentoPastoSchedaTemplateRepo;
 	@Autowired private PastoRepository pastoRepo;
 	@Autowired private AlimentoPastoRepository alimentoPastoRepo;
+	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private ClinicalEngineService clinicalEngineService;
+	@Autowired private AuditService auditService;
 
 	// ═══════════════════════════════════════════
 	// CRUD
@@ -194,11 +200,20 @@ public class SchedaTemplateService {
 		Scheda scheda = schedaRepository.findByIdWithFullDetailsMine(schedaId, me.getId())
 				.orElseThrow(() -> new NotFoundException("Scheda non trovata o non accessibile"));
 
+		// F-D1a: gate clinico contro il PAZIENTE della scheda (block-and-report sui gravi; throw 409 se non deciso).
+		Cliente cliente = scheda.getCliente();
+		ClinicalGateResult gate = gateClinico(st, cliente, req.getConfermaConflittiClinici(), req.getAlimentiForzatiIds(),
+				"Applicazione template: alcuni alimenti del template sono in conflitto grave con il paziente. Rivedi prima di applicare.");
+		if (!gate.graviInclusi().isEmpty()) {
+			auditService.recordOverrideGraviSameTx(scheda.getId(), cliente.getId(), gate.graviInclusi(), "applica-template-scheda");
+		}
+		Set<Long> daSaltare = gate.alimentiDaSaltare();
+
 		boolean isMerge = "MERGE".equalsIgnoreCase(req.getMode());
 
 		if (!isMerge) { // REPLACE: sostituisce l'intera scheda
 			scheda.getPasti().clear();
-			clonaPastiSuScheda(st, scheda, false, Map.of());
+			clonaPastiSuScheda(st, scheda, false, Map.of(), daSaltare);
 			return new ApplicaTemplateResultDto(true, DtoMapper.toSchedaDto(scheda), List.of());
 		}
 
@@ -219,7 +234,7 @@ public class SchedaTemplateService {
 			return new ApplicaTemplateResultDto(false, null, conflitti);
 		}
 
-		clonaPastiSuScheda(st, scheda, true, risoluzioni);
+		clonaPastiSuScheda(st, scheda, true, risoluzioni, daSaltare);
 		return new ApplicaTemplateResultDto(true, DtoMapper.toSchedaDto(scheda), List.of());
 	}
 
@@ -288,7 +303,8 @@ public class SchedaTemplateService {
 	// ═══════════════════════════════════════════
 
 	@Transactional
-	public SchedaDto creaSchedaDaTemplate(Long templateId, SchedaFormDto schedaForm) {
+	public SchedaDto creaSchedaDaTemplate(Long templateId, SchedaFormDto schedaForm,
+			Boolean confermaConflittiClinici, List<Long> alimentiForzatiIds) {
 		var me = currentUserService.getMe();
 
 		SchedaTemplate st = repo.findByIdWithFullTree(templateId)
@@ -299,8 +315,14 @@ public class SchedaTemplateService {
 			throw new BadRequestException("Il cliente e' obbligatorio");
 		}
 
-		Cliente cliente = clienteRepository.findById(schedaForm.getCliente().getId())
-				.orElseThrow(() -> new NotFoundException("Cliente non trovato"));
+		// F-D1a: ownership del cliente TARGET (era findById non-scoped → IDOR). Serve anche a rendere
+		// fidato l'audit dell'eventuale override.
+		Cliente cliente = ownershipValidator.getOwnedCliente(schedaForm.getCliente().getId());
+
+		// F-D1a: gate clinico PRIMA di creare la scheda (block-and-report sui gravi → throw 409 se non deciso,
+		// nessuna scheda creata). I gravi inclusi consapevolmente verranno auditati dopo il save (serve lo schedaId).
+		ClinicalGateResult gate = gateClinico(st, cliente, confermaConflittiClinici, alimentiForzatiIds,
+				"Creazione scheda da template: alcuni alimenti del template sono in conflitto grave con il paziente. Rivedi prima di creare.");
 
 		Scheda scheda = new Scheda();
 		scheda.setNome(schedaForm.getNome() != null ? schedaForm.getNome().trim() : st.getNome());
@@ -322,7 +344,10 @@ public class SchedaTemplateService {
 		scheda.setAttiva(nuovaSchedaAttiva);
 
 		Scheda savedScheda = schedaRepository.save(scheda);
-		clonaPastiSuScheda(st, savedScheda, false, Map.of());
+		if (!gate.graviInclusi().isEmpty()) {
+			auditService.recordOverrideGraviSameTx(savedScheda.getId(), cliente.getId(), gate.graviInclusi(), "crea-scheda-da-template");
+		}
+		clonaPastiSuScheda(st, savedScheda, false, Map.of(), gate.alimentiDaSaltare());
 		return DtoMapper.toSchedaDto(savedScheda);
 	}
 
@@ -432,6 +457,57 @@ public class SchedaTemplateService {
 		if (st.getCreatedBy() == null || !st.getCreatedBy().getId().equals(userId)) {
 			throw new ForbiddenException("NON AUTORIZZATO: template scheda non accessibile");
 		}
+	}
+
+	/** Alimenti distinti (AlimentoBase) referenziati dai pasti del template. */
+	private List<AlimentoBase> distinctTemplateFoods(SchedaTemplate st) {
+		return st.getPasti().stream()
+				.flatMap(pt -> pt.getAlimenti().stream())
+				.map(AlimentoPastoSchedaTemplate::getAlimento)
+				.filter(Objects::nonNull)
+				.distinct()
+				.collect(Collectors.toList());
+	}
+
+	/** Esito del gate clinico F-D1a: quali alimenti gravi SALTARE e quali GRAVI inclusi (da auditare). */
+	private record ClinicalGateResult(Set<Long> alimentiDaSaltare, List<ConflittoClinicoDto> graviInclusi) {}
+
+	/**
+	 * Gate clinico batch (F-D1a) per i percorsi di istanziazione template. Valuta gli alimenti del
+	 * template contro il paziente TARGET via MDSS:
+	 * <ul>
+	 *   <li>se ci sono conflitti GRAVI e il professionista non ha ancora deciso
+	 *       ({@code confermaConflittiClinici} != TRUE) → {@link ConflictException#clinici} (409 block-and-report,
+	 *       nessuna mutazione), con la lista completa (gravi + warning) per la risoluzione per-item;</li>
+	 *   <li>altrimenti restituisce l'insieme dei gravi da SALTARE (non inclusi in {@code alimentiForzatiIds})
+	 *       e la lista dei gravi INCLUSI consapevolmente (da auditare dal chiamante col {@code schedaId}).</li>
+	 * </ul>
+	 * I WARNING non bloccano mai e non entrano nel gate (vengono inseriti).
+	 */
+	private ClinicalGateResult gateClinico(SchedaTemplate st, Cliente cliente,
+			Boolean confermaConflittiClinici, List<Long> alimentiForzatiIds, String contestoMsg) {
+		List<AlimentoBase> foods = distinctTemplateFoods(st);
+		List<ConflittoClinicoDto> tutti = clinicalEngineService.conflittiClinici(cliente, foods);
+		List<ConflittoClinicoDto> gravi = tutti.stream()
+				.filter(c -> c.livello() == LivelloAllerta.ALERT_GRAVE)
+				.collect(Collectors.toList());
+		if (gravi.isEmpty()) {
+			return new ClinicalGateResult(Set.of(), List.of());
+		}
+		if (!Boolean.TRUE.equals(confermaConflittiClinici)) {
+			// Block-and-report: nessuna creazione/replace finché non c'è una decisione consapevole.
+			// Nel body vanno TUTTI i conflitti (gravi con toggle + warning come info) per la UI per-item.
+			throw ConflictException.clinici(contestoMsg, tutti);
+		}
+		Set<Long> forzati = alimentiForzatiIds == null ? Set.of() : new HashSet<>(alimentiForzatiIds);
+		List<ConflittoClinicoDto> graviInclusi = gravi.stream()
+				.filter(c -> forzati.contains(c.alimentoId()))
+				.collect(Collectors.toList());
+		Set<Long> daSaltare = gravi.stream()
+				.map(ConflittoClinicoDto::alimentoId)
+				.filter(id -> !forzati.contains(id))
+				.collect(Collectors.toSet());
+		return new ClinicalGateResult(daSaltare, graviInclusi);
 	}
 
 	// ═══════════════════════════════════════════
@@ -567,7 +643,8 @@ public class SchedaTemplateService {
 	 *
 	 * @param mergeMode se true, cerca pasti esistenti per nome+giorno e li riutilizza
 	 */
-	private void clonaPastiSuScheda(SchedaTemplate st, Scheda scheda, boolean mergeMode, Map<String, String> risoluzioni) {
+	private void clonaPastiSuScheda(SchedaTemplate st, Scheda scheda, boolean mergeMode, Map<String, String> risoluzioni,
+			Set<Long> alimentiDaSaltare) {
 		// Pasti del template deduplicati per (nome+giorno): un solo pasto per chiave (vedi commento sopra).
 		List<PastoSchedaTemplate> pastiTemplate = pastiTemplateConsolidati(st);
 
@@ -635,6 +712,10 @@ public class SchedaTemplateService {
 
 			// STEP 2: Per ogni alimento, salva AlimentoPasto → genera ID
 			for (AlimentoPastoSchedaTemplate apt : pt.getAlimenti()) {
+				// F-D1a: salta gli alimenti con conflitto clinico GRAVE non inclusi consapevolmente.
+				if (apt.getAlimento() != null && alimentiDaSaltare.contains(apt.getAlimento().getId())) {
+					continue;
+				}
 				AlimentoPasto ap = new AlimentoPasto();
 				ap.setPasto(savedPasto);
 				ap.setAlimento(apt.getAlimento());

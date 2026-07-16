@@ -29,6 +29,11 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<?> handleConflict(ConflictException ex) {
+        // Conflitti clinici (F-D1a): body JSON con la lista per-item (gravi + warning) per il riepilogo/gate.
+        if (!ex.getConflittiClinici().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new ClinicalConflictBody(ex.getMessage(), ex.getConflittiClinici()));
+        }
         // Con existingId valorizzato → body JSON strutturato (il FE punta all'alimento esistente).
         // Altrimenti retrocompatibile: body testo (es. duplicati CF/email cliente).
         if (ex.getExistingId() != null) {
@@ -40,6 +45,10 @@ public class GlobalExceptionHandler {
 
     /** Body JSON per i conflitti "risorsa già esistente". */
     public record ConflictBody(String message, Long existingId, String nome) {}
+
+    /** Body JSON per i conflitti clinici batch (F-D1a): il FE risolve per-item. */
+    public record ClinicalConflictBody(String message,
+            java.util.List<it.nutrizionista.restnutrizionista.dto.ConflittoClinicoDto> conflittiClinici) {}
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<String> handleBadRequest(BadRequestException ex) {

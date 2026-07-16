@@ -45,10 +45,12 @@ public class Cliente {
 	@Column(nullable = false)
 	private String cognome;
 
-	@Column(name = "codice_fiscale", nullable = false, unique = true)
+	// Facoltativi (F: CF/email opzionali). unique resta: su TiDB/MySQL l'indice unique ammette più NULL.
+	// Le stringhe vuote vengono normalizzate a NULL nel DtoMapper (altrimenti collidono sull'unique).
+	@Column(name = "codice_fiscale", nullable = true, unique = true)
 	private String codiceFiscale;
 
-	@Column(nullable = false, unique = true)
+	@Column(nullable = true, unique = true)
 	private String email;
 
 	private String telefono;

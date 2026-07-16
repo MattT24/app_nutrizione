@@ -21,11 +21,13 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import it.nutrizionista.restnutrizionista.dto.ConflittoClinicoDto;
 import it.nutrizionista.restnutrizionista.entity.AuditLog;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.enums.AuditAction;
 import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
 import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
+import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
 import it.nutrizionista.restnutrizionista.repository.AuditLogRepository;
 
 /**
@@ -97,6 +99,42 @@ class AuditServiceTest {
     void record_nonRilancia_seIlSaveFallisce() {
         doThrow(new RuntimeException("db down")).when(repo).save(any());
         assertDoesNotThrow(() -> service.record(AuditAction.READ, AuditEntityType.CLIENTE, 1L, 1L));
+    }
+
+    @Test
+    void recordOverrideGraviSameTx_unaRigaPerAlimentoIncluso() {
+        var inclusi = List.of(
+                new ConflittoClinicoDto(11L, "Pane", LivelloAllerta.ALERT_GRAVE, "Contiene glutine", true),
+                new ConflittoClinicoDto(22L, "Salsa soia", LivelloAllerta.ALERT_GRAVE, "Contiene soia", true));
+
+        service.recordOverrideGraviSameTx(99L, 5L, inclusi, "apply-template-pasto");
+
+        ArgumentCaptor<AuditLog> captor = ArgumentCaptor.forClass(AuditLog.class);
+        verify(repo, org.mockito.Mockito.times(2)).save(captor.capture());
+        List<AuditLog> righe = captor.getAllValues();
+        assertEquals(2, righe.size());
+        for (AuditLog r : righe) {
+            assertEquals(AuditAction.OVERRIDE_ALERT_GRAVE, r.getAction());
+            assertEquals(AuditEntityType.SCHEDA, r.getEntityType());
+            assertEquals(99L, r.getEntityId());
+            assertEquals(5L, r.getClienteId());
+            assertEquals(AuditOutcome.SUCCESS, r.getEsito());
+        }
+        assertEquals("Pane", extractNome(righe.get(0).getDettaglio()));
+        assertEquals("Salsa soia", extractNome(righe.get(1).getDettaglio()));
+    }
+
+    @Test
+    void recordOverrideGraviSameTx_listaVuota_nonScrive() {
+        service.recordOverrideGraviSameTx(1L, 1L, List.of(), "ctx");
+        verify(repo, org.mockito.Mockito.never()).save(any());
+    }
+
+    private static String extractNome(String dettaglio) {
+        // dettaglio: "Override <ctx> — alimento '<nome>' (id=..) ..."
+        int start = dettaglio.indexOf('\'') + 1;
+        int end = dettaglio.indexOf('\'', start);
+        return dettaglio.substring(start, end);
     }
 
     private AuditLog captureSaved() {

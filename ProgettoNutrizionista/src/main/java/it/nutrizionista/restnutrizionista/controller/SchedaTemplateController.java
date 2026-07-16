@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import it.nutrizionista.restnutrizionista.dto.ApplicaSchedaTemplateRequest;
@@ -97,13 +98,18 @@ public class SchedaTemplateController {
 		return ResponseEntity.ok(service.applicaAScheda(templateId, schedaId, req));
 	}
 
-	/** POST /api/schede-template/{templateId}/crea-scheda — Crea scheda cliente da template */
+	/** POST /api/schede-template/{templateId}/crea-scheda — Crea scheda cliente da template.
+	 *  F-D1a: {@code confermaConflittiClinici}/{@code alimentiForzatiIds} governano l'override consapevole
+	 *  dei conflitti allergeni col paziente (query param: assenti = prima chiamata, il BE blocca coi conflitti). */
 	@PostMapping("/{templateId}/crea-scheda")
 	@PreAuthorize("hasAuthority('SCHEDA_CREATE')")
 	public ResponseEntity<SchedaDto> creaSchedaDaTemplate(
 			@PathVariable Long templateId,
-			@Valid @RequestBody SchedaFormDto schedaForm) {
-		return ResponseEntity.status(201).body(service.creaSchedaDaTemplate(templateId, schedaForm));
+			@Valid @RequestBody SchedaFormDto schedaForm,
+			@RequestParam(required = false) Boolean confermaConflittiClinici,
+			@RequestParam(required = false) List<Long> alimentiForzatiIds) {
+		return ResponseEntity.status(201).body(
+				service.creaSchedaDaTemplate(templateId, schedaForm, confermaConflittiClinici, alimentiForzatiIds));
 	}
 
 	/** POST /api/schede-template/{templateId}/copy-day — Copia pasti da un giorno ad altri */
