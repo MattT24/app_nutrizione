@@ -19,7 +19,8 @@
 - **Fase 3 Wave 1**: completa e validata (A5.1, A1 residuo, ambienti+profili+CORS, CI+Dependabot).
 - **Fase 3 Wave 2**: **A7 (audit log) completato** — backend **106 test verdi**. Prossimi candidati
   Wave 2: **A4/A9 FATTO**, **D1 FATTO**, **F-D1a FATTO (BE+FE, e2e #1-#4)**, **F-OWN-SWEEP FATTO (IDOR, chiude F-D1b;
-  148 test verdi)**; restano **F-DEL-CASCADE (delete cliente sistematico)**, A6 retention (attende durate), A5.3, D4, E2 cookie banner.
+  148 test verdi)**, **F-DEL-CASCADE FATTO (delete cliente sistematico + anonimizzazione EventoGamification + regression-guard)**;
+  restano il finding derivato dual-FK `AlimentoAlternativo`, A6 retention (attende durate), A5.3, D4, E2 cookie banner.
 
 ## Criterio di ordinamento
 
@@ -127,12 +128,23 @@ spuntare gli item in `COMPLIANCE-STATUS.md`.
   additivi, no migrazione). Test: `OwnershipAntiLeakageIntegrationTest` esteso a **16 casi** (5 fix + regression-guard su
   Appuntamento/Misurazione/Plicometria + asserzione evento A7 DENIED) → **superficie ownership ora regression-guarded**.
   Suite BE **148 verdi**. Verificato che `AlimentoAlternativo` ha sempre `alimentoPasto` valorizzato (nessun 6° finding sul dual-parent).
-- **🔴 F-DEL-CASCADE (analogo delete di F-OWN-SWEEP): completezza della cancellazione cliente.** `ClienteService.deleteMyCliente`
-  è una **checklist manuale** (il cascade ORM copre solo le collezioni mappate su `Cliente`; appuntamenti/TDEE/
-  fascicolo/**attività recenti** vanno rimossi a mano) che si rompe a ogni nuova entità figlia — già 2 buchi
-  (fascicolo A5.1, `AttivitaRecente`). Fix sistematico: `ON DELETE CASCADE` a livello DB o `orphanRemoval=true`/
-  `cascade=REMOVE` sulle relazioni. Guard di regressione già presente: `ClienteDeleteCascadeCompletoIntegrationTest`
-  (semina tutti i figli + delete → verde). Nota: `AuditLog` con `clienteId` senza FK non blocca il delete (A7).
+- **✅ F-DEL-CASCADE (analogo delete di F-OWN-SWEEP): cancellazione cliente completa e regression-guarded (FATTO).**
+  Inventario esaustivo (6 agenti + critico su 53 entità/40 repo): la cancellazione era **già funzionalmente completa**
+  su tutti i dati vincolati da FK (i "2 buchi" storici — fascicolo A5.1, `AttivitaRecente` — erano già chiusi) → non un
+  bug-fix ma **hardening**. Interventi: (1) **scelta di meccanismo ORM-first ibrido** motivata dalla portabilità (FK di
+  TiDB no-op < v6.6, GA solo da v8.5 → un `ON DELETE CASCADE` DB passerebbe verde su H2 e potrebbe non cancellare su
+  TiDB; SQL ORM/bulk identico sui due DB); **niente nuovi cascade DB**. (2) `deleteMyCliente` refactorizzato in
+  `svuotaAlberoSchede` + `eliminaFigliNonCascade` (punto UNICO, auto-documentante, per i figli a FK non-mappata).
+  (3) **Chiusa l'unica lacuna reale, silenziosa e non-FK:** `EventoGamification.clienteId` (denormalizzato, senza FK)
+  ora **anonimizzato a NULL** in stessa tx — contrapposto ad `AuditLog.clienteId` che resta **intatto** (retention A7,
+  art. 17(3)(b)). (4) `ClienteDeleteCascadeCompletoIntegrationTest` esteso: semina un figlio per OGNI tipo del grafo
+  (diretti + transitivo con `AlimentoAlternativo` a **doppia FK** + `NomeOverride` + i due `clienteId` no-FK) → zero
+  orfani + le **due asserzioni opposte** (EventoGamification `clienteId=NULL`, AuditLog `clienteId=id` **per id della
+  riga**). Regola di coverage in CLAUDE.md. Verde.
+- **🟡 Finding derivato — semplificazione dual-FK di `AlimentoAlternativo` (aperto, tracciato).** La FK `alimento_pasto_id`
+  è marcata **"legacy"** e coesiste con `pasto_id`; solo la prima è in `orphanRemoval`, per questo il delete richiede lo
+  svuotamento bulk esplicito. Consolidare su una sola FK è una modifica al **data-model** con rischi propri (migrazione +
+  ricodifica di `AlimentoAlternativoService`/`SchedaService`/template) → intervento a sé, fuori da F-DEL-CASCADE.
 - **B2 — Robustezza credenziali** (policy password, lockout/rate-limit, reset via email): **solo
   se NON si adotta Keycloak a breve**. Altrimenti arriva dall'IdP → non anticipare.
 - **D4 — Accessibilità WCAG** sui form gestionali sotto-etichettati. Incrementale (P2).
