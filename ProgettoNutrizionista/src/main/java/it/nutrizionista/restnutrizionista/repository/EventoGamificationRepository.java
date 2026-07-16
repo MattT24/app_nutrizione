@@ -6,6 +6,8 @@ import java.util.List;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import it.nutrizionista.restnutrizionista.entity.EventoGamification;
@@ -33,4 +35,18 @@ public interface EventoGamificationRepository extends JpaRepository<EventoGamifi
      */
     @Modifying
     int deleteByCreatedAtBefore(Instant prima);
+
+    /**
+     * F-DEL-CASCADE — anonimizza (NON cancella) gli eventi gamification riferiti a un cliente
+     * cancellato, azzerandone il {@code clienteId}. {@code clienteId} è un {@code Long} denormalizzato
+     * SENZA FK (l'unico parent è il nutrizionista): alla cancellazione del cliente resterebbe un
+     * riferimento pendente al paziente. Nullarlo recide il legame col dato cancellato (art. 17)
+     * preservando lo storico/punti del nutrizionista (dato del professionista, non del paziente).
+     * <p>Bulk update JPQL: deterministico e identico su H2 e TiDB. Va invocato nella STESSA
+     * transazione del delete del cliente. Contrapposto ad {@code AuditLog.clienteId}, che invece
+     * NON si nulla mai (retention A7, obbligo legale art. 17(3)(b)).
+     */
+    @Modifying
+    @Query("UPDATE EventoGamification e SET e.clienteId = NULL WHERE e.clienteId = :clienteId")
+    int anonimizzaClienteId(@Param("clienteId") Long clienteId);
 }

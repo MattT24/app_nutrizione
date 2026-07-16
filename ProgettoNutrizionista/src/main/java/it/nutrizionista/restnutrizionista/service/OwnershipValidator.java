@@ -3,6 +3,7 @@ package it.nutrizionista.restnutrizionista.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.CalcoloTdee;
@@ -15,6 +16,7 @@ import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
 import it.nutrizionista.restnutrizionista.exception.ForbiddenException;
+import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
 import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
 import it.nutrizionista.restnutrizionista.repository.CalcoloTdeeRepository;
@@ -37,6 +39,9 @@ public class OwnershipValidator {
 
 	@Autowired
 	private AlimentoPastoRepository alimentoPastoRepository;
+
+	@Autowired
+	private AlimentoAlternativoRepository alimentoAlternativoRepository;
 
 	@Autowired
 	private ClienteRepository clienteRepository;
@@ -67,10 +72,10 @@ public class OwnershipValidator {
 
 	/**
 	 * Registra l'accesso NEGATO (audit A7) e costruisce la {@link ForbiddenException} da lanciare.
-	 * L'audit non deve mai mascherare/impedire il 403 → try/catch di sicurezza. Coperte solo le
-	 * risorse cliniche top-level (dove {@code entityId} combacia col tipo): {@code AlimentoPasto}/
-	 * {@code Pasto} (sub-risorse di scheda) e {@code Appuntamento}/{@code OrariStudio} (non art. 9)
-	 * non generano un evento DENIED dedicato.
+	 * L'audit non deve mai mascherare/impedire il 403 → try/catch di sicurezza. Da F-OWN-SWEEP TUTTI
+	 * i {@code getOwned*} passano da qui, incluse le sub-risorse ({@code Pasto}/{@code AlimentoPasto}/
+	 * {@code AlimentoAlternativo}) e le risorse operative ({@code Appuntamento}/{@code OrariStudio}),
+	 * con {@code entityType} allineato all'{@code entityId} (vedi {@link AuditEntityType}).
 	 */
 	private ForbiddenException deny(AuditEntityType tipo, Long entityId, String messaggio) {
 		try {
@@ -84,7 +89,15 @@ public class OwnershipValidator {
 	public AlimentoPasto getOwnedAlimentoPasto(Long alimentoPastoId) {
 		var me = currentUserService.getMe();
 		return alimentoPastoRepository.findByIdAndPasto_Scheda_Cliente_Nutrizionista_Id(alimentoPastoId, me.getId())
-				.orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alimento pasto non accessibile"));
+				.orElseThrow(() -> deny(AuditEntityType.ALIMENTO_PASTO, alimentoPastoId, "NON AUTORIZZATO: alimento pasto non accessibile"));
+	}
+
+	/** F-OWN-SWEEP: lookup scoped dell'alternativa (via alimentoPasto → pasto → scheda → cliente → nutrizionista). */
+	public AlimentoAlternativo getOwnedAlimentoAlternativo(Long alimentoAlternativoId) {
+		var me = currentUserService.getMe();
+		return alimentoAlternativoRepository
+				.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(alimentoAlternativoId, me.getId())
+				.orElseThrow(() -> deny(AuditEntityType.ALIMENTO_PASTO, alimentoAlternativoId, "NON AUTORIZZATO: alternativa non accessibile"));
 	}
 
 	public Cliente getOwnedCliente(Long clienteId) {
@@ -108,13 +121,13 @@ public class OwnershipValidator {
 	public Pasto getOwnedPasto(Long pastoId) {
 		var me = currentUserService.getMe();
 		return pastoRepository.findByIdAndScheda_Cliente_Nutrizionista_Id(pastoId, me.getId())
-				.orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: pasto non accessibile"));
+				.orElseThrow(() -> deny(AuditEntityType.PASTO, pastoId, "NON AUTORIZZATO: pasto non accessibile"));
 	}
 
 	public Appuntamento getOwnedAppuntamento(Long appuntamentoId) {
 		var me = currentUserService.getMe();
 		return appuntamentoRepository.findByIdAndNutrizionista_Id(appuntamentoId, me.getId())
-				.orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: appuntamento non accessibile"));
+				.orElseThrow(() -> deny(AuditEntityType.APPUNTAMENTO, appuntamentoId, "NON AUTORIZZATO: appuntamento non accessibile"));
 	}
 
 	public MisurazioneAntropometrica getOwnedMisurazioneAntropometrica(Long id) {
@@ -138,7 +151,7 @@ public class OwnershipValidator {
 	public OrariStudio getOwnedOrariStudio(Long id) {
 		var me = currentUserService.getMe();
 		return orariStudioRepository.findByIdAndNutrizionista_Id(id, me.getId())
-				.orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: orario studio non accessibile"));
+				.orElseThrow(() -> deny(AuditEntityType.ORARI_STUDIO, id, "NON AUTORIZZATO: orario studio non accessibile"));
 	}
 
 	public DocumentoFascicolo getOwnedDocumentoFascicolo(Long id) {

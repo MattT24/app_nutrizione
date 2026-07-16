@@ -9,19 +9,20 @@ import org.springframework.transaction.annotation.Transactional;
 
 import it.nutrizionista.restnutrizionista.dto.AlimentoBaseDto;
 import it.nutrizionista.restnutrizionista.dto.AlimentoPastoRequest;
+import it.nutrizionista.restnutrizionista.dto.MotivoValutazioneDto;
 import it.nutrizionista.restnutrizionista.dto.PastoDto;
 import it.nutrizionista.restnutrizionista.dto.ValutazioneClinicaDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
+import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
 import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
-import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 
 @Service
@@ -31,34 +32,42 @@ public class AlimentoPastoService {
     @Autowired private PastoRepository repoPasto;
     @Autowired private AlimentoBaseRepository repoAlimento;
     @Autowired private ClinicalEngineService clinicalEngineService;
-    @Autowired private ClienteRepository clienteRepo;
     @Autowired private AlimentoAlternativoService alimentoAlternativoService;
+    @Autowired private OwnershipValidator ownershipValidator;
+    @Autowired private AuditService auditService;
 
     @Transactional
     public PastoDto associaAlimento(AlimentoPastoRequest req) {
         Long pastoId = req.getPasto().getId();
         Long alimentoId = req.getAlimento().getId();
-        
-        // 1. Recupera il clienteId in modo leggero (1 sola query scalare, no Scheda/Cliente entity)
-        Long clienteId = repoPasto.findClienteIdByPastoId(pastoId)
-                .orElseThrow(() -> new NotFoundException("Pasto non trovato"));
-        
+
+        // 1. Ownership: il pasto deve appartenere al nutrizionista loggato (403 altrimenti).
+        //    Difesa in profondità: il @PreAuthorize sul controller verifica solo il PERMESSO, non la
+        //    proprietà dell'istanza. Da qui ricaviamo anche cliente/schedaId (serve all'audit fidato).
+        Pasto pasto = ownershipValidator.getOwnedPasto(pastoId);
+        Cliente cliente = pasto.getScheda().getCliente();
+        Long clienteId = cliente.getId();
+        Long schedaId = pasto.getScheda().getId();
+
+        // AlimentoBase è catalogo misto (globale + personale), NON risorsa-cliente → findById non-scoped.
         AlimentoBase a = repoAlimento.findById(alimentoId)
                 .orElseThrow(() -> new NotFoundException("Alimento non trovato"));
-        
-        Cliente cliente = clienteRepo.findById(clienteId)
-                .orElseThrow(() -> new NotFoundException("Cliente non trovato"));
-                
+
         // 2. Controllo Restrizioni cliniche via MDSS
         ValutazioneClinicaDto valutazione = clinicalEngineService.valuta(a, cliente);
+        String msg = valutazione.motivi().isEmpty()
+                ? "Motivo clinico non specificato"
+                : valutazione.motivi().stream().map(MotivoValutazioneDto::messaggio).collect(Collectors.joining(" "));
 
-        if (valutazione.stato() == LivelloAllerta.ALERT_GRAVE) {
-            String msg = valutazione.motivi().isEmpty() ? "Errore clinico grave" : valutazione.motivi().get(0).messaggio();
-            throw new BadRequestException("BLOCCO SICUREZZA: " + msg);
+        // Blocco GRAVE (allergene dichiarato, sale oltre soglia grave, avversione grave): superabile
+        // SOLO con la conferma consapevole dedicata (posizionamento anti-MDR: decide il professionista).
+        if (valutazione.stato() == LivelloAllerta.ALERT_GRAVE && !req.isConfermaBloccoGrave()) {
+            throw new BadRequestException("BLOCCO SICUREZZA: " + msg
+                    + " Confermi consapevolmente l'inserimento sotto la tua responsabilità professionale?");
         }
 
+        // Blocco WARNING (restrizione/intolleranza): superabile con forzaInserimento.
         if (valutazione.stato() == LivelloAllerta.WARNING && !req.isForzaInserimento()) {
-            String msg = valutazione.motivi().isEmpty() ? "Avviso clinico" : valutazione.motivi().get(0).messaggio();
             throw new BadRequestException("WARNING_RESTRIZIONE: " + msg + " Vuoi forzare l'inserimento?");
         }
 
@@ -67,20 +76,30 @@ public class AlimentoPastoService {
              throw new BadRequestException("Alimento già presente nel pasto");
         }
 
-        // 4. Salvataggio — serve un Pasto reference (basta un proxy, non serve il full tree)
-        Pasto pastoRef = repoPasto.getReferenceById(pastoId);
-        AlimentoPasto associazione = new AlimentoPasto(a, pastoRef, req.getQuantita());
+        // 4. Audit dell'override consapevole (solo se un blocco GRAVE è stato forzato): stessa tx del save
+        //    → la riga di audit committa iff l'inserimento committa. Registrato PRIMA del save.
+        if (valutazione.stato() == LivelloAllerta.ALERT_GRAVE) {
+            String dettaglio = "Override BLOCCO SICUREZZA — alimento '" + a.getNome() + "' (id=" + a.getId()
+                    + ") pasto id=" + pastoId + ". Motivi: " + msg;
+            if (dettaglio.length() > 1024) dettaglio = dettaglio.substring(0, 1024);
+            auditService.recordOverrideSameTx(AuditEntityType.SCHEDA, schedaId, clienteId, dettaglio);
+        }
+
+        // 5. Salvataggio — riusa il Pasto già gestito (owned) dell'ownership check.
+        AlimentoPasto associazione = new AlimentoPasto(a, pasto, req.getQuantita());
         repo.save(associazione);
-        
-        // 5. Carica l'albero completo solo per il response mapping (1 sola query)
+
+        // 6. Carica l'albero completo solo per il response mapping (1 sola query)
         Pasto refreshed = repoPasto.findByIdWithFullTree(pastoId)
                 .orElseThrow(() -> new NotFoundException("Pasto non trovato dopo salvataggio"));
-        
+
         return DtoMapper.toPastoDtoWithAssoc(refreshed);
     }
     
     @Transactional
     public PastoDto eliminaAssociazione(Long pastoId, Long alimentoId) {
+        // F-OWN-SWEEP (ex F-D1b): valida la proprietà del pasto prima di mutarlo (403 se cross-tenant).
+        ownershipValidator.getOwnedPasto(pastoId);
         // Carica il pasto con albero completo
         Pasto p = repoPasto.findByIdWithFullTree(pastoId)
                 .orElseThrow(() -> new NotFoundException("Pasto non trovato"));
@@ -106,6 +125,8 @@ public class AlimentoPastoService {
     
     @Transactional(readOnly = true)
     public List<AlimentoBaseDto> listAlimentiByPasto(Long pastoId) {
+        // F-OWN-SWEEP: nega la lettura degli alimenti del pasto di un altro tenant (403).
+        ownershipValidator.getOwnedPasto(pastoId);
         return repo.findByPasto_Id(pastoId).stream()
                 .map(AlimentoPasto::getAlimento)
                 .map(DtoMapper::toAlimentoBaseDtoLight)
@@ -114,6 +135,8 @@ public class AlimentoPastoService {
 
     @Transactional
     public PastoDto aggiornaQuantita(AlimentoPastoRequest req){
+        // F-OWN-SWEEP (ex F-D1b): valida la proprietà del pasto prima di modificarne un alimento (403 se cross-tenant).
+        ownershipValidator.getOwnedPasto(req.getPasto().getId());
         // OTTIMIZZAZIONE: Cerchiamo direttamente l'associazione.
         // Non serve caricare prima Pasto e Alimento separatamente.
         AlimentoPasto ap = repo.findByPasto_IdAndAlimento_Id(req.getPasto().getId(), req.getAlimento().getId())

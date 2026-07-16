@@ -15,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import it.nutrizionista.restnutrizionista.dto.ConflittoClinicoDto;
 import it.nutrizionista.restnutrizionista.dto.CopyBulkRequest;
 import it.nutrizionista.restnutrizionista.dto.CopyBulkResultDto;
 import it.nutrizionista.restnutrizionista.dto.CopyDayRequest;
@@ -310,15 +311,22 @@ public class SchedaService {
 				SchedaDto cloneDto = duplicateForSameCliente(originale);
 				result.addSuccesso(CopyResultItemDto.successo(targetId, nomeCompleto, cloneDto.getId(), true));
 			} else {
-				// Import su altro cliente — verifica conflitti
-				if (!request.isForce()) {
-					List<String> conflitti = findSafetyConflicts(originale, targetId);
-					if (!conflitti.isEmpty()) {
-						result.addConflitto(CopyResultItemDto.conflitto(targetId, nomeCompleto, conflitti));
-						continue;
-					}
+				// Import su altro cliente (cross-paziente) — verifica conflitti clinici gravi via MDSS.
+				// F-D1a: valuta SEMPRE (serve la lista gravi anche per l'audit quando force=true).
+				List<ConflittoClinicoDto> gravi = graviInScheda(originale, targetCliente);
+				if (!request.isForce() && !gravi.isEmpty()) {
+					List<String> conflitti = gravi.stream()
+							.map(c -> c.nome() + " (Rischio Grave, controllare referto)")
+							.collect(Collectors.toList());
+					// F-D1a: passa anche la lista strutturata (con allergeneDichiarato) per la distinzione nel FE.
+					result.addConflitto(CopyResultItemDto.conflitto(targetId, nomeCompleto, conflitti, gravi));
+					continue;
 				}
 				SchedaDto cloneDto = duplicateToCliente(originale, targetCliente);
+				// Override consapevole (force) su conflitti gravi → audit, una riga per alimento grave.
+				if (request.isForce() && !gravi.isEmpty()) {
+					auditService.recordOverrideGraviSameTx(cloneDto.getId(), targetId, gravi, "copy-bulk-cross-paziente");
+				}
 				result.addSuccesso(CopyResultItemDto.successo(targetId, nomeCompleto, cloneDto.getId(), false));
 			}
 		}
@@ -636,26 +644,30 @@ public class SchedaService {
         return null;
     }
 
-    /** Restituisce la lista dei nomi degli alimenti in conflitto (vuota se nessun conflitto) */
-    private List<String> findSafetyConflicts(Scheda source, Long targetClienteId) {
+    /**
+     * Conflitti clinici GRAVI ({@code ALERT_GRAVE}) degli alimenti della scheda sorgente valutati
+     * contro il paziente TARGET, via MDSS (finding F-D1a). Riusato dai percorsi cross-paziente
+     * (copy-bulk / import) per il report e per l'audit degli override forzati.
+     */
+    private List<ConflittoClinicoDto> graviInScheda(Scheda source, Cliente target) {
         List<AlimentoBase> foodInScheda = source.getPasti().stream()
                 .flatMap(p -> p.getAlimentiPasto().stream())
-                .map(ap -> ap.getAlimento())
+                .map(AlimentoPasto::getAlimento)
                 .distinct()
                 .collect(Collectors.toList());
-
         if (foodInScheda.isEmpty()) return new ArrayList<>();
 
-        Cliente target = ownershipValidator.getOwnedCliente(targetClienteId);
-        List<it.nutrizionista.restnutrizionista.dto.ValutazioneClinicaDto> results = clinicalEngineService.valutaInBatch(foodInScheda, target);
+        return clinicalEngineService.conflittiClinici(target, foodInScheda).stream()
+                .filter(c -> c.livello() == it.nutrizionista.restnutrizionista.enums.LivelloAllerta.ALERT_GRAVE)
+                .collect(Collectors.toList());
+    }
 
-        List<String> conflitti = new ArrayList<>();
-        for (int i=0; i<foodInScheda.size(); i++) {
-            if (results.get(i).stato() == it.nutrizionista.restnutrizionista.enums.LivelloAllerta.ALERT_GRAVE) {
-                conflitti.add(foodInScheda.get(i).getNome() + " (Rischio Grave, controllare referto)");
-            }
-        }
-        return conflitti;
+    /** Restituisce la lista dei nomi degli alimenti in conflitto grave (vuota se nessun conflitto) */
+    private List<String> findSafetyConflicts(Scheda source, Long targetClienteId) {
+        Cliente target = ownershipValidator.getOwnedCliente(targetClienteId);
+        return graviInScheda(source, target).stream()
+                .map(c -> c.nome() + " (Rischio Grave, controllare referto)")
+                .collect(Collectors.toList());
     }
 
     /** Logica di controllo sicurezza centralizzata — usata dagli endpoint legacy */

@@ -8,6 +8,8 @@ public class CopyResultItemDto {
     private String clienteNomeCompleto;
     private Long nuovaSchedaId;
     private List<String> alimentiConflitto;
+    /** F-D1a — conflitti gravi strutturati (con {@code allergeneDichiarato}) per la distinzione allergene nel report. */
+    private List<ConflittoClinicoDto> conflittiClinici;
     private boolean stesso;
 
     public CopyResultItemDto() {}
@@ -29,6 +31,14 @@ public class CopyResultItemDto {
         item.clienteNomeCompleto = nomeCompleto;
         item.alimentiConflitto = alimentiConflitto;
         item.stesso = false;
+        return item;
+    }
+
+    /** Factory per un conflitto con la lista strutturata (F-D1a): abilita la distinzione allergene nel FE. */
+    public static CopyResultItemDto conflitto(Long clienteId, String nomeCompleto,
+            List<String> alimentiConflitto, List<ConflittoClinicoDto> conflittiClinici) {
+        CopyResultItemDto item = conflitto(clienteId, nomeCompleto, alimentiConflitto);
+        item.conflittiClinici = conflittiClinici;
         return item;
     }
 
@@ -62,6 +72,14 @@ public class CopyResultItemDto {
 
     public void setAlimentiConflitto(List<String> alimentiConflitto) {
         this.alimentiConflitto = alimentiConflitto;
+    }
+
+    public List<ConflittoClinicoDto> getConflittiClinici() {
+        return conflittiClinici;
+    }
+
+    public void setConflittiClinici(List<ConflittoClinicoDto> conflittiClinici) {
+        this.conflittiClinici = conflittiClinici;
     }
 
     public boolean isStesso() {

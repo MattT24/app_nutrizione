@@ -89,6 +89,14 @@ public class AuditLog {
     @Column(name = "destinatario", length = 255)
     private String destinatario;
 
+    /**
+     * Dettaglio testuale libero dell'evento (nullable). Usato per gli eventi che non sono descritti
+     * a sufficienza da {@code action}/{@code entityType}/{@code entityId}: es. per
+     * {@code OVERRIDE_ALERT_GRAVE} contiene l'alimento forzato e i motivi clinici del blocco.
+     */
+    @Column(name = "dettaglio", length = 1024)
+    private String dettaglio;
+
     @CreatedDate
     @Column(name = "created_at", updatable = false, nullable = false)
     private Instant createdAt;
@@ -98,13 +106,24 @@ public class AuditLog {
     }
 
     /**
-     * Unico costruttore. Tutti i campi sono definiti alla costruzione; non esistono setter →
-     * l'entità è immutabile dopo la creazione. {@code id} è generato e {@code createdAt} è
-     * popolato da {@link AuditingEntityListener} al persist.
+     * Costruttore senza {@code dettaglio} (retro-compatibile): delega a quello completo con
+     * {@code dettaglio=null}. Tutti i campi sono definiti alla costruzione; non esistono setter →
+     * l'entità è immutabile dopo la creazione.
      */
     public AuditLog(Long utenteId, String utenteEmail, AuditAction action, AuditEntityType entityType,
                     Long entityId, Long clienteId, AuditOutcome esito, String ipAddress,
                     String userAgent, String destinatario) {
+        this(utenteId, utenteEmail, action, entityType, entityId, clienteId, esito, ipAddress,
+                userAgent, destinatario, null);
+    }
+
+    /**
+     * Costruttore completo. {@code id} è generato e {@code createdAt} è popolato da
+     * {@link AuditingEntityListener} al persist.
+     */
+    public AuditLog(Long utenteId, String utenteEmail, AuditAction action, AuditEntityType entityType,
+                    Long entityId, Long clienteId, AuditOutcome esito, String ipAddress,
+                    String userAgent, String destinatario, String dettaglio) {
         this.utenteId = utenteId;
         this.utenteEmail = utenteEmail;
         this.action = action;
@@ -115,6 +134,7 @@ public class AuditLog {
         this.ipAddress = ipAddress;
         this.userAgent = userAgent;
         this.destinatario = destinatario;
+        this.dettaglio = dettaglio;
     }
 
     // Solo getter — nessun setter (immutabilità applicativa).
@@ -160,6 +180,10 @@ public class AuditLog {
 
     public String getDestinatario() {
         return destinatario;
+    }
+
+    public String getDettaglio() {
+        return dettaglio;
     }
 
     public Instant getCreatedAt() {

@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.service;
 
 import java.time.Instant;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +18,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import it.nutrizionista.restnutrizionista.dto.AuditLogDto;
+import it.nutrizionista.restnutrizionista.dto.ConflittoClinicoDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.entity.AuditLog;
 import it.nutrizionista.restnutrizionista.enums.AuditAction;
@@ -128,6 +130,44 @@ public class AuditService {
     }
 
     /**
+     * Registra un override consapevole di un blocco clinico grave ({@code OVERRIDE_ALERT_GRAVE}) nella
+     * STESSA transazione del chiamante: la riga di audit committa se e solo se l'operazione forzata
+     * (l'inserimento dell'alimento) committa. Così non esistono override "phantom" (loggati ma non
+     * avvenuti) né inserimenti forzati senza traccia. I motivi del blocco vanno in {@code dettaglio}.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void recordOverrideSameTx(AuditEntityType entityType, Long entityId, Long clienteId, String dettaglio) {
+        save(captureContext(), AuditAction.OVERRIDE_ALERT_GRAVE, entityType, entityId, clienteId, null,
+                AuditOutcome.SUCCESS, dettaglio);
+    }
+
+    /**
+     * Variante BATCH dell'override consapevole (finding F-D1a): registra UNA riga
+     * {@code OVERRIDE_ALERT_GRAVE} per ciascun alimento grave incluso consapevolmente applicando un
+     * template o duplicando una scheda cross-paziente. Stessa transazione del chiamante (le righe
+     * committano iff l'operazione forzata committa). Il contesto (attore/IP/UA) è catturato una sola
+     * volta per l'intero batch. {@code entityType=SCHEDA}, {@code entityId=schedaId}; l'alimento e i
+     * motivi finiscono nel {@code dettaglio} (troncato a 1024).
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void recordOverrideGraviSameTx(Long schedaId, Long clienteId,
+                                          List<ConflittoClinicoDto> inclusi, String contesto) {
+        if (inclusi == null || inclusi.isEmpty()) {
+            return;
+        }
+        AuditContext ctx = captureContext();
+        for (ConflittoClinicoDto c : inclusi) {
+            String dettaglio = "Override " + contesto + " — alimento '" + c.nome() + "' (id=" + c.alimentoId()
+                    + ") scheda id=" + schedaId + ". Motivi: " + c.motivi();
+            if (dettaglio.length() > 1024) {
+                dettaglio = dettaglio.substring(0, 1024);
+            }
+            save(ctx, AuditAction.OVERRIDE_ALERT_GRAVE, AuditEntityType.SCHEDA, schedaId, clienteId, null,
+                    AuditOutcome.SUCCESS, dettaglio);
+        }
+    }
+
+    /**
      * Registra un accesso NEGATO (ownership fallita). {@code action=ACCESS} (intento ignoto),
      * {@code esito=DENIED}. Sincrono e in {@code REQUIRES_NEW} così la riga sopravvive al rollback
      * provocato dalla {@code ForbiddenException} sulla transazione del chiamante.
@@ -161,7 +201,12 @@ public class AuditService {
 
     private void save(AuditContext ctx, AuditAction action, AuditEntityType entityType, Long entityId,
                       Long clienteId, String destinatario, AuditOutcome esito) {
+        save(ctx, action, entityType, entityId, clienteId, destinatario, esito, null);
+    }
+
+    private void save(AuditContext ctx, AuditAction action, AuditEntityType entityType, Long entityId,
+                      Long clienteId, String destinatario, AuditOutcome esito, String dettaglio) {
         repo.save(new AuditLog(ctx.utenteId(), ctx.utenteEmail(), action, entityType, entityId,
-                clienteId, esito, ctx.ipAddress(), ctx.userAgent(), destinatario));
+                clienteId, esito, ctx.ipAddress(), ctx.userAgent(), destinatario, dettaglio));
     }
 }

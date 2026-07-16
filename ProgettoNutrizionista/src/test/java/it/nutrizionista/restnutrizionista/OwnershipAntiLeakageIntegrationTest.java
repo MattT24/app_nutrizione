@@ -1,7 +1,10 @@
 package it.nutrizionista.restnutrizionista;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,19 +20,42 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.http.MediaType;
+
+import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
+import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
+import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
+import it.nutrizionista.restnutrizionista.entity.AlternativeMode;
+import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.CalcoloTdee;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.DocumentoFascicolo;
 import it.nutrizionista.restnutrizionista.entity.LivelloDiAttivita;
+import it.nutrizionista.restnutrizionista.entity.Macro;
+import it.nutrizionista.restnutrizionista.entity.Metodo;
+import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.entity.OrariStudio;
+import it.nutrizionista.restnutrizionista.entity.Pasto;
+import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import it.nutrizionista.restnutrizionista.entity.TipoDocumento;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.enums.AuditAction;
+import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
+import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
+import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
+import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
+import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
+import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
+import it.nutrizionista.restnutrizionista.repository.AuditLogRepository;
 import it.nutrizionista.restnutrizionista.repository.CalcoloTdeeRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.DocumentoFascicoloRepository;
+import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
 import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
+import it.nutrizionista.restnutrizionista.repository.PastoRepository;
+import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import it.nutrizionista.restnutrizionista.support.SafeTestDatabaseBase;
@@ -56,12 +82,27 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 	@Autowired private CalcoloTdeeRepository repoCalcolo;
 	@Autowired private OrariStudioRepository repoOrari;
 	@Autowired private DocumentoFascicoloRepository repoFascicolo;
+	@Autowired private PastoRepository repoPasto;
+	@Autowired private AlimentoBaseRepository repoAlimento;
+	@Autowired private AlimentoPastoRepository repoAlimentoPasto;
+	@Autowired private AlimentoAlternativoRepository repoAlternativa;
+	@Autowired private AppuntamentoRepository repoAppuntamento;
+	@Autowired private MisurazioneAntropometricaRepository repoMisurazione;
+	@Autowired private PlicometriaRepository repoPlicometria;
+	@Autowired private AuditLogRepository repoAudit;
 
 	private Long clienteAId;
 	private Long schedaAId;
 	private Long calcoloAId;
 	private Long orariAId;
 	private Long documentoAId;
+	// F-OWN-SWEEP: risorse aggiuntive del tenant A per lo sweep IDOR.
+	private Long pastoAId;
+	private Long alimentoId;
+	private Long alternativaAId;
+	private Long appuntamentoAId;
+	private Long misurazioneAId;
+	private Long plicometriaAId;
 
 	@BeforeEach
 	void seed() {
@@ -121,6 +162,57 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 		doc.setTipoDocumento(TipoDocumento.SCHEDA);
 		doc.setPercorsoFile("uploads/fascicoli/dummy-non-letto.pdf"); // mai letto: l'ownership scatta prima
 		documentoAId = repoFascicolo.save(doc).getId();
+
+		// ── F-OWN-SWEEP: albero piano (pasto→alimento→alternativa) + appuntamento/misurazione/plicometria di A ──
+		AlimentoBase alimento = repoAlimento.save(aliment("Pane A"));
+		AlimentoBase alimentoAlt = repoAlimento.save(aliment("Riso A"));
+		alimentoId = alimento.getId();
+
+		Pasto pasto = new Pasto();
+		pasto.setScheda(s);
+		pasto.setNome("Colazione");
+		Pasto pastoA = repoPasto.save(pasto);
+		pastoAId = pastoA.getId();
+
+		AlimentoPasto apSaved = repoAlimentoPasto.save(new AlimentoPasto(alimento, pastoA, 100));
+
+		AlimentoAlternativo alt = new AlimentoAlternativo();
+		alt.setAlimentoPasto(apSaved);
+		alt.setPasto(pastoA);
+		alt.setAlimentoAlternativo(alimentoAlt);
+		alt.setQuantita(120);
+		alt.setPriorita(1);
+		alt.setMode(AlternativeMode.CALORIE);
+		alternativaAId = repoAlternativa.save(alt).getId();
+
+		Appuntamento app = new Appuntamento();
+		app.setNutrizionista(a);
+		app.setCliente(clienteA);
+		app.setData(LocalDate.now());
+		app.setEndData(LocalDate.now());
+		app.setModalita(Appuntamento.Modalita.IN_STUDIO);
+		app.setStato(Appuntamento.StatoAppuntamento.PRENOTATO);
+		appuntamentoAId = repoAppuntamento.save(app).getId();
+
+		MisurazioneAntropometrica mis = new MisurazioneAntropometrica();
+		mis.setCliente(clienteA);
+		misurazioneAId = repoMisurazione.save(mis).getId();
+
+		Plicometria pli = new Plicometria();
+		pli.setCliente(clienteA);
+		pli.setMetodo(Metodo.JACKSON_POLLOCK_3);
+		plicometriaAId = repoPlicometria.save(pli).getId();
+	}
+
+	private static AlimentoBase aliment(String nome) {
+		AlimentoBase a = new AlimentoBase();
+		a.setNome(nome);
+		a.setMisuraInGrammi(100.0);
+		Macro m = new Macro();
+		m.setAlimento(a);
+		m.setCalorie(100.0); m.setProteine(10.0); m.setCarboidrati(10.0); m.setGrassi(10.0);
+		a.setMacroNutrienti(m);
+		return a;
 	}
 
 	private Utente nutrizionista(String suffix, String email, String cf) {
@@ -186,5 +278,81 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 		mvc.perform(get("/api/tdee/recenti"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.length()").value(1));
+	}
+
+	// ═══════════ F-OWN-SWEEP ═══════════
+	// (a) I 5 punti corretti dallo sweep — mutating/read cross-tenant → 403.
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "PASTO_UPDATE" })
+	void aggiornaQuantitaAlimentoPasto_diAltroTenant_e403() throws Exception {
+		mvc.perform(put("/api/alimenti_pasto").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"pasto\":{\"id\":" + pastoAId + "},\"alimento\":{\"id\":" + alimentoId + "},\"quantita\":150}"))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "PASTO_UPDATE" })
+	void eliminaAssociazioneAlimentoPasto_diAltroTenant_e403() throws Exception {
+		mvc.perform(delete("/api/alimenti_pasto")
+				.param("pastoId", pastoAId.toString()).param("alimentoId", alimentoId.toString()))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "ALIMENTO_ALTERNATIVO_UPDATE" })
+	void updateAlimentoAlternativo_diAltroTenant_e403() throws Exception {
+		mvc.perform(put("/api/alimenti_alternativi").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"id\":" + alternativaAId + ",\"alimentoPastoId\":1,\"alimentoAlternativoId\":" + alimentoId + ",\"quantita\":120}"))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "PASTO_READ" })
+	void listAlimentiByPasto_diAltroTenant_e403() throws Exception {
+		mvc.perform(get("/api/alimenti_pasto/byPasto/{id}", pastoAId))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "CLIENTE_UPDATE" })
+	void salvaDocumentoFascicolo_diAltroTenant_e403() throws Exception {
+		// L'ownership del cliente ora precede il dedup → 403, niente early-return che esporrebbe il DTO.
+		mvc.perform(post("/api/fascicolo/salva").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"clienteId\":" + clienteAId + ",\"tipoDocumento\":\"SCHEDA\",\"riferimentoId\":" + schedaAId + "}"))
+			.andExpect(status().isForbidden());
+	}
+
+	// (b) Regression-guard: getOwned* già scoped ma prima NON testati (Appuntamento/Misurazione/Plicometria).
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "APPUNTAMENTO_DELETE" })
+	void deleteAppuntamento_diAltroTenant_e403() throws Exception {
+		mvc.perform(delete("/api/appuntamenti/{id}", appuntamentoAId)).andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "MISURAZIONE_ANTROPOMETRICA_READ" })
+	void pdfMisurazione_diAltroTenant_e403() throws Exception {
+		mvc.perform(get("/api/misurazioni_antropometriche/{id}/pdf", misurazioneAId)).andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "PLICOMETRIA_READ" })
+	void pdfPlicometria_diAltroTenant_e403() throws Exception {
+		mvc.perform(get("/api/plicometrie/{id}/pdf", plicometriaAId)).andExpect(status().isForbidden());
+	}
+
+	// (c) Il diniego su una sub-risorsa genera ora l'evento A7 ACCESS/DENIED col nuovo entityType.
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "APPUNTAMENTO_DELETE" })
+	void denyAppuntamento_registraEventoAuditDenied() throws Exception {
+		mvc.perform(delete("/api/appuntamenti/{id}", appuntamentoAId)).andExpect(status().isForbidden());
+		assertThat(repoAudit.findAll()).anySatisfy(a -> {
+			assertThat(a.getAction()).isEqualTo(AuditAction.ACCESS);
+			assertThat(a.getEsito()).isEqualTo(AuditOutcome.DENIED);
+			assertThat(a.getEntityType()).isEqualTo(AuditEntityType.APPUNTAMENTO);
+			assertThat(a.getEntityId()).isEqualTo(appuntamentoAId);
+		});
 	}
 }

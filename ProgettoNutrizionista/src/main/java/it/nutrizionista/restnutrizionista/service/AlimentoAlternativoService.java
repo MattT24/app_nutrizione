@@ -108,9 +108,8 @@ public class AlimentoAlternativoService {
             throw new BadRequestException("ID obbligatorio per l'aggiornamento");
         }
 
-        var me = currentUserService.getMe();
-        AlimentoAlternativo entity = repo.findById(form.getId())
-                .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        // F-OWN-SWEEP: era `repo.findById` non-scoped (var `me` letta ma inutilizzata) → IDOR.
+        AlimentoAlternativo entity = ownershipValidator.getOwnedAlimentoAlternativo(form.getId());
 
         // Aggiorna solo i campi modificabili
         if (form.getQuantita() != null) {

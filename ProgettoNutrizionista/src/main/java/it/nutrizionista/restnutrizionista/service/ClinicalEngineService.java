@@ -1,8 +1,10 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import it.nutrizionista.restnutrizionista.dto.ConflittoClinicoDto;
 import it.nutrizionista.restnutrizionista.dto.MotivoValutazioneDto;
 import it.nutrizionista.restnutrizionista.dto.ValutazioneClinicaDto;
 import it.nutrizionista.restnutrizionista.engine.AlimentoRuleValidator;
+import it.nutrizionista.restnutrizionista.engine.TagStandardAllergeneMapping;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AvversionePersonale;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
@@ -14,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -120,6 +123,59 @@ public class ClinicalEngineService {
         return alimenti.parallelStream()
                 .map(alimento -> eseguiChain(alimento, tagsImmutabili, blacklistImmutabile))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Valuta una collezione di alimenti contro un paziente e restituisce SOLO i conflitti clinici
+     * (non-SAFE: {@code WARNING} + {@code ALERT_GRAVE}), pronti per il riepilogo batch dei percorsi
+     * che applicano template / duplicano schede (finding F-D1a). Ogni conflitto porta il livello, i
+     * motivi concatenati e il flag {@code allergeneDichiarato} (caso potenzialmente letale).
+     *
+     * @param cliente  paziente TARGET (mai il contesto della sorgente).
+     * @param alimenti alimenti distinti da valutare.
+     * @return         un {@link ConflittoClinicoDto} per ogni alimento non-SAFE (gli alimenti SAFE/INFO
+     *                 sono omessi); lista vuota se nessun conflitto.
+     */
+    public List<ConflittoClinicoDto> conflittiClinici(Cliente cliente, Collection<AlimentoBase> alimenti) {
+        if (alimenti == null || alimenti.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<AlimentoBase> lista = new ArrayList<>(alimenti);
+        List<ValutazioneClinicaDto> results = valutaInBatch(lista, cliente);
+
+        List<ConflittoClinicoDto> conflitti = new ArrayList<>();
+        for (int i = 0; i < lista.size(); i++) {
+            ValutazioneClinicaDto v = results.get(i);
+            // Solo i livelli bloccanti/di avviso: SAFE e INFO ("non verificato") non sono conflitti.
+            if (v.stato() != LivelloAllerta.WARNING && v.stato() != LivelloAllerta.ALERT_GRAVE) {
+                continue;
+            }
+            AlimentoBase a = lista.get(i);
+            String motivi = v.motivi().stream()
+                    .map(MotivoValutazioneDto::messaggio)
+                    .collect(Collectors.joining(" "));
+            boolean allergene = v.motivi().stream()
+                    .anyMatch(m -> isAllergeneDichiarato(m.codiceTrigger()));
+            conflitti.add(new ConflittoClinicoDto(a.getId(), a.getNome(), v.stato(), motivi, allergene));
+        }
+        return conflitti;
+    }
+
+    /**
+     * True se il {@code codiceTrigger} di un motivo corrisponde a un allergene dichiarato, secondo la
+     * mappa AUTOREVOLE {@link TagStandardAllergeneMapping} (non un semplice prefisso {@code ALL_}).
+     * Parse difensivo: i codici non-enum (es. {@code AVVERSIONE_ALERT_GRAVE}, {@code PAT_IPERTENSIONE_GRAVE})
+     * ritornano {@code false} senza sollevare eccezioni.
+     */
+    private boolean isAllergeneDichiarato(String codiceTrigger) {
+        if (codiceTrigger == null || codiceTrigger.isBlank()) {
+            return false;
+        }
+        try {
+            return TagStandardAllergeneMapping.allergeneFor(TagStandard.valueOf(codiceTrigger)) != null;
+        } catch (IllegalArgumentException notATagStandard) {
+            return false;
+        }
     }
 
     /**

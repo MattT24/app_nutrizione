@@ -359,6 +359,12 @@ public class DtoMapper {
 		return dto;
 	}
 
+	/** Normalizza le stringhe vuote/blank a null (per CF/email cliente opzionali): evita false
+	 *  collisioni sul dedup e violazioni dell'indice unique, che ammette più NULL ma non più "". */
+	private static String blankToNull(String s) {
+		return (s == null || s.isBlank()) ? null : s.trim();
+	}
+
 	public static Cliente toCliente(ClienteFormDto form) {
 		if (form == null)
 			return null;
@@ -367,8 +373,8 @@ public class DtoMapper {
 		c.setSesso(form.getSesso());
 		c.setNome(form.getNome());
 		c.setCognome(form.getCognome());
-		c.setCodiceFiscale(form.getCodiceFiscale());
-		c.setEmail(form.getEmail());
+		c.setCodiceFiscale(blankToNull(form.getCodiceFiscale())); // CF/email facoltativi: "" → null
+		c.setEmail(blankToNull(form.getEmail()));
 		c.setTelefono(form.getTelefono());
 		c.setDataNascita(form.getDataNascita());
 		c.setPeso(form.getPeso());
@@ -399,8 +405,9 @@ public class DtoMapper {
 		c.setSesso(form.getSesso());
 		c.setNome(form.getNome() != null ? form.getNome() : "");
 		c.setCognome(form.getCognome() != null ? form.getCognome() : "");
-		c.setCodiceFiscale(form.getCodiceFiscale() != null ? form.getCodiceFiscale() : c.getCodiceFiscale());
-		c.setEmail(form.getEmail() != null ? form.getEmail() : c.getEmail());
+		// CF/email facoltativi: null (campo non inviato) → mantieni l'esistente; "" (svuotato) → null.
+		c.setCodiceFiscale(form.getCodiceFiscale() != null ? blankToNull(form.getCodiceFiscale()) : c.getCodiceFiscale());
+		c.setEmail(form.getEmail() != null ? blankToNull(form.getEmail()) : c.getEmail());
 		c.setTelefono(form.getTelefono());
 		c.setDataNascita(form.getDataNascita());
 		c.setPeso(form.getPeso());
