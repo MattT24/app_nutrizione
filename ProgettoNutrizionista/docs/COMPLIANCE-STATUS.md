@@ -46,7 +46,7 @@
 
 **Top 5 rischi critici** (dettaglio in §3)
 
-1. **IDOR multi-tenant** su PDF/Fascicolo/TDEE — lettura/invio di dati sanitari di altri tenant (A1).
+1. ~~**IDOR multi-tenant** su PDF/Fascicolo/TDEE — lettura/invio di dati sanitari di altri tenant (A1).~~ ✅ RISOLTO (Wave 2: QW-2 + F-OWN-SWEEP).
 2. **`jwt.secret` pubblico** — token forgiabili, bypass autenticazione (B1) — da chiudere prima del go-live.
 3. **`/uploads/**` pubblico** — PDF di fascicoli sanitari scaricabili senza login (A8).
 4. ~~**Audit trail assente** sugli accessi ai dati sanitari — requisito Garante (A7).~~ ✅ RISOLTO (Wave 2).
@@ -68,7 +68,7 @@ per i segreti (A3/B4).
 
 | ID | Requisito | Stato | Evidenza | Decisione | Fase |
 |----|-----------|:-----:|----------|-----------|:----:|
-| A1 | Isolamento multi-tenant su tutte le risorse cliente | ✅ | **FATTO**: tutti gli endpoint elencati passano ora da `OwnershipValidator.getOwned*` (Fase 2 QW-2: PdfService/Fascicolo/TDEE con `/recenti` scoped/OrariStudio delete/Appuntamento.clienteId) + `OwnershipAntiLeakageIntegrationTest`; residuo "artigianale" `AppuntamentoService.verificaProprietario` uniformato al validator (Fase 3 Wave 1). **Residuo minore aperto**: `AlimentoBaseService` (ownership su `createdBy`, 400 anziché 403, senza `getOwned*` — AlimentoBase è catalogo in parte globale) → da decidere. | FATTO |
+| A1 | Isolamento multi-tenant su tutte le risorse cliente | ✅ | **FATTO**: tutti gli endpoint elencati passano ora da `OwnershipValidator.getOwned*` (Fase 2 QW-2: PdfService/Fascicolo/TDEE con `/recenti` scoped/OrariStudio delete/Appuntamento.clienteId) + `OwnershipAntiLeakageIntegrationTest`; residuo "artigianale" `AppuntamentoService.verificaProprietario` uniformato al validator (Fase 3 Wave 1). **F-OWN-SWEEP (Wave 2, chiude F-D1b)**: sweep sistematico dell'intero service layer → chiusi gli ultimi 5 lookup non-scoped (`AlimentoPastoService.eliminaAssociazione`/`aggiornaQuantita`/`listAlimentiByPasto`, `AlimentoAlternativoService.update` via nuovo `getOwnedAlimentoAlternativo`, `FascicoloService.salvaDocumento` con ownership PRIMA del dedup); DENIED (A7) esteso a **tutta** la superficie ownership incl. sub-risorse (`PASTO`/`ALIMENTO_PASTO`/`APPUNTAMENTO`/`ORARI_STUDIO`); `OwnershipAntiLeakageIntegrationTest` ampliato da 7 a **16 casi** (5 endpoint corretti + regression-guard Appuntamento/Misurazione/Plicometria + assert riga audit DENIED). Catalogo `AlimentoBase` (ownership su `createdBy`, catalogo in parte globale): diniego cancellazione altrui a **`ForbiddenException` 403** (Wave 1), fuori dal pattern `getOwned*` per scelta consapevole. | FATTO |
 | A2 | Cifratura at-rest dei dati sanitari | ❌⚠️ | Nessun `@Convert`/`AttributeConverter`/jasypt; anagrafica + dati sanitari in chiaro nella stessa tabella `clienti` (`Cliente.java:44-97`) `[verificato in locale]` | At-rest oggi demandato (da confermare) al layer TiDB. Analisi specifica della cifratura di campo in fase successiva. | NEXT |
 | A3 | Cifratura in transito end-to-end | 🟡 | DB↔TiDB in TLS `VERIFY_IDENTITY` (`application.properties:6`) ✓; backend serve **solo HTTP** (`server.port=8080`, nessun `server.ssl.*`); FE chiama `http://localhost:8080` `[verificato in locale]` | Studio approfondito quando sarà scelta la piattaforma di deploy (dipende da C3). Soluzione attesa: **reverse proxy che termina HTTPS** davanti al backend. Prerequisito: lavoro ambienti (`environments/` Angular + profili Spring). | PROD |
 | A4 | Base giuridica — accettazione documenti alla registrazione | 🟡 | **Meccanismo FATTO (Wave 2)**: entità `AccettazioneDocumento` versionata (tipo/versione/accettato_at/revocato_at), `@AssertTrue` su Register/GoogleRegister, hook in `AuthService`, endpoint `/api/accettazioni` (`/me`,`/pending`,`/accetta`,`revoca`), gate ri-accettazione server-side, checkbox FE. Base giuridica account B2B = **contratto (art. 6(1)(b))**, non "consenso"; art.9 dei pazienti resta offline (i pazienti non usano l'app). | Resta Wave 3: **testi legali** (Privacy/Termini/DPA) + gate FE al login. | Wave 2 fatto / testi PROD |
@@ -132,10 +132,13 @@ gamification. (4) Documentare la policy nel registro dei trattamenti / informati
 
 ## 3. Rischi critici
 
-1. **IDOR multi-tenant (A1)** — Diversi endpoint recuperano risorse cliente con `findById` non-scoped,
-   ignorando l'`OwnershipValidator` esistente. Un tenant autenticato può leggere o inviare PDF, documenti
-   di fascicolo e calcoli TDEE di altri tenant. `/api/tdee/recenti` restituisce esplicitamente gli ultimi
-   10 calcoli globali. Impatto: violazione di riservatezza su dati art. 9. Nessun test anti-leakage.
+1. ~~**IDOR multi-tenant (A1)**~~ — ✅ **RISOLTO (Wave 2, QW-2 + F-OWN-SWEEP).** Erano vari endpoint che
+   recuperavano risorse cliente con `findById` non-scoped ignorando l'`OwnershipValidator` (lettura/invio di
+   PDF, documenti di fascicolo, calcoli TDEE di altri tenant; `/api/tdee/recenti` globale). Chiusi in QW-2 +
+   **F-OWN-SWEEP** (sweep sistematico dell'intero service layer: ultimi 5 lookup non-scoped bonificati, DENIED
+   A7 esteso a tutta la superficie incl. sub-risorse). Copertura anti-leakage: `OwnershipAntiLeakageIntegrationTest`
+   ampliato a **16 casi** (regression-guard sull'intera superficie ownership). Resta minore/consapevole solo il
+   catalogo `AlimentoBase` (risorsa in parte globale, ownership su `createdBy` → 403).
 2. **`jwt.secret` pubblico (B1)** — Il segreto di firma è un valore di esempio reperibile pubblicamente.
    Chiunque può forgiare un token valido per qualsiasi utente/ruolo → bypass totale dell'autenticazione,
    escalation, accesso cross-tenant. Mitigato oggi solo dal fatto che non esistono utenti reali. Da

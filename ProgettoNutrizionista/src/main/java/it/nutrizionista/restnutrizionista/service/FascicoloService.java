@@ -47,15 +47,16 @@ public class FascicoloService {
     }
 
     public DocumentoFascicoloDto salvaDocumento(SalvaDocumentoRequest request) {
-        // Controllo se esiste già
+        // F-OWN-SWEEP: valida la proprietà del cliente PRIMA del dedup/early-return, altrimenti il
+        // ramo "esistente" esporrebbe il DTO di un documento di un altro tenant (info-disclosure).
+        Cliente cliente = ownershipValidator.getOwnedCliente(request.getClienteId());
+
+        // Controllo se esiste già (solo dopo aver verificato l'ownership del cliente)
         var esistente = fascicoloRepository.findByClienteIdAndTipoDocumentoAndRiferimentoId(
                 request.getClienteId(), request.getTipoDocumento(), request.getRiferimentoId());
-        
         if (esistente.isPresent()) {
             return toDto(esistente.get());
         }
-
-        Cliente cliente = ownershipValidator.getOwnedCliente(request.getClienteId());
 
         byte[] pdfBytes;
         String titoloBase = "";

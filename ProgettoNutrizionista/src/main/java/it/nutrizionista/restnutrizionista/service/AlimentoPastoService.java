@@ -98,6 +98,8 @@ public class AlimentoPastoService {
     
     @Transactional
     public PastoDto eliminaAssociazione(Long pastoId, Long alimentoId) {
+        // F-OWN-SWEEP (ex F-D1b): valida la proprietà del pasto prima di mutarlo (403 se cross-tenant).
+        ownershipValidator.getOwnedPasto(pastoId);
         // Carica il pasto con albero completo
         Pasto p = repoPasto.findByIdWithFullTree(pastoId)
                 .orElseThrow(() -> new NotFoundException("Pasto non trovato"));
@@ -123,6 +125,8 @@ public class AlimentoPastoService {
     
     @Transactional(readOnly = true)
     public List<AlimentoBaseDto> listAlimentiByPasto(Long pastoId) {
+        // F-OWN-SWEEP: nega la lettura degli alimenti del pasto di un altro tenant (403).
+        ownershipValidator.getOwnedPasto(pastoId);
         return repo.findByPasto_Id(pastoId).stream()
                 .map(AlimentoPasto::getAlimento)
                 .map(DtoMapper::toAlimentoBaseDtoLight)
@@ -131,6 +135,8 @@ public class AlimentoPastoService {
 
     @Transactional
     public PastoDto aggiornaQuantita(AlimentoPastoRequest req){
+        // F-OWN-SWEEP (ex F-D1b): valida la proprietà del pasto prima di modificarne un alimento (403 se cross-tenant).
+        ownershipValidator.getOwnedPasto(req.getPasto().getId());
         // OTTIMIZZAZIONE: Cerchiamo direttamente l'associazione.
         // Non serve caricare prima Pasto e Alimento separatamente.
         AlimentoPasto ap = repo.findByPasto_IdAndAlimento_Id(req.getPasto().getId(), req.getAlimento().getId())
