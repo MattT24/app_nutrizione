@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import it.nutrizionista.restnutrizionista.dto.ClienteDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteFormDto;
@@ -32,6 +33,7 @@ import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoReposito
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoNomeOverrideRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
 import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
+import it.nutrizionista.restnutrizionista.repository.AttivitaRecenteRepository;
 import it.nutrizionista.restnutrizionista.repository.CalcoloTdeeRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
@@ -51,6 +53,7 @@ public class ClienteService {
 	@Autowired private AlimentoPastoNomeOverrideRepository alimentoPastoNomeOverrideRepository;
 	@Autowired private AlimentoAlternativoRepository alimentoAlternativoRepository;
 	@Autowired private AppuntamentoRepository appuntamentoRepository;
+	@Autowired private AttivitaRecenteRepository attivitaRecenteRepository;
 	@Autowired private GamificationService gamificationService;
 	@Autowired private FascicoloService fascicoloService;
 	@Autowired private AuditService auditService;
@@ -58,11 +61,13 @@ public class ClienteService {
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
 		Utente u = currentUserService.getMe();
-		// Controllo duplicati su vincoli univoci, con messaggi chiari (409 Conflict)
-		if (repo.existsByCodiceFiscale(form.getCodiceFiscale())) {
+		// Controllo duplicati su vincoli univoci, con messaggi chiari (409 Conflict).
+		// CF/email sono FACOLTATIVI: si controlla il duplicato SOLO se valorizzati (più clienti
+		// senza CF/email non collidono; l'unique DB ammette più NULL).
+		if (StringUtils.hasText(form.getCodiceFiscale()) && repo.existsByCodiceFiscale(form.getCodiceFiscale())) {
 			throw new ConflictException("Esiste già un cliente con questo codice fiscale");
 		}
-		if (repo.existsByEmail(form.getEmail())) {
+		if (StringUtils.hasText(form.getEmail()) && repo.existsByEmail(form.getEmail())) {
 			throw new ConflictException("Esiste già un cliente con questa email");
 		}
 		Cliente c = DtoMapper.toCliente(form);
@@ -77,11 +82,11 @@ public class ClienteService {
 	public ClienteDto update(@Valid ClienteFormDto form) {
 		if (form.getId() == null) throw new BadRequestException("Id cliente obbligatorio per update");
 		Cliente c = ownershipValidator.getOwnedCliente(form.getId());
-		// Controllo duplicati escludendo il cliente stesso
-		if (repo.existsByCodiceFiscaleAndIdNot(form.getCodiceFiscale(), form.getId())) {
+		// Controllo duplicati escludendo il cliente stesso, solo se CF/email valorizzati (facoltativi).
+		if (StringUtils.hasText(form.getCodiceFiscale()) && repo.existsByCodiceFiscaleAndIdNot(form.getCodiceFiscale(), form.getId())) {
 			throw new ConflictException("Esiste già un cliente con questo codice fiscale");
 		}
-		if (repo.existsByEmailAndIdNot(form.getEmail(), form.getId())) {
+		if (StringUtils.hasText(form.getEmail()) && repo.existsByEmailAndIdNot(form.getEmail(), form.getId())) {
 			throw new ConflictException("Esiste già un cliente con questa email");
 		}
 		DtoMapper.updateClienteFromForm(c, form);
@@ -124,6 +129,11 @@ public class ClienteService {
 
 	    // 2. Appuntamenti: la FK cliente_id NON è in cascade dal Cliente.
 	    appuntamentoRepository.deleteByCliente_Id(id);
+
+	    // 2b. Attività recenti (widget "Ultime attività"): FK cliente_id NON in cascade dal Cliente
+	    //     (AttivitaRecente non è una collezione di Cliente). Va rimossa esplicitamente, altrimenti
+	    //     un cliente con storico di interazioni non è cancellabile (DataIntegrityViolation → 400).
+	    attivitaRecenteRepository.deleteByCliente_Id(id);
 
 	    // 3. Storico dei calcoli TDEE associati a questo cliente.
 	    calcoloTdeeRepository.deleteByClienteId(id);

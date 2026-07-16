@@ -12,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import it.nutrizionista.restnutrizionista.dto.ConflittoClinicoDto;
 import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateMode;
 import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateRequest;
 import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateRestrizioniPolicy;
@@ -19,13 +20,16 @@ import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateResultDto;
 import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateSkippedItemDto;
 import it.nutrizionista.restnutrizionista.dto.PastoApplyTemplateStatsDto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
+import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPastoNomeOverride;
 import it.nutrizionista.restnutrizionista.entity.AvversionePersonale;
+import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplate;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlimento;
 import it.nutrizionista.restnutrizionista.entity.PastoTemplateAlternativo;
+import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.ForbiddenException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
@@ -44,6 +48,8 @@ public class PastoTemplateApplyService {
 	@Autowired private PastoTemplateRepository templateRepository;
 	@Autowired private AvversionePersonaleRepository avversionePersonaleRepository;
 	@Autowired private AlimentoAlternativoRepository alternativoRepository;
+	@Autowired private ClinicalEngineService clinicalEngineService;
+	@Autowired private AuditService auditService;
 
 	@Transactional
 	public PastoApplyTemplateResultDto applyToPasto(Long pastoId, @Valid PastoApplyTemplateRequest req) {
@@ -111,6 +117,21 @@ public class PastoTemplateApplyService {
 			}
 		}
 
+		// F-D1a: valutazione clinica MDSS degli alimenti del template contro il PAZIENTE target
+		// (il checkRestriction sotto copre solo le avversioni manuali, non allergeni/sale del motore).
+		// Skip-and-report: i gravi non inclusi consapevolmente vengono saltati; i warning inseriti + riportati.
+		Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+		List<AlimentoBase> templateFoods = templateByAlimentoId.values().stream()
+				.map(PastoTemplateAlimento::getAlimento)
+				.collect(Collectors.toList());
+		List<ConflittoClinicoDto> conflittiClinici = clinicalEngineService.conflittiClinici(cliente, templateFoods);
+		out.setConflittiClinici(conflittiClinici); // dati strutturati per il modale FE (F-D1a)
+		Map<Long, ConflittoClinicoDto> conflittoById = conflittiClinici.stream()
+				.collect(Collectors.toMap(ConflittoClinicoDto::alimentoId, c -> c, (a, b) -> a));
+		Set<Long> forzatiGravi = req.getAlimentiForzatiIds() == null ? Set.of() : new HashSet<>(req.getAlimentiForzatiIds());
+		List<ConflittoClinicoDto> graviInclusi = new ArrayList<>();
+		Long schedaId = pasto.getScheda() != null ? pasto.getScheda().getId() : null;
+
 		for (PastoTemplateAlimento ti : templateByAlimentoId.values()) {
 			Long alimentoId = ti.getAlimento().getId();
 			RestrictionDecision restriction = checkRestriction(clienteId, alimentoId);
@@ -127,6 +148,20 @@ public class PastoTemplateApplyService {
 					throw new BadRequestException(restriction.message);
 				}
 				continue;
+			}
+
+			// F-D1a: gate clinico MDSS per-item.
+			ConflittoClinicoDto cc = conflittoById.get(alimentoId);
+			if (cc != null && cc.livello() == LivelloAllerta.ALERT_GRAVE) {
+				if (!forzatiGravi.contains(alimentoId)) {
+					String msg = (cc.allergeneDichiarato() ? "[ALLERGENE DICHIARATO] " : "") + cc.nome() + ": " + cc.motivi();
+					skipped.add(skipped("ALLERGENE_CLINICO", alimentoId, null, msg));
+					continue; // grave non incluso → non inserito
+				}
+				graviInclusi.add(cc); // incluso consapevolmente → prosegue con l'inserimento
+			} else if (cc != null && cc.livello() == LivelloAllerta.WARNING) {
+				// Warning: non bloccante → inserito, ma riportato come info (coerenza col flusso singolo).
+				skipped.add(skipped("WARNING_CLINICO", alimentoId, null, cc.nome() + ": " + cc.motivi()));
 			}
 
 			AlimentoPasto existing = apByAlimentoId.get(alimentoId);
@@ -164,6 +199,11 @@ public class PastoTemplateApplyService {
 			stats.setAddedAlternative(stats.getAddedAlternative() + altStats.added);
 			stats.setUpdatedAlternative(stats.getUpdatedAlternative() + altStats.updated);
 			stats.setRemovedAlternative(stats.getRemovedAlternative() + altStats.removed);
+		}
+
+		// F-D1a: audit dell'override dei gravi inclusi consapevolmente (stessa tx del save).
+		if (!graviInclusi.isEmpty()) {
+			auditService.recordOverrideGraviSameTx(schedaId, clienteId, graviInclusi, "apply-template-pasto");
 		}
 
 		pastoRepository.save(pasto);

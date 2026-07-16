@@ -17,4 +17,11 @@ public interface AttivitaRecenteRepository extends JpaRepository<AttivitaRecente
 
     /** Ultime N attività del nutrizionista, più recenti prima. */
     List<AttivitaRecente> findByNutrizionista_IdOrderByDataAttivitaDesc(Long nutrizionistaId, Pageable pageable);
+
+    /**
+     * Cancella le righe di attività recente di un cliente. La FK `cliente_id` NON è in cascade
+     * dal Cliente (AttivitaRecente non è una collezione di Cliente): va rimossa esplicitamente nel
+     * delete del cliente, altrimenti viola il vincolo FK (DataIntegrityViolation → 400).
+     */
+    void deleteByCliente_Id(Long clienteId);
 }

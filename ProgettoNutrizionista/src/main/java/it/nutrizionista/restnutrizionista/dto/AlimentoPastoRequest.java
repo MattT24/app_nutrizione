@@ -16,7 +16,16 @@ public class AlimentoPastoRequest {
     @Min(value = 1, message = "La quantità deve essere maggiore di 0")
     private int quantita;
     
-    private boolean forzaInserimento = false; 
+    /** Forza l'inserimento nonostante un WARNING clinico (restrizione/intolleranza). */
+    private boolean forzaInserimento = false;
+
+    /**
+     * Conferma consapevole per superare un blocco clinico GRAVE ({@code ALERT_GRAVE}, es. allergene
+     * dichiarato). Flag DEDICATO e distinto da {@link #forzaInserimento}: un client che gestisce solo i
+     * warning non deve poter scavalcare inavvertitamente un blocco grave. L'override viene auditato
+     * (A7 {@code OVERRIDE_ALERT_GRAVE}). Vedi AlimentoPastoService.associaAlimento.
+     */
+    private boolean confermaBloccoGrave = false;
 
     // Getters e Setters
     public IdRequest getAlimento() { return alimento; }
@@ -30,4 +39,7 @@ public class AlimentoPastoRequest {
 
     public boolean isForzaInserimento() { return forzaInserimento; }
     public void setForzaInserimento(boolean forzaInserimento) { this.forzaInserimento = forzaInserimento; }
+
+    public boolean isConfermaBloccoGrave() { return confermaBloccoGrave; }
+    public void setConfermaBloccoGrave(boolean confermaBloccoGrave) { this.confermaBloccoGrave = confermaBloccoGrave; }
 }

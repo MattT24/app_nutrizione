@@ -18,7 +18,8 @@
   E2 self-host font/icone · B5 `npm audit` + upgrade Angular a **21.2.18** (entro v21).
 - **Fase 3 Wave 1**: completa e validata (A5.1, A1 residuo, ambienti+profili+CORS, CI+Dependabot).
 - **Fase 3 Wave 2**: **A7 (audit log) completato** — backend **106 test verdi**. Prossimi candidati
-  Wave 2: **A4/A9 accettazione documenti FATTO**; restano A6 retention (attende durate), A5.3, D1, D4, E2 cookie banner.
+  Wave 2: **A4/A9 FATTO**, **D1 FATTO**, **F-D1a FATTO (BE+FE, e2e #1-#4)**, **F-OWN-SWEEP FATTO (IDOR, chiude F-D1b;
+  148 test verdi)**; restano **F-DEL-CASCADE (delete cliente sistematico)**, A6 retention (attende durate), A5.3, D4, E2 cookie banner.
 
 ## Criterio di ordinamento
 
@@ -101,8 +102,37 @@ spuntare gli item in `COMPLIANCE-STATUS.md`.
   (riuso pattern gamification esistente).
 - **A5.3 — Limitazione del trattamento (art. 18).** Meccanismo di "congelamento" cliente.
   *(A5.2 export/portabilità = owner esterno, solo coordinamento.)*
-- **D1 (parte codice) — Blocco allergie superabile con conferma consapevole** (come le
-  intolleranze). Piccolo, rafforza il posizionamento anti-MDR.
+- **D1 — Blocco clinico grave superabile con conferma consapevole. ✅ FATTO.** *Tutti* gli `ALERT_GRAVE`
+  (non solo allergeni) in `AlimentoPastoService.associaAlimento` sono superabili con **flag dedicato
+  `confermaBloccoGrave`** (distinto da `forzaInserimento` dei WARNING → un client "solo-warning" non
+  scavalca inavvertitamente un blocco grave). L'override è **auditato** (A7 `OVERRIDE_ALERT_GRAVE`, stessa tx,
+  motivi nel campo `dettaglio`; migrazione `015`); il metodo è ora **ownership-scoped** (`getOwnedPasto`).
+  FE: `confirm()` rafforzato in `scheda-dieta.ts`. Rafforza il posizionamento anti-MDR (il software avvisa,
+  il professionista decide). *Rimandato:* sistema di conferma unico/riusabile (modale dedicato) al posto dei
+  `confirm()` nativi. 6 unit test (`AlimentoPastoServiceTest`).
+- **✅ F-D1a — check allergeni nei percorsi template/duplicazione (FATTO, BE+FE).** Tutti i percorsi che
+  creano `AlimentoPasto` via template/duplicazione passano ora dal `ClinicalEngineService.conflittiClinici`:
+  #1 `PastoTemplateApplyService` (skip-and-report), #2 `SchedaTemplateService.creaSchedaDaTemplate` e
+  #3 `applicaAScheda` (block-and-report → 409 `ClinicalConflictBody`), #4 `SchedaService.copyBulk` cross-paziente
+  (skip-and-report 200 con `conflittiClinici` strutturato). Override consapevole **per-item** auditato
+  (`OVERRIDE_ALERT_GRAVE`). FE: `components/conflitti-clinici-modal` riusato sui 4 percorsi (in `scheda-dieta`
+  il modale condiviso usa un'**azione-pending** anti stale-state). Test: `FoodImportSafetyE2ETest` (#1-#4),
+  `ClinicalEngineConflittiUnitTest`, `scheda-dieta.spec.ts` (sequenza anti-stale).
+- **✅ F-OWN-SWEEP — sweep sistematico dell'ownership (FATTO, chiude anche F-D1b).** Passata su tutto il service
+  layer (3 agenti): il grosso era già scoped; corretti **5 punti** non-scoped → **3 ALTO** mutating (`AlimentoPastoService.eliminaAssociazione`
+  + `aggiornaQuantita` [ex F-D1b] → `getOwnedPasto`; `AlimentoAlternativoService.update` → nuovo `getOwnedAlimentoAlternativo`)
+  e **2 MEDIO** (`listAlimentiByPasto` → `getOwnedPasto`; `FascicoloService.salvaDocumento` → `getOwnedCliente` **prima**
+  del dedup, che espone il DTO). Inoltre i 4 `getOwned*` sub-risorsa (AlimentoPasto/Pasto/Appuntamento/OrariStudio)
+  ora **auditano il DENIED** via `deny()` con nuovi `AuditEntityType` (`PASTO`/`ALIMENTO_PASTO`/`APPUNTAMENTO`/`ORARI_STUDIO`,
+  additivi, no migrazione). Test: `OwnershipAntiLeakageIntegrationTest` esteso a **16 casi** (5 fix + regression-guard su
+  Appuntamento/Misurazione/Plicometria + asserzione evento A7 DENIED) → **superficie ownership ora regression-guarded**.
+  Suite BE **148 verdi**. Verificato che `AlimentoAlternativo` ha sempre `alimentoPasto` valorizzato (nessun 6° finding sul dual-parent).
+- **🔴 F-DEL-CASCADE (analogo delete di F-OWN-SWEEP): completezza della cancellazione cliente.** `ClienteService.deleteMyCliente`
+  è una **checklist manuale** (il cascade ORM copre solo le collezioni mappate su `Cliente`; appuntamenti/TDEE/
+  fascicolo/**attività recenti** vanno rimossi a mano) che si rompe a ogni nuova entità figlia — già 2 buchi
+  (fascicolo A5.1, `AttivitaRecente`). Fix sistematico: `ON DELETE CASCADE` a livello DB o `orphanRemoval=true`/
+  `cascade=REMOVE` sulle relazioni. Guard di regressione già presente: `ClienteDeleteCascadeCompletoIntegrationTest`
+  (semina tutti i figli + delete → verde). Nota: `AuditLog` con `clienteId` senza FK non blocca il delete (A7).
 - **B2 — Robustezza credenziali** (policy password, lockout/rate-limit, reset via email): **solo
   se NON si adotta Keycloak a breve**. Altrimenti arriva dall'IdP → non anticipare.
 - **D4 — Accessibilità WCAG** sui form gestionali sotto-etichettati. Incrementale (P2).

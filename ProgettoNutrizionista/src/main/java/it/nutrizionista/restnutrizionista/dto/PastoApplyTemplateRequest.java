@@ -1,5 +1,7 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import java.util.List;
+
 import jakarta.validation.constraints.NotNull;
 
 public class PastoApplyTemplateRequest {
@@ -9,6 +11,12 @@ public class PastoApplyTemplateRequest {
     private PastoApplyTemplateMode mode = PastoApplyTemplateMode.MERGE;
 
     private PastoApplyTemplateRestrizioniPolicy restrizioniPolicy = PastoApplyTemplateRestrizioniPolicy.SKIP_WARNINGS;
+
+    /**
+     * F-D1a — id degli alimenti con conflitto clinico GRAVE inclusi consapevolmente (override auditato).
+     * I gravi non presenti in questa lista vengono saltati e riportati; assente/vuota = nessun grave incluso.
+     */
+    private List<Long> alimentiForzatiIds;
 
     public Long getTemplateId() {
         return templateId;
@@ -32,5 +40,13 @@ public class PastoApplyTemplateRequest {
 
     public void setRestrizioniPolicy(PastoApplyTemplateRestrizioniPolicy restrizioniPolicy) {
         this.restrizioniPolicy = restrizioniPolicy;
+    }
+
+    public List<Long> getAlimentiForzatiIds() {
+        return alimentiForzatiIds;
+    }
+
+    public void setAlimentiForzatiIds(List<Long> alimentiForzatiIds) {
+        this.alimentiForzatiIds = alimentiForzatiIds;
     }
 }
