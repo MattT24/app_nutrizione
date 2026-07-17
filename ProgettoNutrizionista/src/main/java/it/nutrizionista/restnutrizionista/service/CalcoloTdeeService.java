@@ -25,6 +25,9 @@ public class CalcoloTdeeService {
     private OwnershipValidator ownershipValidator;
 
     @Autowired
+    private LimitazioneTrattamentoValidator limitazioneValidator;
+
+    @Autowired
     private CurrentUserService currentUserService;
 
     @Autowired
@@ -33,6 +36,7 @@ public class CalcoloTdeeService {
     @Transactional
     public CalcoloTdeeDto calcolaESalva(CalcoloTdeeFormDto form) {
         Cliente cliente = ownershipValidator.getOwnedCliente(form.getClienteId());
+        limitazioneValidator.assertNonLimitato(cliente); // A5.3: calcolo TDEE persistito bloccato se limitato
 
         double bmr = (10 * form.getPeso()) + (6.25 * form.getAltezza()) - (5 * form.getEta());
         if (form.getSesso().equalsIgnoreCase("M") || form.getSesso().equalsIgnoreCase("MASCHIO")) {
@@ -70,6 +74,7 @@ public class CalcoloTdeeService {
     @Transactional
     public void eliminaCalcolo(Long calcoloId) {
         CalcoloTdee calcolo = ownershipValidator.getOwnedCalcoloTdee(calcoloId);
+        limitazioneValidator.assertNonLimitato(calcolo.getCliente()); // A5.3
         calcoloTdeeRepository.delete(calcolo);
     }
 
@@ -84,7 +89,8 @@ public class CalcoloTdeeService {
 
     @Transactional
     public void eliminaTuttiCalcoliCliente(Long clienteId) {
-        ownershipValidator.getOwnedCliente(clienteId); // difesa in profondità
+        Cliente cliente = ownershipValidator.getOwnedCliente(clienteId); // difesa in profondità
+        limitazioneValidator.assertNonLimitato(cliente); // A5.3
         calcoloTdeeRepository.deleteByClienteId(clienteId);
     }
 

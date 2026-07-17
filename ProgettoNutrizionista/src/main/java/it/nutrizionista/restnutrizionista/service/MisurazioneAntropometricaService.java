@@ -28,6 +28,7 @@ public class MisurazioneAntropometricaService {
     @Autowired private ClienteRepository clienteRepo;
     @Autowired private CurrentUserService currentUserService;
     @Autowired private OwnershipValidator ownershipValidator;
+    @Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
     @Autowired private GamificationService gamificationService;
     @Autowired private PdfService pdfService;
     @Autowired private AuditService auditService;
@@ -47,6 +48,7 @@ public class MisurazioneAntropometricaService {
     @Transactional
     public MisurazioneAntropometricaDto create(@Valid MisurazioneAntropometricaFormDto form) {
         Cliente cliente = ownershipValidator.getOwnedCliente(form.getCliente().getId());
+        limitazioneValidator.assertNonLimitato(cliente); // A5.3
 
         MisurazioneAntropometrica m = DtoMapper.toMisurazione(form);
         m.setCliente(cliente); // Associo la misurazione al cliente trovato
@@ -61,13 +63,15 @@ public class MisurazioneAntropometricaService {
 	public MisurazioneAntropometricaDto update(@Valid MisurazioneAntropometricaFormDto form) {
 		if (form.getId() == null) throw new BadRequestException("Id Misurazione obbligatoria per update");
 		MisurazioneAntropometrica m = ownershipValidator.getOwnedMisurazioneAntropometrica(form.getId());
+		limitazioneValidator.assertNonLimitato(m.getCliente()); // A5.3
 		DtoMapper.updateMisurazioneFromForm(m, form);
 		return DtoMapper.toMisurazioneDtoLight(repo.save(m));
 	}
 
 	@Transactional
-    public void delete(Long id) { 
+    public void delete(Long id) {
         MisurazioneAntropometrica m = ownershipValidator.getOwnedMisurazioneAntropometrica(id);
+        limitazioneValidator.assertNonLimitato(m.getCliente()); // A5.3
 		repo.deleteById(id); }
 
 	@Transactional(readOnly = true)

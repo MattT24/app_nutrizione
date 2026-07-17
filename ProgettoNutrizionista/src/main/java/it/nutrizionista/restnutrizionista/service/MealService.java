@@ -17,10 +17,12 @@ import jakarta.validation.Valid;
 public class MealService {
 	@Autowired private PastoRepository repo;
 	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
 
 	@Transactional
 	public PastoDto create(@Valid MealCreateRequest req) {
 		var scheda = ownershipValidator.getOwnedScheda(req.getSchedaId());
+		limitazioneValidator.assertNonLimitato(scheda.getCliente()); // A5.3
 		Pasto p = new Pasto();
 		p.setScheda(scheda);
 		p.setNome(req.getNome());
@@ -50,6 +52,7 @@ public class MealService {
 	@Transactional
 	public PastoDto update(Long id, @Valid MealUpdateRequest req) {
 		Pasto p = ownershipValidator.getOwnedPasto(id);
+		limitazioneValidator.assertNonLimitato(p.getScheda().getCliente()); // A5.3
 		if (Boolean.FALSE.equals(p.getEliminabile())) {
 			throw new ForbiddenException("NON AUTORIZZATO: non puoi modificare un pasto default");
 		}
@@ -62,6 +65,7 @@ public class MealService {
 	@Transactional
 	public void delete(Long id) {
 		Pasto p = ownershipValidator.getOwnedPasto(id);
+		limitazioneValidator.assertNonLimitato(p.getScheda().getCliente()); // A5.3
 		if (Boolean.FALSE.equals(p.getEliminabile())) {
 			throw new ForbiddenException("NON AUTORIZZATO: non puoi eliminare un pasto default");
 		}

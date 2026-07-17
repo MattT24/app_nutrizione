@@ -21,13 +21,15 @@ import org.springframework.transaction.annotation.Transactional;
 public class PdfShareService {
 
     private final OwnershipValidator ownershipValidator;
+    private final LimitazioneTrattamentoValidator limitazioneValidator;
     private final PdfService pdfService;
     private final EmailService emailService;
     private final AuditService auditService;
 
-    public PdfShareService(OwnershipValidator ownershipValidator, PdfService pdfService,
-                           EmailService emailService, AuditService auditService) {
+    public PdfShareService(OwnershipValidator ownershipValidator, LimitazioneTrattamentoValidator limitazioneValidator,
+                           PdfService pdfService, EmailService emailService, AuditService auditService) {
         this.ownershipValidator = ownershipValidator;
+        this.limitazioneValidator = limitazioneValidator;
         this.pdfService = pdfService;
         this.emailService = emailService;
         this.auditService = auditService;
@@ -36,6 +38,7 @@ public class PdfShareService {
     @Transactional(readOnly = true)
     public void shareScheda(Long id, ShareRequest req) {
         Scheda scheda = ownershipValidator.getOwnedScheda(id);
+        limitazioneValidator.assertNonLimitato(scheda.getCliente()); // A5.3: nessun invio a terzi per cliente limitato
         Long clienteId = clienteIdDi(scheda.getCliente());
         String to = ShareRecipient.resolve(emailDi(scheda.getCliente()), req);
         byte[] pdf = pdfService.generaPdfScheda(id);
@@ -46,6 +49,7 @@ public class PdfShareService {
     @Transactional(readOnly = true)
     public void shareMisurazione(Long id, ShareRequest req) {
         MisurazioneAntropometrica m = ownershipValidator.getOwnedMisurazioneAntropometrica(id);
+        limitazioneValidator.assertNonLimitato(m.getCliente()); // A5.3
         Long clienteId = clienteIdDi(m.getCliente());
         String to = ShareRecipient.resolve(emailDi(m.getCliente()), req);
         byte[] pdf = pdfService.generaPdfMisurazione(id);
@@ -57,6 +61,7 @@ public class PdfShareService {
     @Transactional(readOnly = true)
     public void sharePlicometria(Long id, ShareRequest req) {
         Plicometria p = ownershipValidator.getOwnedPlicometria(id);
+        limitazioneValidator.assertNonLimitato(p.getCliente()); // A5.3
         Long clienteId = clienteIdDi(p.getCliente());
         String to = ShareRecipient.resolve(emailDi(p.getCliente()), req);
         byte[] pdf = pdfService.generaPdfPlicometria(id);

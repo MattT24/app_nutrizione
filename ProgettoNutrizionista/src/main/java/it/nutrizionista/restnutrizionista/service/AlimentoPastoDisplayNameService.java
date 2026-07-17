@@ -13,6 +13,7 @@ import it.nutrizionista.restnutrizionista.repository.AlimentoPastoNomeOverrideRe
 @Service
 public class AlimentoPastoDisplayNameService {
 	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
 	@Autowired private AlimentoPastoNomeOverrideRepository repo;
 
 	@Transactional
@@ -21,6 +22,7 @@ public class AlimentoPastoDisplayNameService {
 		if (ap.getPasto() == null || ap.getPasto().getScheda() == null || !ap.getPasto().getScheda().getId().equals(schedaId)) {
 			throw new ForbiddenException("NON AUTORIZZATO: alimento pasto non appartiene alla scheda");
 		}
+		limitazioneValidator.assertNonLimitato(ap.getPasto().getScheda().getCliente()); // A5.3
 
 		AlimentoPastoNomeOverride ov = repo.findByAlimentoPasto_Id(alimentoPastoId).orElseGet(() -> {
 			AlimentoPastoNomeOverride created = new AlimentoPastoNomeOverride();
@@ -39,6 +41,7 @@ public class AlimentoPastoDisplayNameService {
 		if (ap.getPasto() == null || ap.getPasto().getScheda() == null || !ap.getPasto().getScheda().getId().equals(schedaId)) {
 			throw new ForbiddenException("NON AUTORIZZATO: alimento pasto non appartiene alla scheda");
 		}
+		limitazioneValidator.assertNonLimitato(ap.getPasto().getScheda().getCliente()); // A5.3
 		if (repo.existsByAlimentoPasto_Id(alimentoPastoId)) {
 			repo.deleteByAlimentoPasto_Id(alimentoPastoId);
 		}

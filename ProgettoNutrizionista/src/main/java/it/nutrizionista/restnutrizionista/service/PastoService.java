@@ -33,12 +33,14 @@ public class PastoService {
 	@Autowired private SchedaRepository schedaRepo;
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
 	@Autowired private ClinicalEngineService clinicalEngineService;
 
 	@Transactional
     public PastoDto create(@Valid PastoFormDto form) {
         if (form.getScheda().getId() == null) throw new BadRequestException("ID Scheda obbligatorio");
         var scheda = ownershipValidator.getOwnedScheda(form.getScheda().getId());
+        limitazioneValidator.assertNonLimitato(scheda.getCliente()); // A5.3
         Pasto p = new Pasto();
         p.setNome(form.getNome());
         validateOrari(form.getOrarioInizio(), form.getOrarioFine());
@@ -79,6 +81,7 @@ public class PastoService {
     public PastoDto update(@Valid PastoFormDto form) {
         if (form.getId() == null) throw new BadRequestException("Id Pasto obbligatorio");
         Pasto p = ownershipValidator.getOwnedPasto(form.getId());
+        limitazioneValidator.assertNonLimitato(p.getScheda().getCliente()); // A5.3
         if (Boolean.FALSE.equals(p.getEliminabile())) {
         	if (form.getNome() != null && !p.getNome().equalsIgnoreCase(form.getNome())) {
         		throw new ForbiddenException("NON AUTORIZZATO: non puoi rinominare un pasto default");
@@ -108,6 +111,7 @@ public class PastoService {
 	public PastoDto updateOrari(Long pastoId, java.time.LocalTime orarioInizio, java.time.LocalTime orarioFine) {
 		if (pastoId == null) throw new BadRequestException("Id Pasto obbligatorio");
 		Pasto p = ownershipValidator.getOwnedPasto(pastoId);
+		limitazioneValidator.assertNonLimitato(p.getScheda().getCliente()); // A5.3
 		validateOrari(orarioInizio, orarioFine);
 		p.setOrarioInizio(orarioInizio);
 		p.setOrarioFine(orarioFine);
@@ -126,6 +130,7 @@ public class PastoService {
 	@Transactional
     public void delete(Long id) {
 		Pasto p = ownershipValidator.getOwnedPasto(id);
+		limitazioneValidator.assertNonLimitato(p.getScheda().getCliente()); // A5.3
 		if (Boolean.FALSE.equals(p.getEliminabile())) {
 			throw new ForbiddenException("NON AUTORIZZATO: non puoi eliminare un pasto default");
 		}
@@ -142,6 +147,7 @@ public class PastoService {
 		if (ids == null || ids.isEmpty()) return;
 		for (int i = 0; i < ids.size(); i++) {
 			Pasto p = ownershipValidator.getOwnedPasto(ids.get(i));
+			limitazioneValidator.assertNonLimitato(p.getScheda().getCliente()); // A5.3
 			p.setOrdineVisualizzazione(i);
 			repo.save(p);
 		}

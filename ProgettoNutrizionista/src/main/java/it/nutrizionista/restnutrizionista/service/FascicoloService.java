@@ -31,17 +31,19 @@ public class FascicoloService {
     private final DocumentoFascicoloRepository fascicoloRepository;
     private final PdfService pdfService;
     private final OwnershipValidator ownershipValidator;
+    private final LimitazioneTrattamentoValidator limitazioneValidator;
     private final EmailService emailService;
     private final AuditService auditService;
 
     private final String uploadDir = "uploads/fascicoli";
 
     public FascicoloService(DocumentoFascicoloRepository fascicoloRepository, PdfService pdfService,
-                            OwnershipValidator ownershipValidator, EmailService emailService,
-                            AuditService auditService) {
+                            OwnershipValidator ownershipValidator, LimitazioneTrattamentoValidator limitazioneValidator,
+                            EmailService emailService, AuditService auditService) {
         this.fascicoloRepository = fascicoloRepository;
         this.pdfService = pdfService;
         this.ownershipValidator = ownershipValidator;
+        this.limitazioneValidator = limitazioneValidator;
         this.emailService = emailService;
         this.auditService = auditService;
     }
@@ -55,8 +57,11 @@ public class FascicoloService {
         var esistente = fascicoloRepository.findByClienteIdAndTipoDocumentoAndRiferimentoId(
                 request.getClienteId(), request.getTipoDocumento(), request.getRiferimentoId());
         if (esistente.isPresent()) {
-            return toDto(esistente.get());
+            return toDto(esistente.get()); // già archiviato: lettura del titolare, consentita anche se limitato
         }
+
+        // A5.3: la CREAZIONE di un nuovo documento (produzione+persistenza) è bloccata se il cliente è limitato.
+        limitazioneValidator.assertNonLimitato(cliente);
 
         byte[] pdfBytes;
         String titoloBase = "";
@@ -144,6 +149,7 @@ public class FascicoloService {
 
     public void eliminaDocumento(Long id) {
         DocumentoFascicolo doc = ownershipValidator.getOwnedDocumentoFascicolo(id);
+        limitazioneValidator.assertNonLimitato(doc.getCliente()); // A5.3: no delete del dato conservato se limitato
         try {
             Path path = Paths.get(doc.getPercorsoFile());
             Files.deleteIfExists(path);
@@ -180,6 +186,7 @@ public class FascicoloService {
      */
     public void shareDocumento(Long id, ShareRequest req) {
         DocumentoFascicolo doc = ownershipValidator.getOwnedDocumentoFascicolo(id);
+        limitazioneValidator.assertNonLimitato(doc.getCliente()); // A5.3: nessun invio a terzi per cliente limitato
         Long clienteId = doc.getCliente() == null ? null : doc.getCliente().getId();
         String clienteEmail = doc.getCliente() == null ? null : doc.getCliente().getEmail();
         String to = ShareRecipient.resolve(clienteEmail, req);

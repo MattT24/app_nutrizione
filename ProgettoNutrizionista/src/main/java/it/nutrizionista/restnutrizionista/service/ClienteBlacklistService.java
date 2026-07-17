@@ -25,15 +25,18 @@ import it.nutrizionista.restnutrizionista.repository.AvversionePersonaleReposito
 public class ClienteBlacklistService {
 
     private final OwnershipValidator ownershipValidator;
+    private final LimitazioneTrattamentoValidator limitazioneValidator;
     private final AvversionePersonaleRepository avversioneRepository;
     private final AlimentoBaseRepository alimentoBaseRepository;
 
     // ── Iniezione Esplicita via Costruttore (NO LOMBOK) ──
     public ClienteBlacklistService(
             OwnershipValidator ownershipValidator,
+            LimitazioneTrattamentoValidator limitazioneValidator,
             AvversionePersonaleRepository avversioneRepository,
             AlimentoBaseRepository alimentoBaseRepository) {
         this.ownershipValidator = ownershipValidator;
+        this.limitazioneValidator = limitazioneValidator;
         this.avversioneRepository = avversioneRepository;
         this.alimentoBaseRepository = alimentoBaseRepository;
     }
@@ -62,6 +65,7 @@ public class ClienteBlacklistService {
     public AvversionePersonaleDto addAlimentoToBlacklist(Long clienteId, AvversionePersonaleFormDto form) {
         // IDOR Gate
         Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+        limitazioneValidator.assertNonLimitato(cliente); // A5.3
 
         // Estrazione validata dell'alimento
         AlimentoBase alimento = alimentoBaseRepository.findById(form.alimentoId())
@@ -88,7 +92,7 @@ public class ClienteBlacklistService {
     @Transactional
     public void removeAlimentoFromBlacklist(Long clienteId, Long alimentoId) {
         // IDOR Gate
-        ownershipValidator.getOwnedCliente(clienteId);
+        limitazioneValidator.assertNonLimitato(ownershipValidator.getOwnedCliente(clienteId)); // A5.3
 
         AvversionePersonale avversione = avversioneRepository.findByClienteIdAndAlimentoId(clienteId, alimentoId)
                 .orElseThrow(() -> new NotFoundException(
