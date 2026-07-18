@@ -54,6 +54,8 @@ class CopyBulkScopeRegressionTest {
         service = new SchedaService();
         ReflectionTestUtils.setField(service, "repo", repo);
         ReflectionTestUtils.setField(service, "ownershipValidator", ownershipValidator);
+        // A5.3: validator reale (no-op — i clienti mock non sono limitati).
+        ReflectionTestUtils.setField(service, "limitazioneValidator", new LimitazioneTrattamentoValidator());
         ReflectionTestUtils.setField(service, "clinicalEngineService", clinicalEngineService);
         ReflectionTestUtils.setField(service, "auditService", auditService);
 

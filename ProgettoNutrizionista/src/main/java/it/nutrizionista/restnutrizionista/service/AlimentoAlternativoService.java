@@ -47,7 +47,16 @@ public class AlimentoAlternativoService {
     private OwnershipValidator ownershipValidator;
 
     @Autowired
+    private LimitazioneTrattamentoValidator limitazioneValidator;
+
+    @Autowired
     private AlternativeSuggestionCalculator suggestionCalculator;
+
+    /** A5.3 — naviga dall'alimento-pasto al cliente per il check limitazione (può essere null in test). */
+    private it.nutrizionista.restnutrizionista.entity.Cliente clienteOf(AlimentoPasto ap) {
+        return (ap != null && ap.getPasto() != null && ap.getPasto().getScheda() != null)
+                ? ap.getPasto().getScheda().getCliente() : null;
+    }
 
     /**
      * Crea una nuova alternativa
@@ -55,6 +64,7 @@ public class AlimentoAlternativoService {
     @Transactional
     public AlimentoAlternativoDto create(@Valid AlimentoAlternativoFormDto form) {
         AlimentoPasto alimentoPasto = ownershipValidator.getOwnedAlimentoPasto(form.getAlimentoPastoId());
+        limitazioneValidator.assertNonLimitato(clienteOf(alimentoPasto)); // A5.3
 
         // Verifica che l'alimento alternativo esista
         AlimentoBase alimentoAlt = alimentoBaseRepo.findById(form.getAlimentoAlternativoId())
@@ -110,6 +120,7 @@ public class AlimentoAlternativoService {
 
         // F-OWN-SWEEP: era `repo.findById` non-scoped (var `me` letta ma inutilizzata) → IDOR.
         AlimentoAlternativo entity = ownershipValidator.getOwnedAlimentoAlternativo(form.getId());
+        limitazioneValidator.assertNonLimitato(clienteOf(entity.getAlimentoPasto())); // A5.3
 
         // Aggiorna solo i campi modificabili
         if (form.getQuantita() != null) {
@@ -142,6 +153,7 @@ public class AlimentoAlternativoService {
         var me = currentUserService.getMe();
         AlimentoAlternativo entity = repo.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(id, me.getId())
                 .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        limitazioneValidator.assertNonLimitato(clienteOf(entity.getAlimentoPasto())); // A5.3
         repo.delete(entity);
     }
 
@@ -192,6 +204,7 @@ public class AlimentoAlternativoService {
     public AlimentoAlternativoDto createForAlimentoPasto(Long alimentoPastoId,
             @Valid AlimentoAlternativoUpsertDto body) {
         AlimentoPasto alimentoPasto = ownershipValidator.getOwnedAlimentoPasto(alimentoPastoId);
+        limitazioneValidator.assertNonLimitato(clienteOf(alimentoPasto)); // A5.3
         AlimentoBase alimentoAlt = alimentoBaseRepo.findById(body.getAlimentoAlternativoId())
                 .orElseThrow(() -> new NotFoundException(
                         "Alimento alternativo non trovato con id: " + body.getAlimentoAlternativoId()));
@@ -234,7 +247,8 @@ public class AlimentoAlternativoService {
     @Transactional
     public AlimentoAlternativoDto updateForAlimentoPasto(Long alimentoPastoId, Long alternativeId,
             @Valid AlimentoAlternativoUpsertDto body) {
-        ownershipValidator.getOwnedAlimentoPasto(alimentoPastoId);
+        AlimentoPasto ownedAp = ownershipValidator.getOwnedAlimentoPasto(alimentoPastoId);
+        limitazioneValidator.assertNonLimitato(clienteOf(ownedAp)); // A5.3
         var me = currentUserService.getMe();
 
         AlimentoAlternativo entity = repo
@@ -271,7 +285,8 @@ public class AlimentoAlternativoService {
 
     @Transactional
     public void deleteForAlimentoPasto(Long alimentoPastoId, Long alternativeId) {
-        ownershipValidator.getOwnedAlimentoPasto(alimentoPastoId);
+        AlimentoPasto ownedAp = ownershipValidator.getOwnedAlimentoPasto(alimentoPastoId);
+        limitazioneValidator.assertNonLimitato(clienteOf(ownedAp)); // A5.3
         var me = currentUserService.getMe();
 
         AlimentoAlternativo entity = repo
@@ -315,6 +330,7 @@ public class AlimentoAlternativoService {
         AlimentoAlternativo alt = repo.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(
                         alternativaId, currentUserService.getMe().getId())
                 .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        limitazioneValidator.assertNonLimitato(clienteOf(alt.getAlimentoPasto())); // A5.3
         alt.setNomeCustom(nome);
         return DtoMapper.toAlimentoAlternativoDto(repo.save(alt));
     }
@@ -324,6 +340,7 @@ public class AlimentoAlternativoService {
         AlimentoAlternativo alt = repo.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(
                         alternativaId, currentUserService.getMe().getId())
                 .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        limitazioneValidator.assertNonLimitato(clienteOf(alt.getAlimentoPasto())); // A5.3
         alt.setNomeCustom(null);
         return DtoMapper.toAlimentoAlternativoDto(repo.save(alt));
     }

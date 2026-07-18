@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -59,6 +60,7 @@ public class ClienteService {
 	@Autowired private GamificationService gamificationService;
 	@Autowired private FascicoloService fascicoloService;
 	@Autowired private AuditService auditService;
+	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
 
 	@Transactional
 	public ClienteDto create(@Valid ClienteFormDto form) {
@@ -84,6 +86,7 @@ public class ClienteService {
 	public ClienteDto update(@Valid ClienteFormDto form) {
 		if (form.getId() == null) throw new BadRequestException("Id cliente obbligatorio per update");
 		Cliente c = ownershipValidator.getOwnedCliente(form.getId());
+		limitazioneValidator.assertNonLimitato(c); // A5.3: modifica dati clinici bloccata se limitato
 		// Controllo duplicati escludendo il cliente stesso, solo se CF/email valorizzati (facoltativi).
 		if (StringUtils.hasText(form.getCodiceFiscale()) && repo.existsByCodiceFiscaleAndIdNot(form.getCodiceFiscale(), form.getId())) {
 			throw new ConflictException("Esiste già un cliente con questo codice fiscale");
@@ -99,10 +102,46 @@ public class ClienteService {
 	public ClienteDto updatePesoAltezza(@Valid PesoAltezzaRequest req) {
 		if (req.getId() == null) throw new BadRequestException("Id cliente obbligatorio per update");
 		Cliente c = ownershipValidator.getOwnedCliente(req.getId());
+		limitazioneValidator.assertNonLimitato(c); // A5.3: modifica biometria bloccata se limitato
 		if (req.getPeso() != null) c.setPeso(req.getPeso());
 		if (req.getAltezza() != null) c.setAltezza(req.getAltezza());
 		// Permettiamo di impostare anche a null il pesoTarget se inviato, se serve
 		c.setPesoTarget(req.getPesoTarget());
+		return DtoMapper.toClienteDto(repo.save(c));
+	}
+
+	/**
+	 * Attiva la limitazione del trattamento (art. 18 GDPR, A5.3): marca il cliente come "limitato".
+	 * Il dato resta conservato e leggibile; le operazioni che scrivono/producono/inviano sono poi
+	 * rifiutate con 423 ({@link LimitazioneTrattamentoValidator}). NON chiama {@code assertNonLimitato}
+	 * (dev'essere idempotente su un cliente già limitato). L'atto è auditato (A7) nella STESSA
+	 * transazione del save: la riga committa iff la modifica committa, con la motivazione in dettaglio.
+	 */
+	@Transactional
+	public ClienteDto attivaLimitazione(Long id, String motivo) {
+		if (id == null) throw new BadRequestException("Id cliente obbligatorio");
+		Cliente c = ownershipValidator.getOwnedCliente(id);
+		c.setTrattamentoLimitato(true);
+		c.setDataLimitazione(Instant.now());
+		c.setMotivoLimitazione(StringUtils.hasText(motivo) ? motivo.trim() : null);
+		auditService.recordCriticalSameTx(AuditAction.LIMITAZIONE_ATTIVATA, AuditEntityType.CLIENTE, id, id,
+				c.getMotivoLimitazione());
+		return DtoMapper.toClienteDto(repo.save(c));
+	}
+
+	/**
+	 * Revoca la limitazione del trattamento (A5.3): il cliente torna pienamente operativo. NON chiama
+	 * {@code assertNonLimitato} (deve poter operare proprio su un cliente limitato). Atto auditato in
+	 * stessa transazione ({@code LIMITAZIONE_REVOCATA}).
+	 */
+	@Transactional
+	public ClienteDto revocaLimitazione(Long id) {
+		if (id == null) throw new BadRequestException("Id cliente obbligatorio");
+		Cliente c = ownershipValidator.getOwnedCliente(id);
+		c.setTrattamentoLimitato(false);
+		c.setDataLimitazione(null);
+		c.setMotivoLimitazione(null);
+		auditService.recordCriticalSameTx(AuditAction.LIMITAZIONE_REVOCATA, AuditEntityType.CLIENTE, id, id, null);
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
 

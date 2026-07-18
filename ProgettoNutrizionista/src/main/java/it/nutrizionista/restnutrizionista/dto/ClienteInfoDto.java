@@ -40,5 +40,9 @@ public record ClienteInfoDto(
         Boolean fuma,
         Set<TagStandard> tagStandard,
         Instant createdAt,
-        Instant updatedAt
+        Instant updatedAt,
+        // A5.3 — limitazione del trattamento (art. 18 GDPR)
+        boolean trattamentoLimitato,
+        Instant dataLimitazione,
+        String motivoLimitazione
 ) {}

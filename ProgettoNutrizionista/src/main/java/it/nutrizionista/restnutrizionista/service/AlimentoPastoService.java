@@ -34,6 +34,7 @@ public class AlimentoPastoService {
     @Autowired private ClinicalEngineService clinicalEngineService;
     @Autowired private AlimentoAlternativoService alimentoAlternativoService;
     @Autowired private OwnershipValidator ownershipValidator;
+    @Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
     @Autowired private AuditService auditService;
 
     @Transactional
@@ -46,6 +47,7 @@ public class AlimentoPastoService {
         //    proprietà dell'istanza. Da qui ricaviamo anche cliente/schedaId (serve all'audit fidato).
         Pasto pasto = ownershipValidator.getOwnedPasto(pastoId);
         Cliente cliente = pasto.getScheda().getCliente();
+        limitazioneValidator.assertNonLimitato(cliente); // A5.3
         Long clienteId = cliente.getId();
         Long schedaId = pasto.getScheda().getId();
 
@@ -99,7 +101,8 @@ public class AlimentoPastoService {
     @Transactional
     public PastoDto eliminaAssociazione(Long pastoId, Long alimentoId) {
         // F-OWN-SWEEP (ex F-D1b): valida la proprietà del pasto prima di mutarlo (403 se cross-tenant).
-        ownershipValidator.getOwnedPasto(pastoId);
+        Pasto owned = ownershipValidator.getOwnedPasto(pastoId);
+        limitazioneValidator.assertNonLimitato(owned.getScheda().getCliente()); // A5.3
         // Carica il pasto con albero completo
         Pasto p = repoPasto.findByIdWithFullTree(pastoId)
                 .orElseThrow(() -> new NotFoundException("Pasto non trovato"));
@@ -136,7 +139,8 @@ public class AlimentoPastoService {
     @Transactional
     public PastoDto aggiornaQuantita(AlimentoPastoRequest req){
         // F-OWN-SWEEP (ex F-D1b): valida la proprietà del pasto prima di modificarne un alimento (403 se cross-tenant).
-        ownershipValidator.getOwnedPasto(req.getPasto().getId());
+        Pasto ownedPasto = ownershipValidator.getOwnedPasto(req.getPasto().getId());
+        limitazioneValidator.assertNonLimitato(ownedPasto.getScheda().getCliente()); // A5.3
         // OTTIMIZZAZIONE: Cerchiamo direttamente l'associazione.
         // Non serve caricare prima Pasto e Alimento separatamente.
         AlimentoPasto ap = repo.findByPasto_IdAndAlimento_Id(req.getPasto().getId(), req.getAlimento().getId())

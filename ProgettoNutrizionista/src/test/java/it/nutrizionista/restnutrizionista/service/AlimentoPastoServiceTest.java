@@ -81,6 +81,8 @@ class AlimentoPastoServiceTest {
         ReflectionTestUtils.setField(service, "repoAlimento", repoAlimento);
         ReflectionTestUtils.setField(service, "clinicalEngineService", clinicalEngineService);
         ReflectionTestUtils.setField(service, "ownershipValidator", ownershipValidator);
+        // A5.3: validator reale (no-op — il cliente mock non è limitato) così assertNonLimitato non è null.
+        ReflectionTestUtils.setField(service, "limitazioneValidator", new LimitazioneTrattamentoValidator());
         ReflectionTestUtils.setField(service, "auditService", auditService);
         ReflectionTestUtils.setField(service, "alimentoAlternativoService", alimentoAlternativoService);
 

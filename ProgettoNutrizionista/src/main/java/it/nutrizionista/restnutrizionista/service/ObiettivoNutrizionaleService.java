@@ -31,6 +31,8 @@ public class ObiettivoNutrizionaleService {
 	@Autowired
 	private OwnershipValidator ownershipValidator;
 	@Autowired
+	private LimitazioneTrattamentoValidator limitazioneValidator;
+	@Autowired
 	private AuditService auditService;
 
 	/**
@@ -66,6 +68,7 @@ public class ObiettivoNutrizionaleService {
 	@Transactional
 	public ObiettivoNutrizionaleDto creaOAggiorna(Long clienteId, @Valid ObiettivoNutrizionaleFormDto form) {
 		Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+		limitazioneValidator.assertNonLimitato(cliente); // A5.3
 
 		ObiettivoNutrizionale ob = repo.findByCliente_IdAndAttivoTrue(clienteId)
 				.orElseGet(() -> {
@@ -116,6 +119,7 @@ public class ObiettivoNutrizionaleService {
 	@Transactional
 	public ObiettivoNutrizionaleDto salvaNuovoStorico(Long clienteId, @Valid ObiettivoNutrizionaleFormDto form) {
 		Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+		limitazioneValidator.assertNonLimitato(cliente); // A5.3
 
 		// 1. Archivia l'obiettivo attivo corrente
 		repo.findByCliente_IdAndAttivoTrue(clienteId).ifPresent(corrente -> {
@@ -164,7 +168,7 @@ public class ObiettivoNutrizionaleService {
 	 */
 	@Transactional
 	public ObiettivoNutrizionaleDto attivaObiettivo(Long clienteId, Long obiettivoId) {
-		ownershipValidator.getOwnedCliente(clienteId);
+		limitazioneValidator.assertNonLimitato(ownershipValidator.getOwnedCliente(clienteId)); // A5.3
 
 		// Disattiva l'obiettivo corrente (se esiste)
 		repo.findByCliente_IdAndAttivoTrue(clienteId).ifPresent(corrente -> {
@@ -187,7 +191,7 @@ public class ObiettivoNutrizionaleService {
 	 */
 	@Transactional
 	public ObiettivoNutrizionaleDto rinomina(Long clienteId, Long obiettivoId, String nome) {
-		ownershipValidator.getOwnedCliente(clienteId);
+		limitazioneValidator.assertNonLimitato(ownershipValidator.getOwnedCliente(clienteId)); // A5.3
 		ObiettivoNutrizionale ob = repo.findById(obiettivoId)
 				.filter(o -> o.getCliente().getId().equals(clienteId))
 				.orElseThrow(() -> new NotFoundException("Obiettivo non trovato"));
@@ -261,7 +265,7 @@ public class ObiettivoNutrizionaleService {
 	 */
 	@Transactional
 	public void delete(Long clienteId, Long obiettivoId) {
-		ownershipValidator.getOwnedCliente(clienteId);
+		limitazioneValidator.assertNonLimitato(ownershipValidator.getOwnedCliente(clienteId)); // A5.3
 		repo.deleteByIdAndCliente_Id(obiettivoId, clienteId);
 	}
 

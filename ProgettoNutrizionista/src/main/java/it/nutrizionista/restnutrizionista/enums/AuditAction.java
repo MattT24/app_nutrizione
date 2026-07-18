@@ -26,6 +26,14 @@ public enum AuditAction {
      */
     OVERRIDE_ALERT_GRAVE,
     /**
+     * Attivazione della limitazione del trattamento (art. 18 GDPR, A5.3): il titolare marca il
+     * cliente come "limitato" (dato conservato ma non più modificabile/producibile/inviabile). È un
+     * evento di <b>scrittura amministrativa</b> tracciato: la motivazione va in {@code dettaglio}.
+     */
+    LIMITAZIONE_ATTIVATA,
+    /** Revoca della limitazione del trattamento (A5.3): il cliente torna pienamente operativo. */
+    LIMITAZIONE_REVOCATA,
+    /**
      * Accesso generico: usato per le righe con esito {@code DENIED}, dove l'intento del
      * chiamante non è noto (l'ownership fallisce prima che il tipo di operazione sia deciso).
      */

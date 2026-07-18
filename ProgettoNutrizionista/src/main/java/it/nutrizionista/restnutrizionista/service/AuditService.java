@@ -130,6 +130,18 @@ public class AuditService {
     }
 
     /**
+     * Come {@link #recordCriticalSameTx(AuditAction, AuditEntityType, Long, Long)} ma con la
+     * motivazione dell'atto nel campo {@code dettaglio}. Usato per gli atti amministrativi tracciati
+     * (es. limitazione del trattamento A5.3: {@code LIMITAZIONE_ATTIVATA} con il motivo), nella STESSA
+     * transazione del save dell'entità → la riga di audit committa iff l'atto committa.
+     */
+    @Transactional(propagation = Propagation.REQUIRED)
+    public void recordCriticalSameTx(AuditAction action, AuditEntityType entityType, Long entityId,
+                                     Long clienteId, String dettaglio) {
+        save(captureContext(), action, entityType, entityId, clienteId, null, AuditOutcome.SUCCESS, dettaglio);
+    }
+
+    /**
      * Registra un override consapevole di un blocco clinico grave ({@code OVERRIDE_ALERT_GRAVE}) nella
      * STESSA transazione del chiamante: la riga di audit committa se e solo se l'operazione forzata
      * (l'inserimento dell'alimento) committa. Così non esistono override "phantom" (loggati ma non

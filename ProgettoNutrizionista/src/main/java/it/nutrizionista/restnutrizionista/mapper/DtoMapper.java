@@ -326,6 +326,10 @@ public class DtoMapper {
 		dto.setPesoTarget(c.getPesoTarget());
 		dto.setAltezzaTarget(c.getAltezzaTarget());
 		dto.setQuantitaEQualitaDelSonno(c.getQuantitaEQualitaDelSonno());
+		// A5.3 — stato limitazione del trattamento (art. 18 GDPR)
+		dto.setTrattamentoLimitato(c.isTrattamentoLimitato());
+		dto.setDataLimitazione(c.getDataLimitazione());
+		dto.setMotivoLimitazione(c.getMotivoLimitazione());
 
 		if (c.getMisurazioni() != null) {
 			dto.setMisurazioni(c.getMisurazioni().stream()
@@ -467,7 +471,8 @@ public class DtoMapper {
 				c.getCreatedAt(),
 				c.getUpdatedAt(),
 				condizioniDaTag(c.getTagStandard()),
-				prossimoAppuntamento
+				prossimoAppuntamento,
+				c.isTrattamentoLimitato()
 		);
 	}
 
@@ -521,7 +526,10 @@ public class DtoMapper {
 				c.getFuma(),
 				c.getTagStandard() != null ? new HashSet<>(c.getTagStandard()) : new HashSet<>(),
 				c.getCreatedAt(),
-				c.getUpdatedAt()
+				c.getUpdatedAt(),
+				c.isTrattamentoLimitato(),
+				c.getDataLimitazione(),
+				c.getMotivoLimitazione()
 		);
 	}
 

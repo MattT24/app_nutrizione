@@ -77,6 +77,7 @@ public class SchedaTemplateService {
 	@Autowired private PastoRepository pastoRepo;
 	@Autowired private AlimentoPastoRepository alimentoPastoRepo;
 	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
 	@Autowired private ClinicalEngineService clinicalEngineService;
 	@Autowired private AuditService auditService;
 
@@ -202,6 +203,7 @@ public class SchedaTemplateService {
 
 		// F-D1a: gate clinico contro il PAZIENTE della scheda (block-and-report sui gravi; throw 409 se non deciso).
 		Cliente cliente = scheda.getCliente();
+		limitazioneValidator.assertNonLimitato(cliente); // A5.3
 		ClinicalGateResult gate = gateClinico(st, cliente, req.getConfermaConflittiClinici(), req.getAlimentiForzatiIds(),
 				"Applicazione template: alcuni alimenti del template sono in conflitto grave con il paziente. Rivedi prima di applicare.");
 		if (!gate.graviInclusi().isEmpty()) {
@@ -318,6 +320,7 @@ public class SchedaTemplateService {
 		// F-D1a: ownership del cliente TARGET (era findById non-scoped → IDOR). Serve anche a rendere
 		// fidato l'audit dell'eventuale override.
 		Cliente cliente = ownershipValidator.getOwnedCliente(schedaForm.getCliente().getId());
+		limitazioneValidator.assertNonLimitato(cliente); // A5.3
 
 		// F-D1a: gate clinico PRIMA di creare la scheda (block-and-report sui gravi → throw 409 se non deciso,
 		// nessuna scheda creata). I gravi inclusi consapevolmente verranno auditati dopo il save (serve lo schedaId).

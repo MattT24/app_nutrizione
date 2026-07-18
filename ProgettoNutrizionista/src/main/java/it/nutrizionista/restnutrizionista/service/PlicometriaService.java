@@ -29,6 +29,7 @@ public class PlicometriaService {
     @Autowired private ClienteRepository clienteRepo;
     @Autowired private CurrentUserService currentUserService;
     @Autowired private OwnershipValidator ownershipValidator;
+    @Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
     @Autowired private PdfService pdfService;
     @Autowired private AuditService auditService;
 
@@ -47,6 +48,7 @@ public class PlicometriaService {
     @Transactional
     public PlicometriaDto create(@Valid PlicometriaFormDto form) {
         Cliente cliente = ownershipValidator.getOwnedCliente(form.getCliente().getId());
+        limitazioneValidator.assertNonLimitato(cliente); // A5.3
 
         // Conversione DTO -> Entity
         Plicometria p = DtoMapper.toPlicometria(form);
@@ -73,6 +75,7 @@ public class PlicometriaService {
         }
 
         Plicometria p = ownershipValidator.getOwnedPlicometria(form.getId());
+        limitazioneValidator.assertNonLimitato(p.getCliente()); // A5.3
 
         // Aggiorno i campi usando il Mapper
         DtoMapper.updatePlicometriaFromForm(p, form);
@@ -91,10 +94,11 @@ public class PlicometriaService {
     }
 
     @Transactional
-    public void delete(Long id) { 
+    public void delete(Long id) {
         Plicometria p = ownershipValidator.getOwnedPlicometria(id);
+        limitazioneValidator.assertNonLimitato(p.getCliente()); // A5.3
 
-        repo.deleteById(id); 
+        repo.deleteById(id);
     }
 
     @Transactional(readOnly = true)

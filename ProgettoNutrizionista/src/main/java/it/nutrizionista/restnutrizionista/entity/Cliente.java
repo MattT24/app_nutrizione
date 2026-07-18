@@ -83,6 +83,19 @@ public class Cliente {
 	@Column(name = "altezza_target")
 	private Integer altezzaTarget;
 
+	// ── A5.3 — Limitazione del trattamento (art. 18 GDPR) ──
+	// Stato "cliente limitato": il dato resta CONSERVATO e LEGGIBILE dal titolare, ma le operazioni
+	// che scrivono / producono / inviano dati di questo cliente vengono bloccate a livello service
+	// (LimitazioneTrattamentoValidator.assertNonLimitato → 423 Locked). data/motivo sono opzionali.
+	@Column(name = "trattamento_limitato", nullable = false)
+	private boolean trattamentoLimitato = false;
+
+	@Column(name = "data_limitazione")
+	private Instant dataLimitazione;
+
+	@Column(name = "motivo_limitazione", length = 512)
+	private String motivoLimitazione;
+
 	@ManyToOne
 	@JoinColumn(name = "utente_id")
 	private Utente nutrizionista;
@@ -338,6 +351,31 @@ public class Cliente {
 	public void setAltezzaTarget(Integer altezzaTarget) {
 		this.altezzaTarget = altezzaTarget;
 	}
+
+    // ── A5.3 — Getter/Setter limitazione del trattamento ──
+    public boolean isTrattamentoLimitato() {
+        return trattamentoLimitato;
+    }
+
+    public void setTrattamentoLimitato(boolean trattamentoLimitato) {
+        this.trattamentoLimitato = trattamentoLimitato;
+    }
+
+    public Instant getDataLimitazione() {
+        return dataLimitazione;
+    }
+
+    public void setDataLimitazione(Instant dataLimitazione) {
+        this.dataLimitazione = dataLimitazione;
+    }
+
+    public String getMotivoLimitazione() {
+        return motivoLimitazione;
+    }
+
+    public void setMotivoLimitazione(String motivoLimitazione) {
+        this.motivoLimitazione = motivoLimitazione;
+    }
 
     // ── Nuovi Getter/Setter per Tag e Blacklist ──
     public Set<TagStandard> getTagStandard() {

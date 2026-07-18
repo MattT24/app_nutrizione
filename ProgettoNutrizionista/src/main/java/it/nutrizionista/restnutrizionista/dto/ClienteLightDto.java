@@ -28,5 +28,6 @@ public record ClienteLightDto(
         Instant createdAt,
         Instant updatedAt,
         List<String> condizioni,
-        LocalDateTime prossimoAppuntamento
+        LocalDateTime prossimoAppuntamento,
+        boolean trattamentoLimitato // A5.3 — badge "limitato" nella lista clienti
 ) {}
