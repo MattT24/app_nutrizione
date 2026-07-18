@@ -60,6 +60,13 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(ex.getMessage());
     }
 
+    @ExceptionHandler(TrattamentoLimitatoException.class)
+    public ResponseEntity<String> handleTrattamentoLimitato(TrattamentoLimitatoException ex) {
+        // A5.3 (art. 18 GDPR): il cliente è "limitato" → l'operazione che scrive/produce/invia è
+        // bloccata (la consultazione resta possibile). 423 Locked, distinto da 403 (ownership) e 409.
+        return ResponseEntity.status(HttpStatus.LOCKED).body(ex.getMessage());
+    }
+
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<String> handleSecurity(SecurityException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());

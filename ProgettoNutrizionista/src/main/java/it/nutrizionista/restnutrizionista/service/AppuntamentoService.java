@@ -34,6 +34,7 @@ public class AppuntamentoService {
     private final EmailService emailService;
     private final GamificationService gamificationService;
     private final OwnershipValidator ownershipValidator;
+    private final LimitazioneTrattamentoValidator limitazioneValidator;
 
     public AppuntamentoService(
             AppuntamentoRepository appuntamentoRepository,
@@ -42,7 +43,8 @@ public class AppuntamentoService {
             CurrentUserService currentUserService,
             EmailService emailService,
             GamificationService gamificationService,
-            OwnershipValidator ownershipValidator) {
+            OwnershipValidator ownershipValidator,
+            LimitazioneTrattamentoValidator limitazioneValidator) {
         this.appuntamentoRepository = appuntamentoRepository;
         this.orariStudioRepository = orariStudioRepository;
         this.clienteRepository = clienteRepository;
@@ -50,6 +52,7 @@ public class AppuntamentoService {
         this.emailService = emailService;
         this.gamificationService = gamificationService;
         this.ownershipValidator = ownershipValidator;
+        this.limitazioneValidator = limitazioneValidator;
     }
 
     @Transactional
@@ -185,6 +188,7 @@ public class AppuntamentoService {
     @Transactional
     public AppuntamentoDto moveResize(Long id, LocalDateTime start, LocalDateTime end) {
         Appuntamento esistente = ownershipValidator.getOwnedAppuntamento(id);
+        limitazioneValidator.assertNonLimitato(esistente.getCliente()); // A5.3 (no-op se appuntamento senza cliente)
 
         esistente.setData(start.toLocalDate());
         esistente.setOra(start.toLocalTime());
@@ -206,6 +210,7 @@ public class AppuntamentoService {
     @Transactional
     public AppuntamentoDto updateStato(Long id, String stato) {
         Appuntamento esistente = ownershipValidator.getOwnedAppuntamento(id);
+        limitazioneValidator.assertNonLimitato(esistente.getCliente()); // A5.3 (no-op se appuntamento senza cliente)
         Appuntamento.StatoAppuntamento nuovoStato = Appuntamento.StatoAppuntamento.valueOf(stato);
         esistente.setStato(nuovoStato);
         Appuntamento salvato = appuntamentoRepository.save(esistente);
@@ -311,6 +316,7 @@ public class AppuntamentoService {
         if (form.getClienteId() != null) {
             // Ownership: si può agganciare solo un cliente del nutrizionista corrente (evita IDOR cross-tenant)
             Cliente cliente = ownershipValidator.getOwnedCliente(form.getClienteId());
+            limitazioneValidator.assertNonLimitato(cliente); // A5.3: no appuntamenti/email per un cliente limitato
             app.setCliente(cliente);
             if (form.getEmailCliente() != null && !form.getEmailCliente().isBlank()) {
                 app.setEmailCliente(form.getEmailCliente());

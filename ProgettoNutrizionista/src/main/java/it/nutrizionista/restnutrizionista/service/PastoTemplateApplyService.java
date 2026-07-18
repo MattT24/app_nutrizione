@@ -43,6 +43,7 @@ import jakarta.validation.Valid;
 @Service
 public class PastoTemplateApplyService {
 	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
 	@Autowired private CurrentUserService currentUserService;
 	@Autowired private PastoRepository pastoRepository;
 	@Autowired private PastoTemplateRepository templateRepository;
@@ -53,7 +54,8 @@ public class PastoTemplateApplyService {
 
 	@Transactional
 	public PastoApplyTemplateResultDto applyToPasto(Long pastoId, @Valid PastoApplyTemplateRequest req) {
-		ownershipValidator.getOwnedPasto(pastoId);
+		Pasto ownedPasto = ownershipValidator.getOwnedPasto(pastoId);
+		limitazioneValidator.assertNonLimitato(ownedPasto.getScheda().getCliente()); // A5.3
 
 		Pasto pasto = pastoRepository.findByIdWithFullTree(pastoId)
 				.orElseThrow(() -> new NotFoundException("Pasto non trovato"));

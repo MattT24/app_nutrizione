@@ -19,8 +19,9 @@
 - **Fase 3 Wave 1**: completa e validata (A5.1, A1 residuo, ambienti+profili+CORS, CI+Dependabot).
 - **Fase 3 Wave 2**: **A7 (audit log) completato** — backend **106 test verdi**. Prossimi candidati
   Wave 2: **A4/A9 FATTO**, **D1 FATTO**, **F-D1a FATTO (BE+FE, e2e #1-#4)**, **F-OWN-SWEEP FATTO (IDOR, chiude F-D1b;
-  148 test verdi)**, **F-DEL-CASCADE FATTO (delete cliente sistematico + anonimizzazione EventoGamification + regression-guard)**;
-  restano il finding derivato dual-FK `AlimentoAlternativo`, A6 retention (attende durate), A5.3, D4, E2 cookie banner.
+  148 test verdi)**, **F-DEL-CASCADE FATTO (delete cliente sistematico + anonimizzazione EventoGamification + regression-guard)**,
+  **A5.3 FATTO (limitazione del trattamento art. 18 — `LimitazioneTrattamentoValidator` → 423, 163 test verdi)**;
+  restano il finding derivato dual-FK `AlimentoAlternativo`, A6 retention (attende durate), D4, E2 cookie banner.
 
 ## Criterio di ordinamento
 
@@ -101,7 +102,14 @@ spuntare gli item in `COMPLIANCE-STATUS.md`.
 - **A6 — Retention/anonimizzazione.** *Prerequisito: durate dal titolare.* Poi: campo "fine
   trattamento/ultimo contatto", soft-delete/archiviazione, job `@Scheduled` di purge/anonimizzazione
   (riuso pattern gamification esistente).
-- **A5.3 — Limitazione del trattamento (art. 18).** Meccanismo di "congelamento" cliente.
+- **✅ A5.3 — Limitazione del trattamento (art. 18) — FATTO.** Stato `Cliente.trattamentoLimitato` (+data/motivo,
+  migr. `017`); check centralizzato `LimitazioneTrattamentoValidator.assertNonLimitato(cliente)` chiamato **dopo**
+  l'ownership in tutti i punti write/produce/send (~50 metodi in 16 service) → **`TrattamentoLimitatoException` HTTP 423**.
+  Regola: *blocca ciò che scrive/produce/invia, non ciò che il titolare legge* (export/download consentiti; share bloccato;
+  delete art. 17 non bloccato). Endpoint `PATCH /api/clienti/{id}/limitazione(/revoca)` (perm. `CLIENTE_UPDATE`), atto
+  auditato `LIMITAZIONE_ATTIVATA`/`REVOCATA` (stessa tx). FE: badge/banner/modale-motivo in `cliente-dettaglio`, badge in
+  lista, azioni disabilitate. Test: `LimitazioneTrattamentoIntegrationTest` (11 casi, incl. **cross-tenant→403 non 423**) +
+  `LimitazioneTrattamentoValidatorTest`. Interpretazione art. 18 **da confermare col legale** (come la retention).
   *(A5.2 export/portabilità = owner esterno, solo coordinamento.)*
 - **D1 — Blocco clinico grave superabile con conferma consapevole. ✅ FATTO.** *Tutti* gli `ALERT_GRAVE`
   (non solo allergeni) in `AlimentoPastoService.associaAlimento` sono superabili con **flag dedicato

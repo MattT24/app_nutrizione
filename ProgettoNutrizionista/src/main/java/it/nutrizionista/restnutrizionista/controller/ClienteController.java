@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,6 +23,7 @@ import it.nutrizionista.restnutrizionista.dto.ClienteInfoDto;
 import it.nutrizionista.restnutrizionista.dto.ClienteLightDto;
 import it.nutrizionista.restnutrizionista.dto.CognomeRequest;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
+import it.nutrizionista.restnutrizionista.dto.LimitazioneRequest;
 import it.nutrizionista.restnutrizionista.dto.NomeRequest;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.dto.PesoAltezzaRequest;
@@ -54,6 +56,22 @@ public class ClienteController {
 		var updated = service.updatePesoAltezza(req);
         return ResponseEntity.ok(updated);
     }
+
+	// ── A5.3 — Limitazione del trattamento (art. 18 GDPR) ──
+	// Atto amministrativo sul cliente (riusa CLIENTE_UPDATE, come updatePesoAltezza). L'ownership e
+	// l'audit A7 dell'atto sono nel service. Attiva → cliente "limitato"; revoca → torna operativo.
+	@PatchMapping("/{id}/limitazione")
+	@PreAuthorize("hasAuthority('CLIENTE_UPDATE')")
+	public ResponseEntity<ClienteDto> attivaLimitazione(@PathVariable Long id,
+			@Valid @RequestBody LimitazioneRequest req){
+		return ResponseEntity.ok(service.attivaLimitazione(id, req.getMotivo()));
+	}
+
+	@PatchMapping("/{id}/limitazione/revoca")
+	@PreAuthorize("hasAuthority('CLIENTE_UPDATE')")
+	public ResponseEntity<ClienteDto> revocaLimitazione(@PathVariable Long id){
+		return ResponseEntity.ok(service.revocaLimitazione(id));
+	}
 
 	@DeleteMapping("/mio")
 	@PreAuthorize("hasAuthority('CLIENTE_MY_DELETE')")

@@ -41,8 +41,12 @@ public class ClienteDto {
     private Instant updatedAt;
     private Double pesoTarget;
     private Integer altezzaTarget;
-    
-    
+    // A5.3 — limitazione del trattamento (art. 18 GDPR)
+    private boolean trattamentoLimitato;
+    private Instant dataLimitazione;
+    private String motivoLimitazione;
+
+
 	public Long getId() {
 		return id;
 	}
@@ -215,9 +219,24 @@ public class ClienteDto {
 	public void setPlicometrie(List<PlicometriaDto> plicometrie) {
 		this.plicometrie = plicometrie;
 	}
-	
-	
-    
+	public boolean isTrattamentoLimitato() {
+		return trattamentoLimitato;
+	}
+	public void setTrattamentoLimitato(boolean trattamentoLimitato) {
+		this.trattamentoLimitato = trattamentoLimitato;
+	}
+	public Instant getDataLimitazione() {
+		return dataLimitazione;
+	}
+	public void setDataLimitazione(Instant dataLimitazione) {
+		this.dataLimitazione = dataLimitazione;
+	}
+	public String getMotivoLimitazione() {
+		return motivoLimitazione;
+	}
+	public void setMotivoLimitazione(String motivoLimitazione) {
+		this.motivoLimitazione = motivoLimitazione;
+	}
 
 
 }

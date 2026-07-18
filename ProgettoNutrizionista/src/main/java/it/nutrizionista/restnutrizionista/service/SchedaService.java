@@ -57,6 +57,7 @@ public class SchedaService {
 	@Autowired private PastoRepository repoPasto;
 	@Autowired private AlimentoAlternativoRepository repoAlternative;
 	@Autowired private OwnershipValidator ownershipValidator;
+	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
 	@Autowired private DefaultMealTimesService defaultMealTimesService;
 	@Autowired private AlimentoPastoRepository repoAlimentoPasto;
 	@Autowired private AlimentoPastoNomeOverrideRepository repoNomeOverride;
@@ -89,7 +90,8 @@ public class SchedaService {
 
 		if (form.getId() != null) throw new BadRequestException("Id non richiesto per create");
 		Cliente cliente = ownershipValidator.getOwnedCliente(form.getCliente().getId());
-		
+		limitazioneValidator.assertNonLimitato(cliente); // A5.3
+
 		// Determina se la nuova scheda sarà attiva (default true se null)
 		boolean nuovaSchedaAttiva = form.getAttiva() == null || Boolean.TRUE.equals(form.getAttiva());
         
@@ -177,6 +179,7 @@ public class SchedaService {
 	public SchedaDto update(SchedaFormDto form) {
 		if (form.getId() == null) throw new BadRequestException("Id scheda obbligatorio per update");
 		Scheda s = ownershipValidator.getOwnedScheda(form.getId());
+		limitazioneValidator.assertNonLimitato(s.getCliente()); // A5.3
 		DtoMapper.updateSchedaFromForm(s, form);
 		return DtoMapper.toSchedaDtoLight(repo.save(s));
 	}
@@ -193,6 +196,7 @@ public class SchedaService {
 		if (id == null) throw new BadRequestException("Id scheda obbligatorio per il delete");
 		// Verifica ownership (senza caricare l'albero)
 		Scheda s = ownershipValidator.getOwnedScheda(id);
+		limitazioneValidator.assertNonLimitato(s.getCliente()); // A5.3
 
 		// 1. Elimina alternative (dipendono da alimenti_pasto E pasti)
 		repoAlternative.bulkDeleteBySchedaId(id);
@@ -304,6 +308,7 @@ public class SchedaService {
 
 		for (Long targetId : request.getTargetClienteIds()) {
 			Cliente targetCliente = ownershipValidator.getOwnedCliente(targetId);
+			limitazioneValidator.assertNonLimitato(targetCliente); // A5.3: nessuna scrittura su un cliente-destinazione limitato
 			String nomeCompleto = (targetCliente.getNome() + " " + targetCliente.getCognome()).trim();
 
 			if (targetId.equals(sourceClienteId)) {
@@ -373,6 +378,7 @@ public class SchedaService {
 	@Transactional
 	public SchedaDto duplicateScheda(Long schedaId) {
 		Scheda originale = ownershipValidator.getOwnedSchedaWithPastiAndAlimenti(schedaId);
+		limitazioneValidator.assertNonLimitato(originale.getCliente()); // A5.3: duplica sullo stesso cliente
 		return duplicateForSameCliente(originale);
 	}
 
@@ -380,6 +386,7 @@ public class SchedaService {
 	public SchedaDto duplicateFromCliente(Long schedaId, Long targetClienteId) {
 		Scheda originale = ownershipValidator.getOwnedSchedaWithPastiAndAlimenti(schedaId);
 		Cliente targetCliente = ownershipValidator.getOwnedCliente(targetClienteId);
+		limitazioneValidator.assertNonLimitato(targetCliente); // A5.3: nessuna scrittura sul cliente-destinazione limitato
 		checkSafetyRestrictions(originale, targetClienteId);
 		return duplicateToCliente(originale, targetCliente);
 	}
@@ -387,7 +394,8 @@ public class SchedaService {
     @Transactional
     public SchedaDto copyDay(Long schedaId, CopyDayRequest request) {
         Scheda scheda = ownershipValidator.getOwnedSchedaWithPastiAndAlimenti(schedaId);
-        
+        limitazioneValidator.assertNonLimitato(scheda.getCliente()); // A5.3
+
         // Estrai i pasti del giorno sorgente
         List<Pasto> sourcePasti = scheda.getPasti().stream()
             .filter(p -> request.getSourceDay().equals(p.getGiorno()))
@@ -683,6 +691,7 @@ public class SchedaService {
     @Transactional
     public SchedaDto activateScheda(Long schedaId) {
         Scheda scheda = ownershipValidator.getOwnedScheda(schedaId);
+        limitazioneValidator.assertNonLimitato(scheda.getCliente()); // A5.3
 
         // 3. Disattiva TUTTE le schede di quel cliente
         List<Scheda> schedeCliente = repo.findByCliente_Id(scheda.getCliente().getId());
