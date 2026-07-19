@@ -16,6 +16,8 @@ public class AdminNutrizionistaDto {
     private boolean attivo;
     /** "EMAIL", "GOOGLE" o null per gli utenti registrati prima del tracciamento. */
     private String metodoRegistrazione;
+    /** Numero di clienti registrati dal nutrizionista. */
+    private long numeroClienti;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -33,4 +35,6 @@ public class AdminNutrizionistaDto {
     public void setAttivo(boolean attivo) { this.attivo = attivo; }
     public String getMetodoRegistrazione() { return metodoRegistrazione; }
     public void setMetodoRegistrazione(String metodoRegistrazione) { this.metodoRegistrazione = metodoRegistrazione; }
+    public long getNumeroClienti() { return numeroClienti; }
+    public void setNumeroClienti(long numeroClienti) { this.numeroClienti = numeroClienti; }
 }

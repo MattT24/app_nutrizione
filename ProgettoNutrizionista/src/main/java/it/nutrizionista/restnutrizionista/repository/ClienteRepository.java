@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -19,6 +20,25 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>{
 
     // Cerca paginata per nutrizionista
     Page<Cliente> findByNutrizionista_Id(Long nutrizionistaId, Pageable pageable);
+
+    Page<Cliente> findByNutrizionista_IdOrderByCreatedAtDesc(Long nutrizionistaId, Pageable pageable);
+
+    @Query("""
+            select c from Cliente c
+            where c.nutrizionista.id = :nutrizionistaId
+              and (
+                lower(c.nome) like lower(concat('%', :q, '%'))
+                or lower(c.cognome) like lower(concat('%', :q, '%'))
+                or lower(concat(c.nome, ' ', c.cognome)) like lower(concat('%', :q, '%'))
+                or lower(coalesce(c.email, '')) like lower(concat('%', :q, '%'))
+                or lower(coalesce(c.telefono, '')) like lower(concat('%', :q, '%'))
+              )
+            order by c.createdAt desc
+            """)
+    Page<Cliente> searchForDemoAdmin(
+            @Param("nutrizionistaId") Long nutrizionistaId,
+            @Param("q") String q,
+            Pageable pageable);
     
     // Ricerca parziale (es. "Mar" trova "Mario") limitata al nutrizionista
     List<Cliente> findByNutrizionista_IdAndNomeContainingIgnoreCase(Long nutrizionistaId, String nome);
@@ -30,6 +50,20 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>{
 
     // Conteggio totale clienti del nutrizionista (gamification: badge di crescita studio)
     long countByNutrizionista_Id(Long nutrizionistaId);
+
+    interface ConteggioClientiPerNutrizionista {
+        Long getNutrizionistaId();
+        long getTotale();
+    }
+
+    @Query("""
+            select c.nutrizionista.id as nutrizionistaId, count(c.id) as totale
+            from Cliente c
+            where c.nutrizionista.id in :nutrizionistaIds
+            group by c.nutrizionista.id
+            """)
+    List<ConteggioClientiPerNutrizionista> countByNutrizionistaIds(
+            @Param("nutrizionistaIds") Collection<Long> nutrizionistaIds);
     
     // Verifica duplicati codice fiscale
     boolean existsByCodiceFiscale(String codiceFiscale);

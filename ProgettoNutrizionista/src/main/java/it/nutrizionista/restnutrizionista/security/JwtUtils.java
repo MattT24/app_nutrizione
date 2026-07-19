@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Map;
 
@@ -27,11 +28,17 @@ public class JwtUtils {
     }
 
     public String generateJwtToken(String subject, Map<String, Object> claims) {
+        return generateJwtToken(subject, claims,
+                Instant.ofEpochMilli(System.currentTimeMillis() + jwtExpirationMs));
+    }
+
+    /** Token con scadenza assoluta, usato per demo e impersonazioni brevi. */
+    public String generateJwtToken(String subject, Map<String, Object> claims, Instant expiresAt) {
         return Jwts.builder()
                 .claims(claims)
                 .subject(subject)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
+                .expiration(Date.from(expiresAt))
                 .signWith(key, Jwts.SIG.HS256)
                 .compact();
     }
