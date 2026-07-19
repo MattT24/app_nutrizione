@@ -19,6 +19,7 @@ import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
+import it.nutrizionista.restnutrizionista.repository.CredenzialeDemoRepository;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 
@@ -38,6 +39,7 @@ public class UtenteService {
     @Autowired private RuoloRepository ruoloRepo;
     @Autowired private PasswordEncoder encoder;
     @Autowired private CurrentUserService currentUserService;
+    @Autowired private CredenzialeDemoRepository credenzialeDemoRepository;
 
     /*lolo*/
 
@@ -152,6 +154,10 @@ public class UtenteService {
     
     public UtenteDto updateMyPassword(ResetPasswordDto dto) {    	
         Utente utente = currentUserService.getMe();
+        if (credenzialeDemoRepository.existsByUtente_Id(utente.getId())) {
+            throw new BadRequestException(
+                    "La password degli account demo puo essere gestita solo dal super admin");
+        }
        
         if (!dto.getPassword().equals(dto.getConfermaPassword())) {
             throw new BadRequestException("Le password inserite non coincidono");
