@@ -55,8 +55,11 @@ public class MisurazioneAntropometrica {
 	
 	@Column(name = "data_misurazione")
 	private LocalDate dataMisurazione;
-	
-	@ManyToOne(fetch = FetchType.LAZY) 
+
+	@Column(length = 100)
+	private String nome;
+
+	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cliente_id", nullable = false) 
     private Cliente cliente;
 	
@@ -154,6 +157,14 @@ public class MisurazioneAntropometrica {
 
 	public void setDataMisurazione(LocalDate dataMisurazione) {
 		this.dataMisurazione = dataMisurazione;
+	}
+
+	public String getNome() {
+		return nome;
+	}
+
+	public void setNome(String nome) {
+		this.nome = nome;
 	}
 
 	public Instant getCreatedAt() {
