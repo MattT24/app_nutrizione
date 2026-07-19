@@ -106,6 +106,16 @@ public class GlobalExceptionHandler {
     }
 
 
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<String> handleResponseStatus(org.springframework.web.server.ResponseStatusException ex) {
+        // Onora lo status ESPLICITO impostato dal service (es. OpenFoodFactsService 502/429/404/400,
+        // AppuntamentoService 400, PromemoriaService 404). Senza questo handler, essendo
+        // ResponseStatusException una RuntimeException, cadrebbe nel catch-all sottostante e verrebbe
+        // appiattita a 500, vanificando gli status voluti. Più specifico di RuntimeException → ha precedenza.
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(ex.getReason() != null ? ex.getReason() : "Errore");
+    }
+
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<String> handleRuntime(RuntimeException ex) {
         // Catch-all per eccezioni NON previste (tecniche/interne): niente information disclosure al client.

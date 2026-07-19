@@ -16,6 +16,7 @@ public class MisurazioneAntropometricaDto {
 	private Double bicipiteS;
 	private Double bicipiteD;
 	private LocalDate dataMisurazione;
+	private String nome;
 	private Long clienteId;
     private Instant createdAt;
     private Instant updatedAt;
@@ -85,6 +86,12 @@ public class MisurazioneAntropometricaDto {
 	}
 	public void setDataMisurazione(LocalDate dataMisurazione) {
 		this.dataMisurazione = dataMisurazione;
+	}
+	public String getNome() {
+		return nome;
+	}
+	public void setNome(String nome) {
+		this.nome = nome;
 	}
 	public Long getClienteId() {
 		return clienteId;

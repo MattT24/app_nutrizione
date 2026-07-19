@@ -4,6 +4,7 @@ import java.time.LocalDate;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
 public class MisurazioneAntropometricaFormDto {
 
@@ -18,6 +19,8 @@ public class MisurazioneAntropometricaFormDto {
 	private Double bicipiteS;
 	private Double bicipiteD;
 	private LocalDate dataMisurazione;
+	@Size(max = 100, message = "Il nome non può superare i 100 caratteri")
+	private String nome;
 	@NotNull(message = "Il cliente è obbligatorio")
 	private ClienteDto cliente;
 	
@@ -86,6 +89,12 @@ public class MisurazioneAntropometricaFormDto {
 	}
 	public void setDataMisurazione(LocalDate dataMisurazione) {
 		this.dataMisurazione = dataMisurazione;
+	}
+	public String getNome() {
+		return nome;
+	}
+	public void setNome(String nome) {
+		this.nome = nome;
 	}
 	public ClienteDto getCliente() {
 		return cliente;

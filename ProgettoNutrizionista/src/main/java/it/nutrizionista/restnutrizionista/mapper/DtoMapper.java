@@ -1137,6 +1137,7 @@ public class DtoMapper {
 		dto.setSpalle(m.getSpalle());
 		dto.setTorace(m.getTorace());
 		dto.setVita(m.getVita());
+		dto.setNome(m.getNome());
 		return dto;
 	}
 
@@ -1157,6 +1158,7 @@ public class DtoMapper {
 		dto.setSpalle(m.getSpalle());
 		dto.setTorace(m.getTorace());
 		dto.setVita(m.getVita());
+		dto.setNome(m.getNome());
 		return dto;
 	}
 
@@ -1176,6 +1178,7 @@ public class DtoMapper {
 		m.setSpalle(form.getSpalle());
 		m.setTorace(form.getTorace());
 		m.setVita(form.getVita());
+		m.setNome(form.getNome());
 
 		return m;
 	}
@@ -1197,6 +1200,7 @@ public class DtoMapper {
 		m.setSpalle(form.getSpalle());
 		m.setTorace(form.getTorace());
 		m.setVita(form.getVita());
+		m.setNome(form.getNome());
 	}
 
 	// mapper per le plicometrie
