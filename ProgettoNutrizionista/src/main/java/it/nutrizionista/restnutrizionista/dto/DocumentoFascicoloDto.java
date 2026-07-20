@@ -10,6 +10,7 @@ public class DocumentoFascicoloDto {
     private TipoDocumento tipoDocumento;
     private Long riferimentoId;
     private Instant dataCreazione;
+    private Instant dataUltimoInvio;
 
     public Long getId() {
         return id;
@@ -57,5 +58,13 @@ public class DocumentoFascicoloDto {
 
     public void setDataCreazione(Instant dataCreazione) {
         this.dataCreazione = dataCreazione;
+    }
+
+    public Instant getDataUltimoInvio() {
+        return dataUltimoInvio;
+    }
+
+    public void setDataUltimoInvio(Instant dataUltimoInvio) {
+        this.dataUltimoInvio = dataUltimoInvio;
     }
 }
