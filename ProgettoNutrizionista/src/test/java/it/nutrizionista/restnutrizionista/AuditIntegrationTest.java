@@ -121,6 +121,35 @@ class AuditIntegrationTest extends SafeTestDatabaseBase {
         assertTrue(righe.stream().anyMatch(r -> r.getAction() == AuditAction.SHARE && r.getEsito() == AuditOutcome.FAILURE));
     }
 
+    @Test
+    @WithMockUser(username = OWNER)
+    void shareDocumento_successo_valorizzaDataUltimoInvio() {
+        Cliente cliente = seedCliente(seedNutrizionista(OWNER, "OWN00A00A000A"), "cli2b@test.it");
+        DocumentoFascicolo doc = seedDocumento(cliente);
+        assertEquals(null, doc.getDataUltimoInvio(), "prima dell'invio il documento non risulta mai condiviso");
+
+        fascicoloService.shareDocumento(doc.getId(), new ShareRequest());
+
+        DocumentoFascicolo aggiornato = repoFascicolo.findById(doc.getId()).orElseThrow();
+        assertNotNull(aggiornato.getDataUltimoInvio(),
+                "un invio riuscito deve valorizzare dataUltimoInvio (usata dalla UI per il promemoria \"già inviato\")");
+    }
+
+    @Test
+    @WithMockUser(username = OWNER)
+    void shareDocumento_fallimento_nonValorizzaDataUltimoInvio() {
+        Cliente cliente = seedCliente(seedNutrizionista(OWNER, "OWN00A00A000A"), "cli3b@test.it");
+        DocumentoFascicolo doc = seedDocumento(cliente);
+        doThrow(new RuntimeException("SMTP down")).when(emailService)
+                .sendPdfEmail(any(), any(), any(), any(), any());
+
+        assertThrows(RuntimeException.class, () -> fascicoloService.shareDocumento(doc.getId(), new ShareRequest()));
+
+        DocumentoFascicolo dopoErrore = repoFascicolo.findById(doc.getId()).orElseThrow();
+        assertEquals(null, dopoErrore.getDataUltimoInvio(),
+                "un invio fallito NON deve far comparire il promemoria \"già inviato\" in UI");
+    }
+
     // ---------------------------------------------------------------- DELETE
 
     @Test

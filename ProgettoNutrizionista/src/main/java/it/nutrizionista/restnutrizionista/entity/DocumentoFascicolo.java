@@ -36,6 +36,10 @@ public class DocumentoFascicolo {
     @Column(name = "data_creazione", nullable = false, updatable = false)
     private Instant dataCreazione;
 
+    /** Data dell'ultimo invio via email; NULL se il documento non è mai stato condiviso. */
+    @Column(name = "data_ultimo_invio")
+    private Instant dataUltimoInvio;
+
     public Long getId() {
         return id;
     }
@@ -90,5 +94,13 @@ public class DocumentoFascicolo {
 
     public void setDataCreazione(Instant dataCreazione) {
         this.dataCreazione = dataCreazione;
+    }
+
+    public Instant getDataUltimoInvio() {
+        return dataUltimoInvio;
+    }
+
+    public void setDataUltimoInvio(Instant dataUltimoInvio) {
+        this.dataUltimoInvio = dataUltimoInvio;
     }
 }

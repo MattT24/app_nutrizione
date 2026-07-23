@@ -202,6 +202,9 @@ public class FascicoloService {
                     "In allegato trovi il documento richiesto in formato PDF.",
                     pdf,
                     sanitizeFilename(doc.getTitolo()) + ".pdf");
+            // Promemoria "già inviato": persistito solo a invio riuscito (entity managed,
+            // flush automatico al commit della tx di classe).
+            doc.setDataUltimoInvio(java.time.Instant.now());
         } catch (RuntimeException e) {
             auditService.recordCriticalNewTx(AuditAction.SHARE, AuditEntityType.DOCUMENTO_FASCICOLO,
                     id, clienteId, to, AuditOutcome.FAILURE);
@@ -222,6 +225,7 @@ public class FascicoloService {
         dto.setTipoDocumento(entity.getTipoDocumento());
         dto.setRiferimentoId(entity.getRiferimentoId());
         dto.setDataCreazione(entity.getDataCreazione());
+        dto.setDataUltimoInvio(entity.getDataUltimoInvio());
         return dto;
     }
 }
