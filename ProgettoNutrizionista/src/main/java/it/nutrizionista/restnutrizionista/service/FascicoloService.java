@@ -14,6 +14,8 @@ import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
 import it.nutrizionista.restnutrizionista.repository.DocumentoFascicoloRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -34,6 +36,8 @@ public class FascicoloService {
     private final LimitazioneTrattamentoValidator limitazioneValidator;
     private final EmailService emailService;
     private final AuditService auditService;
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FascicoloService.class);
 
     private final String uploadDir = "uploads/fascicoli";
 
@@ -127,7 +131,14 @@ public class FascicoloService {
         // Audit critico (A7): registra il DOWNLOAD in tx propria PRIMA di restituire i byte.
         auditService.recordCriticalNewTx(AuditAction.DOWNLOAD, AuditEntityType.DOCUMENTO_FASCICOLO,
                 id, clienteId, null, AuditOutcome.SUCCESS);
-        return leggiBytesDocumento(doc);
+        try {
+            return leggiBytesDocumento(doc);
+        } catch (RuntimeException e) {
+            // A7: side-effect fallito (lettura file) → riga FAILURE (il SUCCESS è già committato in REQUIRES_NEW), poi rilancio
+            auditService.recordCriticalNewTx(AuditAction.DOWNLOAD, AuditEntityType.DOCUMENTO_FASCICOLO,
+                    id, clienteId, null, AuditOutcome.FAILURE);
+            throw e;
+        }
     }
 
     /**
@@ -150,13 +161,10 @@ public class FascicoloService {
     public void eliminaDocumento(Long id) {
         DocumentoFascicolo doc = ownershipValidator.getOwnedDocumentoFascicolo(id);
         limitazioneValidator.assertNonLimitato(doc.getCliente()); // A5.3: no delete del dato conservato se limitato
-        try {
-            Path path = Paths.get(doc.getPercorsoFile());
-            Files.deleteIfExists(path);
-        } catch (IOException e) {
-            // Ignoriamo o loggiamo l'errore del file fisico, ma cancelliamo il record
-        }
+        String percorso = doc.getPercorsoFile();
         fascicoloRepository.delete(doc);
+        // A6/MF3: prima il record, poi l'unlink fisico DOPO il commit (rollback ⇒ niente ghost-record: record vivo, PDF sparito).
+        if (percorso != null) unlinkFilesDopoCommit(List.of(percorso));
     }
 
     /**
@@ -169,14 +177,35 @@ public class FascicoloService {
     public void eliminaDocumentiDiCliente(Long clienteId) {
         List<DocumentoFascicolo> documenti = fascicoloRepository.findByClienteIdOrderByDataCreazioneDesc(clienteId);
         if (documenti.isEmpty()) return;
-        for (DocumentoFascicolo doc : documenti) {
-            try {
-                Files.deleteIfExists(Paths.get(doc.getPercorsoFile()));
-            } catch (IOException e) {
-                // best-effort sul file fisico; il record va comunque rimosso
-            }
-        }
+        List<String> percorsi = documenti.stream().map(DocumentoFascicolo::getPercorsoFile).collect(Collectors.toList());
         fascicoloRepository.deleteAll(documenti);
+        unlinkFilesDopoCommit(percorsi); // A6 #2: unlink fisico solo DOPO il commit (rollback ⇒ i file restano)
+    }
+
+    /**
+     * Unlink fisico dei PDF DOPO il commit della transazione (A6 #2): se la tx rolla back non si crea un
+     * "file fantasma" (record vivo, file cancellato). Se non c'è una tx attiva (contesto non transazionale)
+     * si cancella subito. Best-effort sul filesystem: un errore di unlink non deve far fallire la delete.
+     */
+    private void unlinkFilesDopoCommit(List<String> percorsi) {
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() {
+                    percorsi.forEach(FascicoloService::deleteFileQuiet);
+                }
+            });
+        } else {
+            percorsi.forEach(FascicoloService::deleteFileQuiet);
+        }
+    }
+
+    private static void deleteFileQuiet(String percorso) {
+        try {
+            Files.deleteIfExists(Paths.get(percorso));
+        } catch (IOException e) {
+            // Best-effort, ma tracciato: un PDF sanitario può restare su disco dopo il commit → WARN (minore A6).
+            log.warn("A6: unlink PDF fascicolo fallito dopo il commit, il file potrebbe restare su disco: {}", percorso, e);
+        }
     }
 
     /**

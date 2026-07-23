@@ -42,7 +42,13 @@ public class MisurazioneAntropometricaService {
         MisurazioneAntropometrica m = ownershipValidator.getOwnedMisurazioneAntropometrica(id);
         Long clienteId = m.getCliente() != null ? m.getCliente().getId() : null;
         auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.MISURAZIONE_ANTROPOMETRICA, id, clienteId, null, AuditOutcome.SUCCESS);
-        return pdfService.generaPdfMisurazione(id);
+        try {
+            return pdfService.generaPdfMisurazione(id);
+        } catch (RuntimeException e) {
+            // A7: side-effect fallito → riga FAILURE (il SUCCESS è già committato in REQUIRES_NEW), poi rilancio
+            auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.MISURAZIONE_ANTROPOMETRICA, id, clienteId, null, AuditOutcome.FAILURE);
+            throw e;
+        }
     }
 
     @Transactional

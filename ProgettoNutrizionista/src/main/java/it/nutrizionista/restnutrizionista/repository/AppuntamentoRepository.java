@@ -15,6 +15,10 @@ import java.util.Optional;
 
 @Repository
 public interface AppuntamentoRepository extends JpaRepository<Appuntamento, Long> {
+
+    /** F-USER-DEL: cancellazione account — appuntamenti del nutrizionista (i manuali senza cliente;
+     *  quelli con cliente sono già rimossi dal tier cliente). */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
     
     // Trova tutti gli appuntamenti generici che si intersecano nel range di date
     List<Appuntamento> findByDataBetweenOrEndDataBetweenOrderByDataAscOraAsc(

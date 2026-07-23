@@ -198,8 +198,9 @@ public class SchedaTemplateService {
 				.orElseThrow(() -> new NotFoundException("Template scheda non trovato"));
 		checkOwnership(st, me.getId());
 
-		Scheda scheda = schedaRepository.findByIdWithFullDetailsMine(schedaId, me.getId())
-				.orElseThrow(() -> new NotFoundException("Scheda non trovata o non accessibile"));
+		// A7-DENIED + 404→403: era findByIdWithFullDetailsMine + NotFoundException (404 senza traccia d'accesso) →
+		// ora via OwnershipValidator (stessa query, 403 + audit ACCESS/DENIED). Il diniego sul TEMPLATE (sopra) resta invariato.
+		Scheda scheda = ownershipValidator.getOwnedSchedaFullDetails(schedaId);
 
 		// F-D1a: gate clinico contro il PAZIENTE della scheda (block-and-report sui gravi; throw 409 se non deciso).
 		Cliente cliente = scheda.getCliente();

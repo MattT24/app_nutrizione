@@ -95,6 +95,9 @@ public class AppuntamentoService {
     public AppuntamentoDto update(Long id, AppuntamentoFormDto form) {
         // Ownership via validator canonico: 403 se l'appuntamento non è del nutrizionista corrente (o non esiste)
         Appuntamento esistente = ownershipValidator.getOwnedAppuntamento(id);
+        // A5.3: blocca la modifica di un appuntamento già agganciato a un cliente limitato (no-op se senza cliente).
+        // La riassegnazione verso un cliente limitato è bloccata dal check sul cliente del form in mapFormToEntity.
+        limitazioneValidator.assertNonLimitato(esistente.getCliente());
 
         mapFormToEntity(form, esistente);
         validaSlotOrario(esistente);
@@ -111,6 +114,8 @@ public class AppuntamentoService {
     @Transactional
     public void delete(Long id) {
         Appuntamento esistente = ownershipValidator.getOwnedAppuntamento(id);
+        // A5.3 (decisione 2026-07-20 BLOCCA): l'annullamento è una scrittura sul cliente limitato → 423.
+        limitazioneValidator.assertNonLimitato(esistente.getCliente()); // no-op se appuntamento senza cliente
         esistente.setStato(Appuntamento.StatoAppuntamento.ANNULLATO);
         appuntamentoRepository.save(esistente);
     }

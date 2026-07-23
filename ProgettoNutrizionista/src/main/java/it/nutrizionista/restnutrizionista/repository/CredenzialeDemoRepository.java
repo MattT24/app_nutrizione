@@ -15,6 +15,9 @@ import it.nutrizionista.restnutrizionista.entity.CredenzialeDemo;
 import jakarta.persistence.LockModeType;
 
 public interface CredenzialeDemoRepository extends JpaRepository<CredenzialeDemo, Long> {
+
+    /** F-USER-DEL: cancellazione account — credenziale demo (property `utente`, 0-o-1 riga). */
+    void deleteByUtente_Id(Long utenteId);
     boolean existsByUsernameIgnoreCase(String username);
     boolean existsByUtente_Id(Long utenteId);
 

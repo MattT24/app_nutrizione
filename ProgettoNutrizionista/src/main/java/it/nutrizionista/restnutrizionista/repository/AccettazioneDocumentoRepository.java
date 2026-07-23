@@ -12,6 +12,10 @@ import it.nutrizionista.restnutrizionista.enums.TipoDocumento;
 @Repository
 public interface AccettazioneDocumentoRepository extends JpaRepository<AccettazioneDocumento, Long> {
 
+    /** F-USER-DEL: cancellazione account — accettazioni documenti (property `utente`). ⚠️ tensione retention
+     *  art.6(1)(b) da confermare col legale (LEGAL-REVIEW.md): qui si cancellano con l'account. */
+    void deleteByUtente_Id(Long utenteId);
+
     /** Storico accettazioni dell'utente (più recenti prima). */
     List<AccettazioneDocumento> findByUtente_IdOrderByAccettatoAtDesc(Long utenteId);
 

@@ -15,6 +15,10 @@ import it.nutrizionista.restnutrizionista.entity.UtentePreferito;
 @Repository
 public interface UtentePreferitoRepository extends JpaRepository<UtentePreferito, Long> {
 
+    /** F-USER-DEL: cancellazione account — preferiti del nutrizionista, ESPLICITO prima del delete degli
+     *  alimenti personali (un preferito può puntare a un alimento personale → FK). */
+    void deleteByUtenteId(Long utenteId);
+
     /**
      * Carica i preferiti con alimento.macroNutrienti e alimento.tracce eager
      * per evitare LazyInitializationException in DtoMapper.toAlimentoBaseDtoLight.

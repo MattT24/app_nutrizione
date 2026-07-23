@@ -54,6 +54,9 @@ public class AlimentoBaseService {
 	/** Crea alimento globale (Admin) — createdBy = null */
 	@Transactional
 	public AlimentoBaseDto create(@Valid AlimentoBaseFormDto form) {
+	    // Batch 2 (governance catalogo globale): crea un alimento GLOBALE (createdBy=null) → solo platform-admin.
+	    // Difesa in profondità oltre al gate @PreAuthorize('CATALOGO_GLOBAL_MANAGE') sul controller.
+	    if (!isPlatformAdmin()) throw new ForbiddenException("Solo un amministratore può creare alimenti nel catalogo globale");
 	    AlimentoBase a = DtoMapper.toAlimentoBase(form);
 	    a.setCreatedBy(null); // globale
 	    applyMicronutrienti(a, form.getMicroNutrienti());
@@ -76,13 +79,31 @@ public class AlimentoBaseService {
 	    return repo.findByCreatedByAndBarcode(getCurrentUtente(), barcode);
 	}
 
+	/** Update di un alimento del catalogo GLOBALE (control-plane) — gate {@code CATALOGO_GLOBAL_MANAGE}. */
 	@Transactional
 	public AlimentoBaseDto update(@Valid AlimentoBaseFormDto form) {
+	    return applyUpdate(form);
+	}
+
+	/**
+	 * Update del proprio alimento PERSONALE (Nutrizionista) — gate {@code ALIMENTO_PERSONALE_CREATE}.
+	 * Stesso guard del catalogo misto ({@code assertPuoModificareCatalogo}): un nutrizionista può toccare solo
+	 * i propri personali (403 su globali/altrui). Batch 2: sostituisce l'uso dell'update globale, ora chiuso.
+	 */
+	@Transactional
+	public AlimentoBaseDto updatePersonale(@Valid AlimentoBaseFormDto form) {
+	    return applyUpdate(form);
+	}
+
+	/** Corpo condiviso update globale/personale: la business-rule del catalogo misto è nel guard. */
+	private AlimentoBaseDto applyUpdate(AlimentoBaseFormDto form) {
 	    if (form.getId() == null) {
 	        throw new BadRequestException("Id Alimento obbligatorio per update");
 	    }
 	    AlimentoBase a = repo.findById(form.getId())
 	            .orElseThrow(() -> new NotFoundException("Alimento non trovato"));
+	    // globale (createdBy==null) → solo platform-admin; personale → solo il proprietario.
+	    assertPuoModificareCatalogo(a);
 	    DtoMapper.updateAlimentoBaseFromForm(a, form);
 	    applyMicronutrienti(a, form.getMicroNutrienti());
 	    return DtoMapper.toAlimentoBaseDtoLight(repo.save(a));
@@ -136,19 +157,45 @@ public class AlimentoBaseService {
 	}
 
 	@Transactional
-    public void delete(Long id) { repo.deleteById(id); }
+    public void delete(Long id) {
+        AlimentoBase a = repo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Alimento non trovato"));
+        // P0: prima era deleteById secco (IDOR delete) → carica e applica la business-rule del catalogo misto.
+        assertPuoModificareCatalogo(a);
+        repo.delete(a);
+    }
+
+	/**
+	 * Business-rule di ownership del catalogo MISTO (globali condivisi + personali con {@code created_by}).
+	 * Non è {@code OwnershipValidator} (che è per risorse tenant-owned uniformi): qui il catalogo è in parte
+	 * globale → diniego = {@code ForbiddenException} (403) inline. Discriminante admin = <b>ruolo sull'entità</b>
+	 * ({@code getRuolo().getAlias()}), NON {@code hasAuthority}: le authority sono costruite solo dai permessi
+	 * ({@code UserDetailsServiceImpl}), quindi l'authority "ADMIN" non esiste e {@code hasAuthority("ADMIN")} è
+	 * sempre false. Forward-compatible col ritiro del ruolo ADMIN (poi matcha solo SUPER_ADMIN).
+	 */
+	private boolean isPlatformAdmin() {
+		var r = getCurrentUtente().getRuolo();
+		String alias = (r != null) ? r.getAlias() : null;   // difensivo: ruolo null → non-admin
+		return "ADMIN".equals(alias) || "SUPER_ADMIN".equals(alias);
+	}
+
+	/** Globale (createdBy==null) → solo platform-admin; personale → solo il proprietario; altrimenti 403. */
+	private void assertPuoModificareCatalogo(AlimentoBase a) {
+		if (a.getCreatedBy() == null) {
+			if (!isPlatformAdmin()) throw new ForbiddenException("Solo un amministratore può gestire il catalogo globale");
+		} else if (!a.getCreatedBy().getId().equals(getCurrentUtente().getId())) {
+			throw new ForbiddenException("Non puoi modificare questo alimento");
+		}
+	}
 
 	/** Elimina solo se l'alimento è personale e appartiene all'utente corrente */
 	@Transactional
 	public void deletePersonale(Long id) {
 		AlimentoBase a = repo.findById(id)
 				.orElseThrow(() -> new NotFoundException("Alimento non trovato"));
-		Utente current = getCurrentUtente();
-		// AlimentoBase è un catalogo in parte globale: l'ownership è una regola di business inline
-		// (non via OwnershipValidator, che è per risorse tenant-owned uniformi). Diniego = 403.
-		if (a.getCreatedBy() == null || !a.getCreatedBy().getId().equals(current.getId())) {
-			throw new ForbiddenException("Non puoi eliminare questo alimento");
-		}
+		// P0: stessa business-rule del catalogo misto centralizzata nell'helper (DRY con update/delete).
+		// Nota: per un globale (createdBy==null) ora un platform-admin può cancellare anche via /personale.
+		assertPuoModificareCatalogo(a);
 		repo.deleteById(id);
 	}
 

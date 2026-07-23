@@ -37,5 +37,18 @@ public enum AuditAction {
      * Accesso generico: usato per le righe con esito {@code DENIED}, dove l'intento del
      * chiamante non è noto (l'ownership fallisce prima che il tipo di operazione sia deciso).
      */
-    ACCESS
+    ACCESS,
+    /**
+     * Messa in quarantena di un cliente da parte del job di retention (A6, art. 5(1)(e)): il cliente
+     * non ha attività clinica da oltre il termine di conservazione e viene marcato per la successiva
+     * cancellazione fisica (dopo la grace window). Scrittura di sistema tracciata (attore null: nessun
+     * utente loggato); il motivo/decorrenza va in {@code dettaglio}.
+     */
+    RETENTION_QUARANTENA,
+    /**
+     * Cancellazione fisica di un cliente da parte del job di retention (A6, art. 5(1)(e)), allo
+     * scadere della grace window di quarantena. È il gemello "di sistema" di {@link #DELETE}
+     * (art. 17, azione del titolare): entrambi passano dallo stesso metodo canonico di cancellazione.
+     */
+    RETENTION_PURGE
 }

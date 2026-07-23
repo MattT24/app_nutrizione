@@ -42,7 +42,13 @@ public class PlicometriaService {
         Plicometria p = ownershipValidator.getOwnedPlicometria(id);
         Long clienteId = p.getCliente() != null ? p.getCliente().getId() : null;
         auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.PLICOMETRIA, id, clienteId, null, AuditOutcome.SUCCESS);
-        return pdfService.generaPdfPlicometria(id);
+        try {
+            return pdfService.generaPdfPlicometria(id);
+        } catch (RuntimeException e) {
+            // A7: side-effect fallito → riga FAILURE (il SUCCESS è già committato in REQUIRES_NEW), poi rilancio
+            auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.PLICOMETRIA, id, clienteId, null, AuditOutcome.FAILURE);
+            throw e;
+        }
     }
 
     @Transactional

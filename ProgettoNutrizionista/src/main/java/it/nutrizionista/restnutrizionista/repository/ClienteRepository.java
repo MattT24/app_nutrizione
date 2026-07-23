@@ -8,8 +8,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
+
+import java.time.Instant;
+import java.time.LocalDate;
 
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 
@@ -95,5 +101,46 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long>{
     @Query("select c from Cliente c where c.id = :id and c.nutrizionista.id = :nutrizionistaId")
     Cliente findMineById(@Param("id") Long id, @Param("nutrizionistaId") Long nutrizionistaId);
 
+    // ═══════════ A6 Retention (art. 5(1)(e)) — eleggibilità alla cancellazione ═══════════
+    /**
+     * Predicato CONDIVISO tra la query batch ({@link #findInattiviPerRetention}) e il re-check per-id in-tx
+     * ({@link #findInattivoById}, TOCTOU): riusato per costruzione → non possono divergere. Un cliente è
+     * "inattivo" (eleggibile) se: creato prima del {@code cutoff}, senza contatto clinico d'AGGREGATO recente
+     * ({@code ultimoContattoClinico}), e con NESSUN figlio del sotto-albero clinico che abbia attività recente
+     * (createdAt/updatedAt >= cutoff). Direzione d'errore = over-retention (mai cancellare un cliente attivo).
+     */
+    String A6_INATTIVI_PREDICATE = """
+            c.createdAt < :cutoff
+            AND (c.ultimoContattoClinico IS NULL OR c.ultimoContattoClinico < :cutoff)
+            AND NOT EXISTS (SELECT s.id  FROM Scheda s                    WHERE s.cliente = c                             AND (s.createdAt  >= :cutoff OR s.updatedAt  >= :cutoff))
+            AND NOT EXISTS (SELECT p.id  FROM Pasto p                     WHERE p.scheda.cliente = c                      AND (p.createdAt  >= :cutoff OR p.updatedAt  >= :cutoff))
+            AND NOT EXISTS (SELECT ap.id FROM AlimentoPasto ap            WHERE ap.pasto.scheda.cliente = c               AND (ap.createdAt >= :cutoff OR ap.updatedAt >= :cutoff))
+            AND NOT EXISTS (SELECT aa.id FROM AlimentoAlternativo aa      WHERE (aa.alimentoPasto.pasto.scheda.cliente = c OR aa.pasto.scheda.cliente = c) AND (aa.createdAt >= :cutoff OR aa.updatedAt >= :cutoff))
+            AND NOT EXISTS (SELECT n.id  FROM AlimentoPastoNomeOverride n WHERE n.alimentoPasto.pasto.scheda.cliente = c  AND (n.createdAt  >= :cutoff OR n.updatedAt  >= :cutoff))
+            AND NOT EXISTS (SELECT m.id  FROM MisurazioneAntropometrica m WHERE m.cliente = c                             AND (m.createdAt  >= :cutoff OR m.updatedAt  >= :cutoff))
+            AND NOT EXISTS (SELECT pl.id FROM Plicometria pl              WHERE pl.cliente = c                            AND (pl.createdAt >= :cutoff OR pl.updatedAt >= :cutoff))
+            AND NOT EXISTS (SELECT o.id  FROM ObiettivoNutrizionale o     WHERE o.cliente = c                             AND (o.createdAt  >= :cutoff OR o.updatedAt  >= :cutoff))
+            AND NOT EXISTS (SELECT av.id FROM AvversionePersonale av      WHERE av.cliente = c                            AND (av.createdAt >= :cutoff OR av.updatedAt >= :cutoff))
+            AND NOT EXISTS (SELECT d.id  FROM DocumentoFascicolo d        WHERE d.cliente = c                             AND (d.dataCreazione >= :cutoff OR d.dataUltimoInvio >= :cutoff))
+            AND NOT EXISTS (SELECT a.id  FROM Appuntamento a              WHERE a.cliente = c                             AND (a.createdAt  >= :cutoff OR a.updatedAt  >= :cutoff))
+            AND NOT EXISTS (SELECT t.id  FROM CalcoloTdee t               WHERE t.cliente = c                             AND t.dataCalcolo >= :cutoffDate)
+            """;
+
+    /** Clienti eleggibili al ciclo di retention (query notturna). */
+    @Query("SELECT c FROM Cliente c WHERE " + A6_INATTIVI_PREDICATE)
+    List<Cliente> findInattiviPerRetention(@Param("cutoff") Instant cutoff, @Param("cutoffDate") LocalDate cutoffDate);
+
+    /** Re-check per-id con lo STESSO predicato (TOCTOU: verifica in-tx prima del purge). */
+    @Query("SELECT c FROM Cliente c WHERE c.id = :id AND (" + A6_INATTIVI_PREDICATE + ")")
+    Optional<Cliente> findInattivoById(@Param("id") Long id, @Param("cutoff") Instant cutoff, @Param("cutoffDate") LocalDate cutoffDate);
+
+    /** Lock riga PRIMA del purge (query SEMPLICE, sicuramente lockabile su H2/TiDB; il lock NON va preso sulla
+     *  query con i 12 NOT EXISTS). */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT c FROM Cliente c WHERE c.id = :id")
+    Optional<Cliente> findByIdConLock(@Param("id") Long id);
+
+    /** Sorgente per il clear della quarantena stale (NON gli inattivi del run corrente). */
+    List<Cliente> findByDataQuarantenaIsNotNull();
 
 }

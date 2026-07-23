@@ -17,7 +17,6 @@ import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.AlternativeMode;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.ConflictException;
-import it.nutrizionista.restnutrizionista.exception.ForbiddenException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
@@ -39,9 +38,6 @@ public class AlimentoAlternativoService {
 
     @Autowired
     private AlimentoBaseRepository alimentoBaseRepo;
-
-    @Autowired
-    private CurrentUserService currentUserService;
 
     @Autowired
     private OwnershipValidator ownershipValidator;
@@ -150,9 +146,8 @@ public class AlimentoAlternativoService {
      */
     @Transactional
     public void delete(Long id) {
-        var me = currentUserService.getMe();
-        AlimentoAlternativo entity = repo.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(id, me.getId())
-                .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        // A7-DENIED: era repo.findById... diretto (403 senza traccia d'accesso) → ora via OwnershipValidator (audit)
+        AlimentoAlternativo entity = ownershipValidator.getOwnedAlimentoAlternativo(id);
         limitazioneValidator.assertNonLimitato(clienteOf(entity.getAlimentoPasto())); // A5.3
         repo.delete(entity);
     }
@@ -173,10 +168,8 @@ public class AlimentoAlternativoService {
      */
     @Transactional(readOnly = true)
     public AlimentoAlternativoDto getById(Long id) {
-        var me = currentUserService.getMe();
-        return repo.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(id, me.getId())
-                .map(DtoMapper::toAlimentoAlternativoDto)
-                .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        // A7-DENIED: audita l'accesso negato (era repo.findById... diretto)
+        return DtoMapper.toAlimentoAlternativoDto(ownershipValidator.getOwnedAlimentoAlternativo(id));
     }
 
     @Transactional
@@ -249,11 +242,8 @@ public class AlimentoAlternativoService {
             @Valid AlimentoAlternativoUpsertDto body) {
         AlimentoPasto ownedAp = ownershipValidator.getOwnedAlimentoPasto(alimentoPastoId);
         limitazioneValidator.assertNonLimitato(clienteOf(ownedAp)); // A5.3
-        var me = currentUserService.getMe();
-
-        AlimentoAlternativo entity = repo
-                .findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(alternativeId, me.getId())
-                .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        // A7-DENIED: audita l'accesso negato sull'alternativa (l'alimentoPastoId resta su getOwnedAlimentoPasto, sopra)
+        AlimentoAlternativo entity = ownershipValidator.getOwnedAlimentoAlternativo(alternativeId);
 
         if (entity.getAlimentoPasto() == null || !entity.getAlimentoPasto().getId().equals(alimentoPastoId)) {
             throw new BadRequestException("Alternativa non associata all'alimento nel pasto indicato");
@@ -287,11 +277,8 @@ public class AlimentoAlternativoService {
     public void deleteForAlimentoPasto(Long alimentoPastoId, Long alternativeId) {
         AlimentoPasto ownedAp = ownershipValidator.getOwnedAlimentoPasto(alimentoPastoId);
         limitazioneValidator.assertNonLimitato(clienteOf(ownedAp)); // A5.3
-        var me = currentUserService.getMe();
-
-        AlimentoAlternativo entity = repo
-                .findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(alternativeId, me.getId())
-                .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        // A7-DENIED: audita l'accesso negato sull'alternativa (l'alimentoPastoId resta su getOwnedAlimentoPasto, sopra)
+        AlimentoAlternativo entity = ownershipValidator.getOwnedAlimentoAlternativo(alternativeId);
 
         if (entity.getAlimentoPasto() == null || !entity.getAlimentoPasto().getId().equals(alimentoPastoId)) {
             throw new BadRequestException("Alternativa non associata all'alimento nel pasto indicato");
@@ -327,9 +314,7 @@ public class AlimentoAlternativoService {
 
     @Transactional
     public AlimentoAlternativoDto setDisplayName(Long alternativaId, String nome) {
-        AlimentoAlternativo alt = repo.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(
-                        alternativaId, currentUserService.getMe().getId())
-                .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        AlimentoAlternativo alt = ownershipValidator.getOwnedAlimentoAlternativo(alternativaId); // A7-DENIED
         limitazioneValidator.assertNonLimitato(clienteOf(alt.getAlimentoPasto())); // A5.3
         alt.setNomeCustom(nome);
         return DtoMapper.toAlimentoAlternativoDto(repo.save(alt));
@@ -337,9 +322,7 @@ public class AlimentoAlternativoService {
 
     @Transactional
     public AlimentoAlternativoDto deleteDisplayName(Long alternativaId) {
-        AlimentoAlternativo alt = repo.findByIdAndAlimentoPasto_Pasto_Scheda_Cliente_Nutrizionista_Id(
-                        alternativaId, currentUserService.getMe().getId())
-                .orElseThrow(() -> new ForbiddenException("NON AUTORIZZATO: alternativa non accessibile"));
+        AlimentoAlternativo alt = ownershipValidator.getOwnedAlimentoAlternativo(alternativaId); // A7-DENIED
         limitazioneValidator.assertNonLimitato(clienteOf(alt.getAlimentoPasto())); // A5.3
         alt.setNomeCustom(null);
         return DtoMapper.toAlimentoAlternativoDto(repo.save(alt));

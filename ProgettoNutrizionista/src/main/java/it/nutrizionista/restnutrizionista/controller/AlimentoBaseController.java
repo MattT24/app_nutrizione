@@ -22,7 +22,7 @@ public class AlimentoBaseController {
 	@Autowired private AlimentoBaseService service;
 	
 	@PostMapping
-	@PreAuthorize("hasAuthority('ALIMENTO_CREATE')") // Solo Admin
+	@PreAuthorize("hasAuthority('CATALOGO_GLOBAL_MANAGE')") // Batch 2: catalogo GLOBALE = control-plane (SUPER_ADMIN)
 	public ResponseEntity<AlimentoBaseDto> add(@Valid @RequestBody AlimentoBaseFormDto form){
 		var create = service.create(form);
 		return ResponseEntity.status(201).body(create);
@@ -36,14 +36,21 @@ public class AlimentoBaseController {
 	}
 	
 	@PutMapping
-	@PreAuthorize("hasAuthority('ALIMENTO_UPDATE')")
+	@PreAuthorize("hasAuthority('CATALOGO_GLOBAL_MANAGE')") // Batch 2: update catalogo GLOBALE = control-plane
 	public ResponseEntity<AlimentoBaseDto> update(@Valid @RequestBody AlimentoBaseFormDto form){
 		var updated = service.update(form);
 		return ResponseEntity.status(201).body(updated); // O 200 OK
 	}
 
+	@PutMapping("/personale")
+	@PreAuthorize("hasAuthority('ALIMENTO_PERSONALE_CREATE')") // Nutrizionista: modifica il PROPRIO alimento personale
+	public ResponseEntity<AlimentoBaseDto> updatePersonale(@Valid @RequestBody AlimentoBaseFormDto form){
+		var updated = service.updatePersonale(form);
+		return ResponseEntity.status(200).body(updated);
+	}
+
 	@DeleteMapping("/{id}") // PathVariable per ID
-	@PreAuthorize("hasAuthority('ALIMENTO_DELETE')")
+	@PreAuthorize("hasAuthority('CATALOGO_GLOBAL_MANAGE')") // Batch 2: delete catalogo GLOBALE = control-plane
 	public ResponseEntity<Void> delete(@PathVariable Long id) {
 		service.delete(id);
 		return ResponseEntity.noContent().build();

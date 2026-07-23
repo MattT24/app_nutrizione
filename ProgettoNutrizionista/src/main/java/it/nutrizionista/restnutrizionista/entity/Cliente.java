@@ -96,6 +96,21 @@ public class Cliente {
 	@Column(name = "motivo_limitazione", length = 512)
 	private String motivoLimitazione;
 
+	// ── A6 — Retention / storage limitation (art. 5(1)(e) + art. 17 GDPR) ──
+	// Segnale PULITO di ultima attività clinica sull'AGGREGATO Cliente (anamnesi/tag/biometria/baseline/target):
+	// bumpato SOLO dai mutator clinici dell'aggregato (create/update/updatePesoAltezza), MAI da letture/track.
+	// L'attività sui FIGLI (schede/pasti/misurazioni/…) è derivata via NOT EXISTS sui loro timestamp.
+	@Column(name = "ultimo_contatto_clinico")
+	private Instant ultimoContattoClinico;
+
+	// Marker di quarantena (grace period prima del purge, A6): settato dallo scheduler, MAI dai mutator clinici.
+	@Column(name = "data_quarantena")
+	private Instant dataQuarantena;
+
+	// Legal hold generico (art. 17(3)): contenzioso/obbligo legale oltre l'art. 18 → esclude dal purge retention.
+	@Column(name = "legal_hold", nullable = false)
+	private boolean legalHold = false;
+
 	@ManyToOne
 	@JoinColumn(name = "utente_id")
 	private Utente nutrizionista;
@@ -375,6 +390,31 @@ public class Cliente {
 
     public void setMotivoLimitazione(String motivoLimitazione) {
         this.motivoLimitazione = motivoLimitazione;
+    }
+
+    // ── A6 — Getter/Setter retention ──
+    public Instant getUltimoContattoClinico() {
+        return ultimoContattoClinico;
+    }
+
+    public void setUltimoContattoClinico(Instant ultimoContattoClinico) {
+        this.ultimoContattoClinico = ultimoContattoClinico;
+    }
+
+    public Instant getDataQuarantena() {
+        return dataQuarantena;
+    }
+
+    public void setDataQuarantena(Instant dataQuarantena) {
+        this.dataQuarantena = dataQuarantena;
+    }
+
+    public boolean isLegalHold() {
+        return legalHold;
+    }
+
+    public void setLegalHold(boolean legalHold) {
+        this.legalHold = legalHold;
     }
 
     // ── Nuovi Getter/Setter per Tag e Blacklist ──

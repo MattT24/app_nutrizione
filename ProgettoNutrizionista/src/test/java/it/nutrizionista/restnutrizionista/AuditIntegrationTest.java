@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
 
 import java.nio.file.Files;
@@ -24,6 +26,7 @@ import it.nutrizionista.restnutrizionista.entity.AuditLog;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.DocumentoFascicolo;
 import it.nutrizionista.restnutrizionista.entity.LivelloDiAttivita;
+import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import it.nutrizionista.restnutrizionista.entity.TipoDocumento;
 import it.nutrizionista.restnutrizionista.entity.Utente;
@@ -34,11 +37,14 @@ import it.nutrizionista.restnutrizionista.exception.ForbiddenException;
 import it.nutrizionista.restnutrizionista.repository.AuditLogRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.DocumentoFascicoloRepository;
+import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import it.nutrizionista.restnutrizionista.service.ClienteService;
 import it.nutrizionista.restnutrizionista.service.EmailService;
 import it.nutrizionista.restnutrizionista.service.FascicoloService;
 import it.nutrizionista.restnutrizionista.service.OwnershipValidator;
+import it.nutrizionista.restnutrizionista.service.PdfService;
+import it.nutrizionista.restnutrizionista.service.SchedaService;
 import it.nutrizionista.restnutrizionista.support.SafeTestDatabaseBase;
 
 /**
@@ -62,8 +68,11 @@ class AuditIntegrationTest extends SafeTestDatabaseBase {
     @Autowired private ClienteRepository repoCliente;
     @Autowired private DocumentoFascicoloRepository repoFascicolo;
     @Autowired private AuditLogRepository repoAudit;
+    @Autowired private SchedaService schedaService;
+    @Autowired private SchedaRepository repoScheda;
 
     @MockitoBean private EmailService emailService;
+    @MockitoBean private PdfService pdfService;
 
     // ---------------------------------------------------------------- DOWNLOAD
 
@@ -84,6 +93,42 @@ class AuditIntegrationTest extends SafeTestDatabaseBase {
         assertEquals(cliente.getId(), r.getClienteId());
         assertEquals(AuditOutcome.SUCCESS, r.getEsito());
         assertEquals(OWNER, r.getUtenteEmail());
+    }
+
+    @Test
+    @WithMockUser(username = OWNER)
+    void downloadDocumento_seLetturaFallisce_registraFailure() {
+        // Batch 4: file inesistente su disco → RuntimeException dopo la riga SUCCESS (già committata, REQUIRES_NEW).
+        Cliente cliente = seedCliente(seedNutrizionista(OWNER, "OWN00A00A000A"), "cli7@test.it");
+        DocumentoFascicolo doc = seedDocumentoFileMancante(cliente);
+
+        assertThrows(RuntimeException.class, () -> fascicoloService.downloadDocumento(doc.getId()));
+
+        List<AuditLog> righe = repoAudit.findAll();
+        assertEquals(2, righe.size(), "lettura fallita: 1 riga DOWNLOAD SUCCESS (pre-side-effect) + 1 riga FAILURE");
+        assertTrue(righe.stream().anyMatch(r -> r.getAction() == AuditAction.DOWNLOAD && r.getEsito() == AuditOutcome.SUCCESS));
+        assertTrue(righe.stream().anyMatch(r -> r.getAction() == AuditAction.DOWNLOAD && r.getEsito() == AuditOutcome.FAILURE));
+    }
+
+    // ---------------------------------------------------------------- EXPORT_PDF (rappresentativo: misurazione/plicometria = stesso wrapper)
+
+    @Test
+    @WithMockUser(username = OWNER)
+    void exportPdfScheda_seGenerazioneFallisce_registraFailure() {
+        Cliente cliente = seedCliente(seedNutrizionista(OWNER, "OWN00A00A000A"), "cli8@test.it");
+        Scheda scheda = new Scheda();
+        scheda.setCliente(cliente);
+        scheda.setNome("Scheda export");
+        scheda.setAttiva(true);
+        Long schedaId = repoScheda.save(scheda).getId();
+        doThrow(new RuntimeException("PDF boom")).when(pdfService).generaPdfScheda(anyLong(), anyBoolean());
+
+        assertThrows(RuntimeException.class, () -> schedaService.exportPdf(schedaId, false));
+
+        List<AuditLog> righe = repoAudit.findAll();
+        assertEquals(2, righe.size(), "generazione PDF fallita: 1 riga EXPORT_PDF SUCCESS + 1 riga FAILURE");
+        assertTrue(righe.stream().anyMatch(r -> r.getAction() == AuditAction.EXPORT_PDF && r.getEsito() == AuditOutcome.SUCCESS));
+        assertTrue(righe.stream().anyMatch(r -> r.getAction() == AuditAction.EXPORT_PDF && r.getEsito() == AuditOutcome.FAILURE));
     }
 
     // ---------------------------------------------------------------- SHARE
@@ -244,5 +289,15 @@ class AuditIntegrationTest extends SafeTestDatabaseBase {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /** Documento con file inesistente su disco: {@code Files.readAllBytes} fallisce → RuntimeException. */
+    private DocumentoFascicolo seedDocumentoFileMancante(Cliente cliente) {
+        DocumentoFascicolo doc = new DocumentoFascicolo();
+        doc.setCliente(cliente);
+        doc.setTitolo("Documento file mancante");
+        doc.setTipoDocumento(TipoDocumento.SCHEDA);
+        doc.setPercorsoFile("uploads/fascicoli/__inesistente__.pdf");
+        return repoFascicolo.save(doc);
     }
 }

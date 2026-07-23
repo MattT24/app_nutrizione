@@ -13,6 +13,9 @@ import it.nutrizionista.restnutrizionista.entity.ProgressioneNutrizionista;
 @Repository
 public interface ProgressioneNutrizionistaRepository extends JpaRepository<ProgressioneNutrizionista, Long> {
 
+    /** F-USER-DEL: cancellazione account — progressione del nutrizionista. */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
+
     Optional<ProgressioneNutrizionista> findByNutrizionista_Id(Long nutrizionistaId);
 
     /**

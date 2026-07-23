@@ -14,14 +14,35 @@ import it.nutrizionista.restnutrizionista.dto.ResetPasswordDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteFormDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteProfileUpdateDto;
+import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.enums.AuditAction;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
+import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.CredenzialeDemoRepository;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
+// F-USER-DEL: repository dei figli utente-owned non-cascade (erasure account completa)
+import it.nutrizionista.restnutrizionista.repository.AccettazioneDocumentoRepository;
+import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
+import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
+import it.nutrizionista.restnutrizionista.repository.AttivitaRecenteRepository;
+import it.nutrizionista.restnutrizionista.repository.BadgeSbloccatoRepository;
+import it.nutrizionista.restnutrizionista.repository.EventoGamificationRepository;
+import it.nutrizionista.restnutrizionista.repository.MeseGratisRiscattatoRepository;
+import it.nutrizionista.restnutrizionista.repository.MessaggioAssistenzaRepository;
+import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
+import it.nutrizionista.restnutrizionista.repository.PastoTemplateRepository;
+import it.nutrizionista.restnutrizionista.repository.PremioRiscattatoRepository;
+import it.nutrizionista.restnutrizionista.repository.PresetObiettivoRepository;
+import it.nutrizionista.restnutrizionista.repository.ProgressioneNutrizionistaRepository;
+import it.nutrizionista.restnutrizionista.repository.PromemoriaRepository;
+import it.nutrizionista.restnutrizionista.repository.SchedaTemplateRepository;
+import it.nutrizionista.restnutrizionista.repository.TicketAssistenzaRepository;
+import it.nutrizionista.restnutrizionista.repository.UtentePreferitoRepository;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -40,6 +61,26 @@ public class UtenteService {
     @Autowired private PasswordEncoder encoder;
     @Autowired private CurrentUserService currentUserService;
     @Autowired private CredenzialeDemoRepository credenzialeDemoRepository;
+    @Autowired private ClienteRepository clienteRepository; // F-USER-DEL: elenco clienti del nutrizionista
+    @Autowired private ClienteService clienteService;        // F-USER-DEL: erasure canonica per-cliente
+    // F-USER-DEL: repository dei figli utente-owned non-cascade (svuotati in eliminaFigliNonCascadeUtente)
+    @Autowired private MessaggioAssistenzaRepository messaggioAssistenzaRepository;
+    @Autowired private TicketAssistenzaRepository ticketAssistenzaRepository;
+    @Autowired private UtentePreferitoRepository utentePreferitoRepository;
+    @Autowired private PastoTemplateRepository pastoTemplateRepository;
+    @Autowired private SchedaTemplateRepository schedaTemplateRepository;
+    @Autowired private EventoGamificationRepository eventoGamificationRepository;
+    @Autowired private BadgeSbloccatoRepository badgeSbloccatoRepository;
+    @Autowired private ProgressioneNutrizionistaRepository progressioneNutrizionistaRepository;
+    @Autowired private PremioRiscattatoRepository premioRiscattatoRepository;
+    @Autowired private MeseGratisRiscattatoRepository meseGratisRiscattatoRepository;
+    @Autowired private AppuntamentoRepository appuntamentoRepository;
+    @Autowired private PromemoriaRepository promemoriaRepository;
+    @Autowired private OrariStudioRepository orariStudioRepository;
+    @Autowired private PresetObiettivoRepository presetObiettivoRepository;
+    @Autowired private AttivitaRecenteRepository attivitaRecenteRepository;
+    @Autowired private AccettazioneDocumentoRepository accettazioneDocumentoRepository;
+    @Autowired private AlimentoBaseRepository alimentoBaseRepository;
 
     /*lolo*/
 
@@ -69,13 +110,77 @@ public class UtenteService {
         return DtoMapper.toUtenteDtoLight(repo.save(u)); // Senza Ruolo
     }
 
-    /** Elimina utente. */
+    /** Elimina utente (admin). Instrada la cancellazione dei clienti via il metodo canonico (F-USER-DEL). */
     @Transactional
-    public void delete(Long id) { repo.deleteById(id); }
+    public void delete(Long id) {
+        Utente u = repo.findById(id).orElseThrow(() -> new NotFoundException("Utente non trovato"));
+        deleteAccount(u);
+    }
     
+    /** Cancellazione del proprio account (self-service). */
+    @Transactional
     public void deleteMyProfile() {
-	    	Utente u = currentUserService.getMe();
-	    	repo.delete(u);
+        deleteAccount(currentUserService.getMe());
+    }
+
+    /**
+     * Cancellazione account (F-USER-DEL): dipendenza UNIDIREZIONALE UtenteService → ClienteService.
+     * Per ogni cliente del nutrizionista invoca la foglia canonica {@code eliminaClienteCompleto} (audit A7 +
+     * PDF su disco + anonimizzazione gamification), poi cancella l'Utente. Il cascade ORM su {@code Utente.clienti}
+     * è stato RIMOSSO apposta: questo loop è l'unica via di erasure dei clienti; il cascade residuo su
+     * {@code Utente} tocca solo le collezioni Utente-owned (es. preferiti).
+     */
+    @Transactional
+    public void deleteAccount(Utente u) {
+        for (Cliente c : clienteRepository.findByNutrizionista_Id(u.getId())) {
+            clienteService.eliminaClienteCompleto(c, AuditAction.DELETE, null);
+        }
+        eliminaFigliNonCascadeUtente(u.getId());
+        repo.delete(u);
+    }
+
+    /**
+     * Svuota i figli utente-owned che il cascade ORM su {@code Utente} NON tocca (mappa solo {@code preferiti}),
+     * in ordine sicuro rispetto alle FK RESTRICT verso {@code utenti} (grafo verificato sul DB reale). Mirror
+     * del tier cliente ({@code ClienteService.eliminaFigliNonCascade}). Le tabelle denormalizzate SENZA FK
+     * (es. {@code audit_log}, {@code audit_account_demo}) NON compaiono qui di proposito (retention/prova).
+     * <p>⚠️ <b>Regola di coverage (non negoziabile):</b> ogni nuova entità con FK verso {@code utenti} che NON
+     * sia una collezione cascade di {@code Utente} va aggiunta QUI + seminata in
+     * {@code UtenteDeleteAccountCascadeIntegrationTest}.
+     */
+    private void eliminaFigliNonCascadeUtente(Long utenteId) {
+        // 1) Assistenza: i messaggi PRIMA dei ticket (FK ticket_id). deleteByTicket_Nutrizionista_Id svuota
+        //    TUTTI i messaggi dei ticket del nutrizionista (anche le risposte del super admin).
+        messaggioAssistenzaRepository.deleteByTicket_Nutrizionista_Id(utenteId);
+        ticketAssistenzaRepository.deleteByNutrizionista_Id(utenteId);
+
+        // 2) Preferiti + template PRIMA degli alimenti personali (li referenziano via FK non-null).
+        utentePreferitoRepository.deleteByUtenteId(utenteId);
+        // Template: ENTITY-delete (deleteAll su alberi full-tree) → cascade + orphanRemoval scendono i figli;
+        // un bulk deleteBy cieco lascerebbe orfani sui figli del template. Il catalogo AlimentoBase resta intatto.
+        pastoTemplateRepository.deleteAll(pastoTemplateRepository.findByCreatedByIdWithFullTree(utenteId));
+        schedaTemplateRepository.deleteAll(schedaTemplateRepository.findByCreatedByIdWithFullTree(utenteId));
+
+        // 3) Gamification (entità foglia, ordine interno libero).
+        eventoGamificationRepository.deleteByNutrizionista_Id(utenteId);
+        badgeSbloccatoRepository.deleteByNutrizionista_Id(utenteId);
+        progressioneNutrizionistaRepository.deleteByNutrizionista_Id(utenteId);
+        premioRiscattatoRepository.deleteByNutrizionista_Id(utenteId);
+        meseGratisRiscattatoRepository.deleteByNutrizionista_Id(utenteId);
+
+        // 4) Calendario/studio/preset/attività/accettazioni/demo.
+        appuntamentoRepository.deleteByNutrizionista_Id(utenteId);   // i manuali senza cliente (i cliente-linked già rimossi)
+        promemoriaRepository.deleteByNutrizionista_Id(utenteId);
+        orariStudioRepository.deleteByNutrizionista_Id(utenteId);
+        presetObiettivoRepository.deleteByNutrizionista_Id(utenteId);
+        attivitaRecenteRepository.deleteByNutrizionista_Id(utenteId); // residui non-cliente
+        accettazioneDocumentoRepository.deleteByUtente_Id(utenteId);
+        credenzialeDemoRepository.deleteByUtente_Id(utenteId);
+
+        // 5) ULTIMO: alimenti PERSONALI del nutrizionista (created_by=utenteId). I GLOBALI (created_by NULL)
+        //    restano INTATTI (esclusi per costruzione dalla WHERE del derived). Sicuro perché clienti + template
+        //    + preferiti che li referenziavano sono già stati rimossi sopra.
+        alimentoBaseRepository.deleteByCreatedBy_Id(utenteId);
     }
     
     /** Dettaglio utente. (Ruolo light) */

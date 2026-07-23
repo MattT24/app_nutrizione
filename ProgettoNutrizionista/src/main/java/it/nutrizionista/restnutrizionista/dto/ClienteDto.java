@@ -36,7 +36,6 @@ public class ClienteDto {
     private List<MisurazioneAntropometricaDto> misurazioni;
     private List<PlicometriaDto> plicometrie;
     private UtenteDto nutrizionista;
-    private List<SchedaDto> schede;
     private Instant createdAt;
     private Instant updatedAt;
     private Double pesoTarget;
@@ -170,12 +169,6 @@ public class ClienteDto {
 	}
 	public void setNutrizionista(UtenteDto nutrizionista) {
 		this.nutrizionista = nutrizionista;
-	}
-	public List<SchedaDto> getSchede() {
-		return schede;
-	}
-	public void setSchede(List<SchedaDto> schede) {
-		this.schede = schede;
 	}
 	public Instant getCreatedAt() {
 		return createdAt;

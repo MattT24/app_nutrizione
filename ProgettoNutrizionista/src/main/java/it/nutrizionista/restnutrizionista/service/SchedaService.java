@@ -81,7 +81,13 @@ public class SchedaService {
 		Scheda scheda = ownershipValidator.getOwnedScheda(id);
 		Long clienteId = scheda.getCliente() != null ? scheda.getCliente().getId() : null;
 		auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.SCHEDA, id, clienteId, null, AuditOutcome.SUCCESS);
-		return pdfService.generaPdfScheda(id, mostraMacro);
+		try {
+			return pdfService.generaPdfScheda(id, mostraMacro);
+		} catch (RuntimeException e) {
+			// A7: side-effect fallito → riga FAILURE (il SUCCESS è già committato in REQUIRES_NEW), poi rilancio
+			auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.SCHEDA, id, clienteId, null, AuditOutcome.FAILURE);
+			throw e;
+		}
 	}
 	
 

@@ -38,6 +38,7 @@ import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
+import it.nutrizionista.restnutrizionista.entity.SchedaTemplate;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import it.nutrizionista.restnutrizionista.entity.TipoDocumento;
 import it.nutrizionista.restnutrizionista.entity.Utente;
@@ -57,6 +58,7 @@ import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
+import it.nutrizionista.restnutrizionista.repository.SchedaTemplateRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import it.nutrizionista.restnutrizionista.support.SafeTestDatabaseBase;
 
@@ -90,6 +92,7 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 	@Autowired private MisurazioneAntropometricaRepository repoMisurazione;
 	@Autowired private PlicometriaRepository repoPlicometria;
 	@Autowired private AuditLogRepository repoAudit;
+	@Autowired private SchedaTemplateRepository repoSchedaTemplate;
 
 	private Long clienteAId;
 	private Long schedaAId;
@@ -103,6 +106,8 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 	private Long appuntamentoAId;
 	private Long misurazioneAId;
 	private Long plicometriaAId;
+	private Long templateBId;   // SchedaTemplate di B → per raggiungere il lookup della scheda di A (deny SCHEDA + A7)
+	private Long templateAId;   // SchedaTemplate di A → per il deny sul TEMPLATE (403 senza A7, by-design)
 
 	@BeforeEach
 	void seed() {
@@ -202,6 +207,18 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 		pli.setCliente(clienteA);
 		pli.setMetodo(Metodo.JACKSON_POLLOCK_3);
 		plicometriaAId = repoPlicometria.save(pli).getId();
+
+		// Batch 4 A7-DENIED (applicaAScheda): template di B (per raggiungere il lookup scheda di A) e di A (deny template)
+		Utente b = repoUtente.findByEmail(EMAIL_B).orElseThrow();
+		templateBId = repoSchedaTemplate.save(schedaTemplate(b)).getId();
+		templateAId = repoSchedaTemplate.save(schedaTemplate(a)).getId();
+	}
+
+	private SchedaTemplate schedaTemplate(Utente owner) {
+		SchedaTemplate t = new SchedaTemplate();
+		t.setNome("Template di " + owner.getNome());
+		t.setCreatedBy(owner);
+		return t;
 	}
 
 	private static AlimentoBase aliment(String nome) {
@@ -353,6 +370,79 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 			assertThat(a.getEsito()).isEqualTo(AuditOutcome.DENIED);
 			assertThat(a.getEntityType()).isEqualTo(AuditEntityType.APPUNTAMENTO);
 			assertThat(a.getEntityId()).isEqualTo(appuntamentoAId);
+		});
+	}
+
+	// ═══════════ Batch 4 — A7-DENIED su AlimentoAlternativo (metodi keyed sull'id alternativa) ═══════════
+	// delete/getById/set-/delete-DisplayName ora passano da getOwnedAlimentoAlternativo → 403 + A7 ACCESS/DENIED.
+	// (update già coperto sopra; i due *ForAlimentoPasto sono intercettati prima dall'ownership dell'alimentoPastoId.)
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "ALIMENTO_ALTERNATIVO_DELETE" })
+	void deleteAlternativa_diAltroTenant_e403() throws Exception {
+		mvc.perform(delete("/api/alimenti_alternativi/{id}", alternativaAId)).andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "ALIMENTO_ALTERNATIVO_READ" })
+	void getAlternativa_diAltroTenant_e403() throws Exception {
+		mvc.perform(get("/api/alimenti_alternativi/{id}", alternativaAId)).andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "ALIMENTO_ALTERNATIVO_UPDATE" })
+	void setDisplayNameAlternativa_diAltroTenant_e403() throws Exception {
+		mvc.perform(put("/api/alimenti_alternativi/{id}/display-name", alternativaAId)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"nome\":\"X\"}"))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "ALIMENTO_ALTERNATIVO_UPDATE" })
+	void deleteDisplayNameAlternativa_diAltroTenant_e403() throws Exception {
+		mvc.perform(delete("/api/alimenti_alternativi/{id}/display-name", alternativaAId)).andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "ALIMENTO_ALTERNATIVO_DELETE" })
+	void denyAlternativa_registraEventoAuditDenied() throws Exception {
+		mvc.perform(delete("/api/alimenti_alternativi/{id}", alternativaAId)).andExpect(status().isForbidden());
+		assertThat(repoAudit.findAll()).anySatisfy(a -> {
+			assertThat(a.getAction()).isEqualTo(AuditAction.ACCESS);
+			assertThat(a.getEsito()).isEqualTo(AuditOutcome.DENIED);
+			// AuditEntityType non ha ALIMENTO_ALTERNATIVO: si usa ALIMENTO_PASTO con l'id dell'alternativa (pre-esistente).
+			assertThat(a.getEntityType()).isEqualTo(AuditEntityType.ALIMENTO_PASTO);
+			assertThat(a.getEntityId()).isEqualTo(alternativaAId);
+		});
+	}
+
+	// ═══════════ Batch 4 — applicaAScheda: 404→403 + A7 SCHEDA sulla scheda; il TEMPLATE resta 403 senza A7 ═══════════
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "SCHEDA_UPDATE" })
+	void applicaTemplateSuSchedaDiAltroTenant_e403_conA7Scheda() throws Exception {
+		// B possiede il template (checkOwnership passa) ma la scheda destinazione è di A → deny(SCHEDA) 403 + A7.
+		mvc.perform(post("/api/schede-template/{t}/applica/{s}", templateBId, schedaAId)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"mode\":\"REPLACE\"}"))
+			.andExpect(status().isForbidden());
+		assertThat(repoAudit.findAll()).anySatisfy(a -> {
+			assertThat(a.getAction()).isEqualTo(AuditAction.ACCESS);
+			assertThat(a.getEsito()).isEqualTo(AuditOutcome.DENIED);
+			assertThat(a.getEntityType()).isEqualTo(AuditEntityType.SCHEDA);
+			assertThat(a.getEntityId()).isEqualTo(schedaAId);
+		});
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "SCHEDA_UPDATE" })
+	void applicaTemplateAltrui_e403_senzaA7() throws Exception {
+		// Il template è di A → checkOwnership fallisce PRIMA del lookup scheda: 403 sul TEMPLATE, nessuna riga A7 (by-design).
+		mvc.perform(post("/api/schede-template/{t}/applica/{s}", templateAId, schedaAId)
+				.contentType(MediaType.APPLICATION_JSON).content("{\"mode\":\"REPLACE\"}"))
+			.andExpect(status().isForbidden());
+		assertThat(repoAudit.findAll()).noneSatisfy(a -> {
+			assertThat(a.getAction()).isEqualTo(AuditAction.ACCESS);
+			assertThat(a.getEsito()).isEqualTo(AuditOutcome.DENIED);
 		});
 	}
 }
