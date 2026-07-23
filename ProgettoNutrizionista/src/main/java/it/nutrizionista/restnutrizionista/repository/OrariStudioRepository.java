@@ -14,6 +14,9 @@ import it.nutrizionista.restnutrizionista.entity.Utente;
 
 @Repository
 public interface OrariStudioRepository extends JpaRepository<OrariStudio, Long> {
+
+    /** F-USER-DEL: cancellazione account — orari studio del nutrizionista. */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
     
     // Restituisce TUTTI i giorni configurati per il nutrizionista
     List<OrariStudio> findByNutrizionista(Utente nutrizionista);

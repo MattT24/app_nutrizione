@@ -11,6 +11,9 @@ import java.util.Optional;
 
 public interface PromemoriaRepository extends JpaRepository<Promemoria, Long> {
 
+    /** F-USER-DEL: cancellazione account — promemoria (calendario personale) del nutrizionista. */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
+
     @Query("SELECT p FROM Promemoria p WHERE p.nutrizionista.id = :nutrizionistaId " +
            "AND ((p.data <= :endDate AND p.endData >= :startDate) " +
            "OR (p.endData IS NULL AND p.data BETWEEN :startDate AND :endDate)) " +

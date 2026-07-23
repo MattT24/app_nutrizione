@@ -12,6 +12,9 @@ import it.nutrizionista.restnutrizionista.entity.AttivitaRecente;
 @Repository
 public interface AttivitaRecenteRepository extends JpaRepository<AttivitaRecente, Long> {
 
+    /** F-USER-DEL: cancellazione account — attività recenti del nutrizionista (property `nutrizionista`, col utente_id). */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
+
     /** Per l'upsert: l'eventuale attività già esistente per la coppia (nutrizionista, cliente). */
     Optional<AttivitaRecente> findByNutrizionista_IdAndCliente_Id(Long nutrizionistaId, Long clienteId);
 

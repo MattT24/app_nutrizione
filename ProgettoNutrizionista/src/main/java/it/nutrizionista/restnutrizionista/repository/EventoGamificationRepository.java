@@ -16,6 +16,9 @@ import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
 @Repository
 public interface EventoGamificationRepository extends JpaRepository<EventoGamification, Long> {
 
+    /** F-USER-DEL: cancellazione account — eventi gamification del nutrizionista (property `nutrizionista`, col utente_id). */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
+
     /** Per l'idempotenza dell'accesso giornaliero: c'è già un evento di questo tipo registrato da {@code da} in poi? */
     boolean existsByNutrizionista_IdAndTipoEventoAndCreatedAtGreaterThanEqual(
             Long nutrizionistaId, TipoEventoGamification tipoEvento, Instant da);

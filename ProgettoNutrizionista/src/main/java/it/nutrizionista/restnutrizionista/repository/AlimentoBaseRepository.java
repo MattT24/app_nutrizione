@@ -16,6 +16,11 @@ import jakarta.validation.Valid;
 
 public interface AlimentoBaseRepository extends JpaRepository<AlimentoBase, Long>{
 
+    /** F-USER-DEL: cancellazione account — SOLO gli alimenti PERSONALI del nutrizionista (created_by=utenteId).
+     *  I GLOBALI (created_by IS NULL) sono esclusi per costruzione. Derivato (fetch+remove) → il cascade su
+     *  Macro/@ElementCollection scatta (NON usare bulk JPQL, bypasserebbe il cascade). */
+    void deleteByCreatedBy_Id(Long utenteId);
+
 	@Override
 	@EntityGraph(attributePaths = {"macroNutrienti"})
 	Page<AlimentoBase> findAll(Pageable pageable);

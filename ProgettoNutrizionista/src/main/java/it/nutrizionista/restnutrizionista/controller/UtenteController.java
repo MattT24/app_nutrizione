@@ -119,6 +119,7 @@ public class UtenteController {
     
  // Inserimento Logo nutrizionista
     @PostMapping("/logo")
+    @PreAuthorize("hasAuthority('UTENTE_PROFILE')")
     public ResponseEntity<UtenteDto> uploadLogo(
             @Valid @ModelAttribute LogoRequestDto form
     ) throws IOException {

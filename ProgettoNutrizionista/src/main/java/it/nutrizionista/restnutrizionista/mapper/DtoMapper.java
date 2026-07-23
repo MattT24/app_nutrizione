@@ -331,19 +331,18 @@ public class DtoMapper {
 		dto.setDataLimitazione(c.getDataLimitazione());
 		dto.setMotivoLimitazione(c.getMotivoLimitazione());
 
-		if (c.getMisurazioni() != null) {
+		// B4.3 over-fetch: misurazioni/plicometrie sono LAZY → mapparle SOLO se GIÀ inizializzate nella tx.
+		// Le risposte di mutazione (update/peso-altezza/limitazione) non le toccano → restano null (il FE le
+		// carica dai propri endpoint dedicati), evitando 2 SELECT extra ad ogni mutazione. /dettaglio usa toClienteInfoDto.
+		if (c.getMisurazioni() != null && org.hibernate.Hibernate.isInitialized(c.getMisurazioni())) {
 			dto.setMisurazioni(c.getMisurazioni().stream()
 					.map(DtoMapper::toMisurazioneDtoLight)
 					.collect(Collectors.toList()));
-		} else {
-			dto.setMisurazioni(new ArrayList<>());
 		}
-		if (c.getPlicometrie() != null) {
+		if (c.getPlicometrie() != null && org.hibernate.Hibernate.isInitialized(c.getPlicometrie())) {
 			dto.setPlicometrie(c.getPlicometrie().stream()
 					.map(DtoMapper::toPlicometriaDtoLight)
 					.collect(Collectors.toList()));
-		} else {
-			dto.setPlicometrie(new ArrayList<>());
 		}
 
 		// ── Tags clinici MDSS (EAGER — già in RAM, zero query extra) ──
@@ -667,10 +666,33 @@ public class DtoMapper {
 		if (form.getServingQuantityG() != null) a.setServingQuantityG(form.getServingQuantityG());
 		if (form.getNeedsReview() != null) a.setNeedsReview(form.getNeedsReview());
 
-		// Macro
-		Macro macro = toMacro(form.getMacroNutrienti());
-		macro.setAlimento(a);
-		a.setMacronutrienti(macro);
+		// Macro — F-MACRO-UPDATE: aggiornamento IN-PLACE dell'istanza gestita (preserva id + created_at,
+		// @CreatedDate nullable=false). NON sostituire con una nuova Macro da toMacro: perderebbe created_at
+		// → NULL sul merge → violazione NOT NULL (o unique alimento_base_id su merge-as-insert).
+		MacroDto md = form.getMacroNutrienti();
+		if (md != null) {
+			Macro macro = a.getMacronutrienti();
+			if (macro == null) {
+				macro = new Macro();
+				macro.setAlimento(a);
+				a.setMacronutrienti(macro);
+			}
+			macro.setCalorie(md.getCalorie());
+			macro.setGrassi(md.getGrassi());
+			macro.setProteine(md.getProteine());
+			macro.setCarboidrati(md.getCarboidrati());
+			macro.setFibre(md.getFibre());
+			macro.setZuccheri(md.getZuccheri());
+			macro.setGrassiSaturi(md.getGrassiSaturi());
+			macro.setSodio(md.getSodio());
+			macro.setAlcol(md.getAlcol());
+			macro.setAcqua(md.getAcqua());
+			macro.setSale(md.getSale());
+			macro.setEnergiaKj(md.getEnergiaKj());
+			macro.setZuccheriAggiunti(md.getZuccheriAggiunti());
+			macro.setGrassiTrans(md.getGrassiTrans());
+			macro.setColesterolo(md.getColesterolo());
+		}
 
 		// Micronutrienti → gestiti nel Service (find-or-create)
 	}

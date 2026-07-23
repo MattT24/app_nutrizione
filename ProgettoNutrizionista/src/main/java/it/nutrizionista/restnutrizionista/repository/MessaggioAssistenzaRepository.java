@@ -11,6 +11,10 @@ import org.springframework.data.repository.query.Param;
 import it.nutrizionista.restnutrizionista.entity.MessaggioAssistenza;
 
 public interface MessaggioAssistenzaRepository extends JpaRepository<MessaggioAssistenza, Long> {
+
+    /** F-USER-DEL: TUTTI i messaggi dei ticket del nutrizionista (a prescindere dal mittente: anche le
+     *  risposte del super admin), da rimuovere PRIMA dei ticket (FK ticket_id). */
+    void deleteByTicket_Nutrizionista_Id(Long nutrizionistaId);
     @Query("SELECT m FROM MessaggioAssistenza m JOIN FETCH m.mittente "
             + "WHERE m.ticket.id = :ticketId AND m.id > :afterId ORDER BY m.id ASC")
     List<MessaggioAssistenza> findIncrementali(@Param("ticketId") Long ticketId,

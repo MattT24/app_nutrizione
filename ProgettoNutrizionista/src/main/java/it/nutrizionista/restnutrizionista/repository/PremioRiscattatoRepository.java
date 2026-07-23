@@ -10,6 +10,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface PremioRiscattatoRepository extends JpaRepository<PremioRiscattato, Long> {
 
+    /** F-USER-DEL: cancellazione account — premi riscattati del nutrizionista. */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
+
     long countByNutrizionista_IdAndTipoPremio(Long nutrizionistaId, TipoPremio tipoPremio);
 
     boolean existsByNutrizionista_IdAndTipoPremioAndDataRiscattoGreaterThanEqual(

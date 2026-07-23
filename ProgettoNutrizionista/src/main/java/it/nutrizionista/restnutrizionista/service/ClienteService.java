@@ -76,6 +76,7 @@ public class ClienteService {
 		}
 		Cliente c = DtoMapper.toCliente(form);
 		c.setNutrizionista(u);
+		c.setUltimoContattoClinico(Instant.now()); // A6: la creazione è l'inizio della relazione clinica
 		Cliente salvato = repo.save(c);
 		gamificationService.registraEvento(u, TipoEventoGamification.NUOVO_CLIENTE, salvato.getId());
 		return DtoMapper.toClienteDtoLight(salvato);
@@ -95,6 +96,7 @@ public class ClienteService {
 			throw new ConflictException("Esiste già un cliente con questa email");
 		}
 		DtoMapper.updateClienteFromForm(c, form);
+		c.setUltimoContattoClinico(Instant.now()); // A6: edit clinico dell'aggregato (anamnesi/tag/baseline/target)
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
 
@@ -107,6 +109,7 @@ public class ClienteService {
 		if (req.getAltezza() != null) c.setAltezza(req.getAltezza());
 		// Permettiamo di impostare anche a null il pesoTarget se inviato, se serve
 		c.setPesoTarget(req.getPesoTarget());
+		c.setUltimoContattoClinico(Instant.now()); // A6: aggiornamento biometrico = attività clinica
 		return DtoMapper.toClienteDto(repo.save(c));
 	}
 
@@ -168,11 +171,24 @@ public class ClienteService {
 	    // Verifica ownership (carica solo il cliente, non l'albero delle schede)
 	    Cliente c = ownershipValidator.getOwnedCliente(id);
 
-	    // Audit critico (A7): DELETE nella STESSA transazione → la riga committa iff il delete committa.
-	    auditService.recordCriticalSameTx(AuditAction.DELETE, AuditEntityType.CLIENTE, id, id);
+	    // A6: delega alla foglia canonica di erasure (art. 17). Azione di audit = DELETE (via manuale).
+	    eliminaClienteCompleto(c, AuditAction.DELETE, null);
+	}
 
-	    svuotaAlberoSchede(id);
-	    eliminaFigliNonCascade(id);
+	/**
+	 * Foglia CANONICA di cancellazione completa (art. 17 / A6): NON conosce l'Utente. L'{@link AuditAction}
+	 * arriva dal chiamante (DELETE manuale / RETENTION_PURGE scheduler / cancellazione account) → ogni via di
+	 * erasure è tracciata con l'azione giusta; la riga A7 committa nella STESSA transazione del delete.
+	 * Meccanismo invariato: audit → {@link #svuotaAlberoSchede(Long)} → {@link #eliminaFigliNonCascade(Long)}
+	 * → {@code repo.delete(c)} (cascade ORM sulle sole collezioni mono-FK di {@code Cliente}).
+	 */
+	@Transactional
+	public void eliminaClienteCompleto(Cliente c, AuditAction action, String dettaglio) {
+	    // Audit critico (A7) nella STESSA transazione → la riga committa iff il delete committa.
+	    auditService.recordCriticalSameTx(action, AuditEntityType.CLIENTE, c.getId(), c.getId(), dettaglio);
+
+	    svuotaAlberoSchede(c.getId());
+	    eliminaFigliNonCascade(c.getId());
 
 	    // Infine il cliente: il cascade ORM gestisce ora solo le collezioni mono-FK
 	    // (schede ormai vuote, misurazioni, plicometrie, obiettivi, blacklist, tag).

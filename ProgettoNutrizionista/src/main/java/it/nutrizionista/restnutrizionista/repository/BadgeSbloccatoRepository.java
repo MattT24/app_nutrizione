@@ -10,5 +10,8 @@ import it.nutrizionista.restnutrizionista.entity.BadgeSbloccato;
 @Repository
 public interface BadgeSbloccatoRepository extends JpaRepository<BadgeSbloccato, Long> {
 
+    /** F-USER-DEL: cancellazione account — badge del nutrizionista. */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
+
     List<BadgeSbloccato> findByNutrizionista_Id(Long nutrizionistaId);
 }

@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,12 +20,14 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
+import it.nutrizionista.restnutrizionista.entity.Appuntamento;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.LivelloDiAttivita;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.enums.AuditAction;
+import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
 import it.nutrizionista.restnutrizionista.repository.AuditLogRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
@@ -56,11 +59,19 @@ class LimitazioneTrattamentoIntegrationTest extends SafeTestDatabaseBase {
 	@Autowired private ClienteRepository repoCliente;
 	@Autowired private SchedaRepository repoScheda;
 	@Autowired private AuditLogRepository repoAudit;
+	@Autowired private AppuntamentoRepository repoAppuntamento;
 
 	private Long clienteLimitatoId;
 	private Long clienteNormaleId;
 	private Long schedaLimitatoId;
 	private Long schedaNormaleId;
+	private Long appuntamentoLimitatoId;
+	private Long appuntamentoNormaleId;
+	private Long appuntamentoManualeId;
+
+	/** Body update appuntamento valido (allDay → salta la validazione slot; campi NOT NULL valorizzati). */
+	private static final String APPUNTAMENTO_BODY =
+			"{\"data\":\"2026-06-01\",\"endData\":\"2026-06-01\",\"allDay\":true,\"modalita\":\"IN_STUDIO\",\"stato\":\"PRENOTATO\"}";
 
 	@BeforeEach
 	void seed() {
@@ -86,6 +97,11 @@ class LimitazioneTrattamentoIntegrationTest extends SafeTestDatabaseBase {
 		sn.setNome("Scheda del cliente normale");
 		sn.setAttiva(true);
 		schedaNormaleId = repoScheda.save(sn).getId();
+
+		// Batch 4 A5.3: appuntamenti per update/delete (cliente limitato / normale / manuale-senza-cliente)
+		appuntamentoLimitatoId = repoAppuntamento.save(appuntamento(a, limitato)).getId();
+		appuntamentoNormaleId = repoAppuntamento.save(appuntamento(a, normale)).getId();
+		appuntamentoManualeId = repoAppuntamento.save(appuntamento(a, null)).getId();
 	}
 
 	private Cliente cliente(Utente owner, String nome, String cognome, String email) {
@@ -119,6 +135,18 @@ class LimitazioneTrattamentoIntegrationTest extends SafeTestDatabaseBase {
 		u.setTelefono("000");
 		u.setIndirizzo("x");
 		return u;
+	}
+
+	private Appuntamento appuntamento(Utente owner, Cliente cliente) {
+		Appuntamento ap = new Appuntamento();
+		ap.setNutrizionista(owner);
+		ap.setCliente(cliente); // null = appuntamento "manuale" senza cliente registrato
+		ap.setData(LocalDate.of(2026, 6, 1));
+		ap.setEndData(LocalDate.of(2026, 6, 1));
+		ap.setAllDay(true);
+		ap.setModalita(Appuntamento.Modalita.IN_STUDIO);
+		ap.setStato(Appuntamento.StatoAppuntamento.PRENOTATO);
+		return ap;
 	}
 
 	private String tdeeBody(Long clienteId) {
@@ -276,5 +304,56 @@ class LimitazioneTrattamentoIntegrationTest extends SafeTestDatabaseBase {
 		mvc.perform(post("/api/meals").contentType(MediaType.APPLICATION_JSON)
 				.content("{\"schedaId\":" + schedaNormaleId + ",\"nome\":\"Spuntino\"}"))
 			.andExpect(status().is2xxSuccessful());
+	}
+
+	// ═══════════ Batch 4 — A5.3 su AppuntamentoService: update + delete bloccati (decisione BLOCCA 2026-07-20) ═══════════
+
+	@Test
+	@WithMockUser(username = EMAIL_A, authorities = { "APPUNTAMENTO_UPDATE" })
+	void updateAppuntamento_diClienteLimitato_e423() throws Exception {
+		// Il check è sul cliente ESISTENTE dell'appuntamento (il body non aggancia clienteId).
+		mvc.perform(put("/api/appuntamenti/{id}", appuntamentoLimitatoId).contentType(MediaType.APPLICATION_JSON)
+				.content(APPUNTAMENTO_BODY))
+			.andExpect(status().isLocked());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_A, authorities = { "APPUNTAMENTO_DELETE" })
+	void deleteAppuntamento_diClienteLimitato_e423() throws Exception {
+		// Annullamento (soft-delete) di un appuntamento di cliente limitato → 423.
+		mvc.perform(delete("/api/appuntamenti/{id}", appuntamentoLimitatoId))
+			.andExpect(status().isLocked());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "APPUNTAMENTO_UPDATE" })
+	void crossTenant_updateAppuntamento_e403_non423() throws Exception {
+		// Ownership precede la limitazione: il tenant estraneo riceve 403, non 423 (nessun leak dello stato).
+		mvc.perform(put("/api/appuntamenti/{id}", appuntamentoLimitatoId).contentType(MediaType.APPLICATION_JSON)
+				.content(APPUNTAMENTO_BODY))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_B, authorities = { "APPUNTAMENTO_DELETE" })
+	void crossTenant_deleteAppuntamento_e403_non423() throws Exception {
+		mvc.perform(delete("/api/appuntamenti/{id}", appuntamentoLimitatoId))
+			.andExpect(status().isForbidden());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_A, authorities = { "APPUNTAMENTO_UPDATE" })
+	void updateAppuntamento_diClienteNonLimitato_ok() throws Exception {
+		mvc.perform(put("/api/appuntamenti/{id}", appuntamentoNormaleId).contentType(MediaType.APPLICATION_JSON)
+				.content(APPUNTAMENTO_BODY))
+			.andExpect(status().isOk());
+	}
+
+	@Test
+	@WithMockUser(username = EMAIL_A, authorities = { "APPUNTAMENTO_DELETE" })
+	void deleteAppuntamento_manualeSenzaCliente_ok() throws Exception {
+		// Appuntamento senza cliente registrato: assertNonLimitato(null) è no-op → nessun 423 spurio.
+		mvc.perform(delete("/api/appuntamenti/{id}", appuntamentoManualeId))
+			.andExpect(status().isNoContent());
 	}
 }

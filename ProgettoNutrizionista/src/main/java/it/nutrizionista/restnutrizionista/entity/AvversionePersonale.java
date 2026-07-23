@@ -12,9 +12,15 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import jakarta.persistence.EntityListeners;
+import java.time.Instant;
+import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedDate;
+import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import it.nutrizionista.restnutrizionista.enums.LivelloAllerta;
 
 @Entity
+@EntityListeners(AuditingEntityListener.class)
 @Table(
     name = "avversione_personale_cliente",
     uniqueConstraints = {
@@ -45,6 +51,16 @@ public class AvversionePersonale {
 
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
+
+    // ── A6 — timestamp per il segnale di attività clinica (retention): l'add di un'avversione è
+    // attività clinica → createdAt recente mantiene vivo il cliente nella query di eleggibilità. ──
+    @CreatedDate
+    @Column(name = "created_at", nullable = false)
+    private Instant createdAt;
+
+    @LastModifiedDate
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
 
     // ── Costruttori Espliciti ──
     public AvversionePersonale() {
@@ -96,6 +112,22 @@ public class AvversionePersonale {
 
     public void setNote(String note) {
         this.note = note;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     @Override

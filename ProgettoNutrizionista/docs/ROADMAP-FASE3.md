@@ -21,7 +21,7 @@
   Wave 2: **A4/A9 FATTO**, **D1 FATTO**, **F-D1a FATTO (BE+FE, e2e #1-#4)**, **F-OWN-SWEEP FATTO (IDOR, chiude F-D1b;
   148 test verdi)**, **F-DEL-CASCADE FATTO (delete cliente sistematico + anonimizzazione EventoGamification + regression-guard)**,
   **A5.3 FATTO (limitazione del trattamento art. 18 — `LimitazioneTrattamentoValidator` → 423, 163 test verdi)**;
-  restano il finding derivato dual-FK `AlimentoAlternativo`, A6 retention (attende durate), D4, E2 cookie banner.
+  restano il finding derivato dual-FK `AlimentoAlternativo`, D4, E2 cookie banner (**A6 retention = meccanismo FATTO+verificato**; restano solo le durate col legale prima di attivare il purge).
 
 ## Criterio di ordinamento
 
@@ -38,7 +38,7 @@ in coda finché la decisione non c'è.
 | **Auth (target)** | **Opzione B — Keycloak**, *dopo* la scelta hosting | Nessun lavoro auth in-house ora. MFA/reset/lockout/audit-login/social arrivano dall'IdP. Fallback = Opzione A (Spring Session + Redis). Opzione C (JWT custom) scartata. |
 | **B1 `jwt.secret`** | **Rimandato** — si tiene il valore di test | Rotazione banale quando serve (meccanismo `.env` già pronto da QW-3). Invaliderà i 2 token di test → impatto nullo. |
 | **Hosting** | **Da decidere** — valutazione costi in corso | È il perno che sblocca A3/B7/A2/config-prod e l'hosting di Keycloak. Confronto sotto (§Hosting). |
-| **Retention** | **In attesa del titolare** | Servono le durate di conservazione per categoria di dato prima di scrivere codice (A6). |
+| **Retention** | **Meccanismo FATTO; restano le durate** | Il meccanismo A6 è implementato+verificato (purge OFF, `dry-run=true`); restano da confermare col titolare/legale le **durate** di conservazione per categoria prima di attivare il purge. |
 | **Legale** | **In attesa** | I *testi* (Privacy/ToS/consenso/DPA) richiedono supporto legale; il *meccanismo* consenso è codice, anticipabile (vedi Wave 2). |
 | **CI + Dependabot** | **Approvato — in Wave 1** | Guardrail anti-regressione; avrebbe intercettato da solo le high di Angular. |
 | **A7 — meccanismo audit** | **Hook espliciti a livello service** (non AOP) | Scelto in Wave 2 al posto della formulazione originale "AOP/@Aspect". Motivo: l'unico choke-point centralizzato (`OwnershipValidator.getOwned*`) ha granularità sbagliata (invocato ~90× per read/write/delete → doppio-log, nessuna `action` semantica); l'AOP realistico sarebbe comunque un'annotazione per-endpoint (dimenticabile come l'esplicito) ma con dipendenza `spring-aop`, ThreadLocal e pitfall di proxy. L'esplicito dà semantica corretta, zero dipendenze, sync/async per-evento. Copertura garantita da regola in CLAUDE.md + test. |
@@ -99,9 +99,13 @@ spuntare gli item in `COMPLIANCE-STATUS.md`.
   **Terminologia:** base giuridica account = **contratto (art. 6(1)(b))**, non "consenso" (presa visione/accettazione).
   *Rimandati a Wave 3:* i **testi legali** (Privacy/Termini/DPA) e il **gate FE al login** (redirect a pagina di
   ri-accettazione su `/pending`), da agganciare al bump `app.accettazione.versione.*`.
-- **A6 — Retention/anonimizzazione.** *Prerequisito: durate dal titolare.* Poi: campo "fine
-  trattamento/ultimo contatto", soft-delete/archiviazione, job `@Scheduled` di purge/anonimizzazione
-  (riuso pattern gamification esistente).
+- **✅ A6 — Retention/cancellazione (art. 5(1)(e)) — MECCANISMO FATTO + verificato.** `eliminaClienteCompleto`
+  canonico (condiviso art. 17/A6), campo `ultimoContattoClinico` + query di eleggibilità (12 `NOT EXISTS` sul
+  sotto-albero clinico + floor `createdAt`), `RetentionService` (dry-run / quarantena+grace / circuit-breaker /
+  rate-limit oldest-first / TOCTOU sotto lock / lock singola-esecuzione) + `RetentionScheduler` (04:00), audit
+  `RETENTION_QUARANTENA`/`RETENTION_PURGE`; migrazioni `021`+`022` eseguite; chiude anche **F-USER-DEL**. Verificato
+  adversarial (query/valvole/purge CLEAN + test mutation-killer F1/F2). ⚠️ `dry-run=true` di default → **purge OFF**
+  finché non si confermano le **durate col legale/titolare** (provvisorie: 10 anni).
 - **✅ A5.3 — Limitazione del trattamento (art. 18) — FATTO.** Stato `Cliente.trattamentoLimitato` (+data/motivo,
   migr. `017`); check centralizzato `LimitazioneTrattamentoValidator.assertNonLimitato(cliente)` chiamato **dopo**
   l'ownership in tutti i punti write/produce/send (~50 metodi in 16 service) → **`TrattamentoLimitatoException` HTTP 423**.
@@ -158,6 +162,12 @@ spuntare gli item in `COMPLIANCE-STATUS.md`.
 - **D4 — Accessibilità WCAG** sui form gestionali sotto-etichettati. Incrementale (P2).
 - **E2 residuo — Cookie/consent banner** (CMP + blocco pre-consenso per GSI/risorse terze). Parte
   tecnica ora; i testi in Wave 3.
+- **RBAC — consolidamento ruoli (deciso 2026-07-19, vedi `docs/RBAC-TARGET.md`).** Target: 2 ruoli
+  (`NUTRIZIONISTA` tenant-plane + `SUPER_ADMIN` control-plane), **ritiro di `ADMIN`**, catalogo globale
+  come concern di piattaforma (chiude P0 alla radice), accesso operatore ai dati art.9 solo via **break-glass
+  impersonation auditata**. Assorbe i finding **B3** (@PreAuthorize mancanti) e il gemello `create`-globale.
+  Task dedicato (auth/seed/account → rischio proprio); dipende dalla query DB sui permessi/ruoli. Piano =
+  agente implementazioni; verifica = Code. **P0** (IDOR `AlimentoBaseService`) va **prima**, forward-compatible.
 
 ---
 
@@ -194,7 +204,7 @@ billing/fatturazione (owner esterno).
 ## Decisioni aperte che sbloccano Wave 2/3
 
 1. **Hosting/deploy**: dove gira la produzione? *(sblocca TLS, backup, config-prod, Keycloak)*
-2. **Retention**: durate di conservazione per categoria di dato *(serve il titolare)*
+2. **Retention**: il **meccanismo A6 è FATTO+verificato** (purge OFF/dry-run); restano le **durate** di conservazione per categoria da confermare *(serve il titolare/legale)* prima di attivare il purge
 3. **Legale**: c'è supporto per i testi (Privacy/ToS/consenso/DPA) o si rimandano? *(il meccanismo
    consenso si costruisce comunque prima)*
 4. **Auth**: confermata Opzione B (Keycloak dopo hosting); rivalutare solo se il go-live rischia di

@@ -13,6 +13,9 @@ import it.nutrizionista.restnutrizionista.entity.TicketAssistenza;
 import it.nutrizionista.restnutrizionista.enums.StatoTicket;
 
 public interface TicketAssistenzaRepository extends JpaRepository<TicketAssistenza, Long> {
+
+    /** F-USER-DEL: cancellazione account — tutti i ticket del nutrizionista (dopo i loro messaggi). */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
     boolean existsByNutrizionista_IdAndStatoIn(Long nutrizionistaId, Collection<StatoTicket> stati);
     Optional<TicketAssistenza> findFirstByNutrizionista_IdAndStatoInOrderByCreatedAtDesc(
             Long nutrizionistaId, Collection<StatoTicket> stati);

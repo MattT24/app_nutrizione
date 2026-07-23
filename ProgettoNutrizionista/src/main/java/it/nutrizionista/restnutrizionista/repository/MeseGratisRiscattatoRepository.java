@@ -8,5 +8,8 @@ import it.nutrizionista.restnutrizionista.entity.MeseGratisRiscattato;
 @Repository
 public interface MeseGratisRiscattatoRepository extends JpaRepository<MeseGratisRiscattato, Long> {
 
+    /** F-USER-DEL: cancellazione account — mesi gratis riscattati del nutrizionista. */
+    void deleteByNutrizionista_Id(Long nutrizionistaId);
+
     long countByNutrizionista_Id(Long nutrizionistaId);
 }

@@ -71,7 +71,10 @@ public class Utente {
     @Column(name = "pdf_tema_colore", length = 16)
     private TemaPdf pdfTemaColore = TemaPdf.EMERALD;
 
-    @OneToMany(mappedBy = "nutrizionista", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    // A6 / F-USER-DEL: cascade RIMOSSO di proposito. La cancellazione dei clienti passa SOLO dal loop
+    // esplicito in UtenteService.deleteAccount → ClienteService.eliminaClienteCompleto (audit + PDF su disco
+    // + anonimizzazione gamification). Un cascade ORM qui li cancellerebbe "di nascosto" bypassando quel metodo.
+    @OneToMany(mappedBy = "nutrizionista", fetch = FetchType.LAZY)
     private List<Cliente> clienti;
 
     @OneToMany(mappedBy = "utente", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
