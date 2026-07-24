@@ -55,5 +55,16 @@ public interface UtenteRepository extends JpaRepository<Utente, Long> {
             "LEFT JOIN FETCH p.gruppo " +
             "WHERE u.email = :email")
      Optional<Utente> findWithAuthoritiesByEmail(@Param("email") String email);
- 
+
+    /** Come {@link #findWithAuthoritiesByEmail} ma per Keycloak subject (`sub`) — binario keycloak. */
+    @Query("SELECT u FROM Utente u " +
+            "LEFT JOIN FETCH u.ruolo r " +
+            "LEFT JOIN FETCH r.ruoloPermessi rp " +
+            "LEFT JOIN FETCH rp.permesso p " +
+            "LEFT JOIN FETCH p.gruppo " +
+            "WHERE u.subjectId = :subjectId")
+     Optional<Utente> findWithAuthoritiesBySubjectId(@Param("subjectId") String subjectId);
+
+    Optional<Utente> findBySubjectId(String subjectId);
+
 }

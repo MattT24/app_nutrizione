@@ -1,6 +1,5 @@
 package it.nutrizionista.restnutrizionista.security;
 
-import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,6 +15,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Autowired private UtenteRepository utenteRepository;
     @Autowired private CredenzialeDemoRepository credenzialeDemoRepository;
+    @Autowired private AuthorityBuilder authorityBuilder;
 
     // Sottoclasse per trasportare l'entità Utente
     public static class CustomUserDetails extends org.springframework.security.core.userdetails.User {
@@ -41,9 +41,8 @@ public class UserDetailsServiceImpl implements UserDetailsService {
             throw new UsernameNotFoundException("Credenziali non valide");
         }
 
-        var authorities = u.getRuolo().getRuoloPermessi().stream()
-                .map(rp -> new SimpleGrantedAuthority(rp.getPermesso().getAlias()))
-                .collect(Collectors.toList());
+        // Authorities dai permessi in DB, via il builder condiviso (stesso set nel binario Keycloak).
+        var authorities = authorityBuilder.build(u);
 
         return new CustomUserDetails(u, authorities);
     }

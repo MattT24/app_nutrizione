@@ -37,9 +37,13 @@
   Keycloak → authorities Spring. Vantaggio: **portabilità** su qualsiasi IdP OIDC, zero dipendenze keycloak-specifiche.
 - **BFF (Backend-for-Frontend):** la SPA **non** è un client OAuth2 "public" (nemmeno con PKCE). Il **BFF è il
   confidential client** che fa l'OAuth2 con Keycloak, **tiene access+refresh token lato server**, e rilascia alla
-  SPA un **cookie di sessione** `Secure` + `HttpOnly` + `SameSite=strict` (**senza attributo `Domain`** → legato
-  all'host). Ogni chiamata della SPA passa dal BFF (**same-origin**, es. `/bff/api/...`): il BFF valida il cookie,
-  allega il token, inoltra all'API. Elimina strutturalmente il token dal browser (anti-XSS) e chiude il CSRF.
+  SPA un **cookie di sessione** `Secure` + `HttpOnly` + `SameSite=Lax` (**senza attributo `Domain`** → legato
+  all'host). ⚠️ **`Lax`, non `Strict`** (verifica Code 2026-07-23): con `Strict` il cookie NON viene inviato sul
+  redirect-return top-level dall'IdP quando questo è su un registrable-domain diverso → `authorization_request_not_found`
+  (login rotto: green-in-dev localhost / broken-in-prod dominio distinto). Ogni chiamata della SPA passa dal BFF
+  (**same-origin**, es. `/bff/api/...`): il BFF valida il cookie, allega il token, inoltra all'API. Elimina
+  strutturalmente il token dal browser (anti-XSS); il **CSRF** è chiuso dal double-submit `XSRF-TOKEN` (`Lax` da
+  solo non basta).
 - **CSRF/Angular:** Angular imposta `X-XSRF-TOKEN` in automatico **solo su URL same-origin** (senza authority) →
   chiamare `/bff/...` (path relativo), non `http://host/bff/...`.
 - Riferimenti BFF: Spring Security OAuth2 + BFF (spring.io), Curity/OWASP SPA best-practices (BFF come strategia
@@ -62,11 +66,14 @@
    authority (solo-permessi) entrano nel claim**; ⚠️ **preservare** il discriminante-**via-ruolo** (mai
    `hasAuthority` sul ruolo) e la **risoluzione tenant server-side** (`CurrentUserService`, NON dal token).
 4. **Import utenti** — hash **BCrypt** esistenti importati (nessuna ri-registrazione); federazione **Google**
-   (mantenuto) + **Apple** (⚠️ **decisione: ora o post-cutover?** $99/yr Apple Developer + rotazione client-secret).
+   (mantenuto). **Apple: ✅ DECISO post-cutover** (utente 2026-07-23) — primo rilascio solo Google + email/password;
+   Apple federata dopo. **Costo verificato online (2026-07-23):** Apple Developer Program **$99/anno** (≈€99; Sign in
+   with Apple web **richiede** il programma a pagamento) + rotazione periodica del client-secret Apple (JWT firmato).
 5. **MFA/passkey, policy password, lockout, reset** (B2) — configurati nell'IdP.
-6. **Migrazione/rollout** — doppio-binario dietro **feature flag** + finestra convivenza + **rollback**. ⚠️
-   **Decisione: "Ponte" (cookie+refresh interim del §e) o DIRECT a Keycloak?** *(Steer: **direct** — la Ponte
-   serviva a IdP gated; ora no → evita macchinario usa-e-getta.)*
+6. **Migrazione/rollout** — ✅ **DECISO: DIRECT a Keycloak** (utente 2026-07-23): niente "Ponte" interim (serviva a
+   IdP gated, ora no → nessun macchinario usa-e-getta, coerente col vincolo cardine). Convivenza via **doppio-binario
+   dietro feature flag** + finestra + **rollback**; la Fase 0 (rotazione `jwt.secret`) resta l'unico intervento
+   sul JWT attuale.
 7. **GDPR / criteri di accettazione (carry-forward, VINCOLANTI):** (a) **break-glass/impersonation nativo Keycloak**
    (token-exchange + revoca) con **attribuzione A7 dell'operatore REALE**; (b) **audit dei login** (Keycloak events
    login/logout/MFA/lockout) → come confluiscono in A7 o log equivalente; (c) residenza **UE** dell'IdP; (d) impatto
@@ -88,9 +95,12 @@ Nessun commit/push; **niente custom-JWT nuovo**; build+test **foreground**; **di
 - **Cutover (Fase 3):** same-origin/HTTPS, CSP/HSTS, MFA/lockout attivi, A7 attribuisce l'operatore reale in
   impersonation, custom-JWT dismesso; verifica su Clever Cloud reale.
 
+## Decisioni prese (utente, 2026-07-23)
+- **DIRECT a Keycloak** — niente "Ponte" interim.
+- **Apple post-cutover** — primo rilascio con Google + email/password; Apple dopo.
+
 ## Decisioni aperte (l'implementatore le presenta nel piano con raccomandazione → l'utente decide al review)
-BFF topology (BE-as-BFF vs Gateway) · Apple ora/dopo · **Ponte vs direct** · dove sta l'IdP (sottodominio vs path) ·
-Fase 0 `jwt.secret` ora.
+BFF topology (BE-as-BFF vs Gateway) · dove sta l'IdP (sottodominio `auth.*` vs path) · timing Fase 0 (`jwt.secret`).
 
 ## Fonti ufficiali (verificate 2026-07-23)
 - Keycloak — keycloak.org/downloads (26.7.0), keycloak.org/docs, github.com/keycloak/keycloak-quickstarts,
