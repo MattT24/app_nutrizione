@@ -30,8 +30,11 @@ services:
     volumes:
       - uploads_loghi:/app/uploads/loghi
       - uploads_fascicoli:/app/uploads/fascicoli
-    # Rete di sicurezza ridondante con --disable-dev-shm-usage già passato a Chromium
-    # (ChromiumPdfRenderer): il default Docker di 64MB per /dev/shm fa crashare Chromium.
+    # Mitigazione OOM di Chromium raccomandata dalla doc Playwright ("Using --ipc=host is
+    # recommended when using Chromium. Without it, Chromium can run out of memory and crash").
+    ipc: host
+    # Ulteriore rete di sicurezza (ridondante con --disable-dev-shm-usage già passato a Chromium
+    # in ChromiumPdfRenderer): il default Docker di 64MB per /dev/shm fa crashare Chromium.
     shm_size: "1gb"
     restart: unless-stopped
 

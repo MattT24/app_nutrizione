@@ -1,7 +1,5 @@
 package it.nutrizionista.restnutrizionista.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -26,8 +24,6 @@ import jakarta.validation.Valid;
 @Service
 public class PlicometriaService {
 
-	private static final Logger log = LoggerFactory.getLogger(PlicometriaService.class);
-
 	@Autowired private PlicometriaCalcoliService calcoliService;
 
     @Autowired private PlicometriaRepository repo;
@@ -37,19 +33,7 @@ public class PlicometriaService {
     @Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
     @Autowired private PdfService pdfService;
     @Autowired private AuditService auditService;
-    @Autowired private FascicoloService fascicoloService;
-
-    /** Tiene allineato il PDF eventualmente già archiviato nel fascicolo con lo stato attuale della
-     *  plicometria (alla creazione lo archivia la prima volta, alla modifica lo rigenera). Best-effort:
-     *  un fallimento qui (es. pool di rendering PDF momentaneamente saturo) non deve impedire il
-     *  salvataggio della plicometria stessa, quindi l'eccezione viene loggata e non ripropagata. */
-    private void sincronizzaFascicolo(Long clienteId, Long plicometriaId) {
-        try {
-            fascicoloService.sincronizzaDocumento(clienteId, TipoDocumento.PLICOMETRIA, plicometriaId);
-        } catch (RuntimeException e) {
-            log.warn("Sincronizzazione automatica del fascicolo fallita per plicometria {}: {}", plicometriaId, e.getMessage(), e);
-        }
-    }
+    @Autowired private SchedaFascicoloSync fascicoloSync;
 
     /**
      * Export PDF della plicometria per il download diretto ({@code GET /api/plicometrie/{id}/pdf}).
@@ -90,7 +74,7 @@ public class PlicometriaService {
         // es: p.setPercentualeMassaGrassa(CalcoliService.calcola(p));
 
         Plicometria salvata = repo.save(p);
-        sincronizzaFascicolo(cliente.getId(), salvata.getId());
+        fascicoloSync.sincronizza(cliente.getId(), TipoDocumento.PLICOMETRIA, salvata.getId());
         return DtoMapper.toPlicometriaDto(salvata);
     }
 
@@ -116,7 +100,7 @@ public class PlicometriaService {
         p.setMassaMagraKg(res.massaMagraKg());
 
         Plicometria salvata = repo.save(p);
-        sincronizzaFascicolo(salvata.getCliente().getId(), salvata.getId());
+        fascicoloSync.sincronizza(salvata.getCliente().getId(), TipoDocumento.PLICOMETRIA, salvata.getId());
         return DtoMapper.toPlicometriaDto(salvata);
     }
 
@@ -127,7 +111,7 @@ public class PlicometriaService {
         Long clienteId = p.getCliente() != null ? p.getCliente().getId() : null;
 
         repo.deleteById(id);
-        if (clienteId != null) fascicoloService.eliminaDocumentoDiOrigine(clienteId, TipoDocumento.PLICOMETRIA, id);
+        if (clienteId != null) fascicoloSync.elimina(clienteId, TipoDocumento.PLICOMETRIA, id);
     }
 
     @Transactional(readOnly = true)

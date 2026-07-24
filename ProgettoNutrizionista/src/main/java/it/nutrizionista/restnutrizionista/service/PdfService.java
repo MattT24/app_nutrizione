@@ -45,20 +45,20 @@ public class PdfService {
     private final PlicometriaRepository plicometriaRepository;
     private final PlicometriaCalcoliService plicometriaCalcoli;
     private final OwnershipValidator ownershipValidator;
-    private final ChromiumPdfRenderer chromiumPdfRenderer;
+    private final PdfRenderer pdfRenderer;
 
     public PdfService(TemplateEngine templateEngine,
                       MisurazioneAntropometricaRepository misurazioneRepository,
                       PlicometriaRepository plicometriaRepository,
                       PlicometriaCalcoliService plicometriaCalcoli,
                       OwnershipValidator ownershipValidator,
-                      ChromiumPdfRenderer chromiumPdfRenderer) {
+                      PdfRenderer pdfRenderer) {
         this.templateEngine = templateEngine;
         this.misurazioneRepository = misurazioneRepository;
         this.plicometriaRepository = plicometriaRepository;
         this.plicometriaCalcoli = plicometriaCalcoli;
         this.ownershipValidator = ownershipValidator;
-        this.chromiumPdfRenderer = chromiumPdfRenderer;
+        this.pdfRenderer = pdfRenderer;
     }
 
     // ─────────────────────────────────────────── MISURAZIONI ───────────────────────────────────────────
@@ -533,6 +533,6 @@ public class PdfService {
 
     // package-private per consentire il test diretto del rendering senza DB
     byte[] renderPdf(String html) {
-        return chromiumPdfRenderer.render(html);
+        return pdfRenderer.render(html);
     }
 }

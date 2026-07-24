@@ -12,6 +12,7 @@ import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -41,7 +42,8 @@ import java.util.concurrent.atomic.AtomicInteger;
  * {@link ExecutorService} single-thread.
  */
 @Component
-public class ChromiumPdfRenderer {
+@ConditionalOnProperty(prefix = "pdf.renderer", name = "impl", havingValue = "chromium", matchIfMissing = true)
+public class ChromiumPdfRenderer implements PdfRenderer {
 
     private static final Logger log = LoggerFactory.getLogger(ChromiumPdfRenderer.class);
 
@@ -99,6 +101,7 @@ public class ChromiumPdfRenderer {
     }
 
     /** Genera il PDF a partire dall'HTML già renderizzato da Thymeleaf. Chiamata bloccante. */
+    @Override
     public byte[] render(String html) {
         return render(html, renderTimeoutMs);
     }
@@ -148,7 +151,10 @@ public class ChromiumPdfRenderer {
             // nessuna richiesta di rete deve mai lasciare il processo di rendering.
             ctx.route("**/*", route -> route.abort());
             Page page = ctx.newPage();
-            page.setContent(html, new Page.SetContentOptions().setWaitUntil(WaitUntilState.NETWORKIDLE));
+            // waitUntil=LOAD (non NETWORKIDLE, esplicitamente "DISCOURAGED" dalla doc Playwright): l'HTML
+            // è statico, generato da Thymeleaf, con JS disabilitato e rete abortita → non c'è traffico di
+            // rete da attendere e NETWORKIDLE aggiungerebbe ~500ms fissi di quiescenza per ogni render.
+            page.setContent(html, new Page.SetContentOptions().setWaitUntil(WaitUntilState.LOAD));
             return page.pdf(new Page.PdfOptions()
                     .setPrintBackground(true)
                     .setPreferCSSPageSize(true));
