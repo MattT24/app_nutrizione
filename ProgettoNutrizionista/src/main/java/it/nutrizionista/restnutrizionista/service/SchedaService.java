@@ -65,6 +65,7 @@ public class SchedaService {
 	@Autowired private GamificationService gamificationService;
 	@Autowired private PdfService pdfService;
 	@Autowired private AuditService auditService;
+	@Autowired private SchedaFascicoloSync fascicoloSync;
 
 	@Transactional(readOnly = true)
 	public long countAttive() {
@@ -128,6 +129,7 @@ public class SchedaService {
 		Scheda saved = repo.save(s);
 		gamificationService.registraEvento(cliente.getNutrizionista(), TipoEventoGamification.SCHEDA_CREATA, cliente.getId());
 		ensureDefaultMeals(saved);
+		fascicoloSync.sincronizza(cliente.getId(), saved.getId());
 		SchedaDto dto = DtoMapper.toSchedaDtoLight(saved);
 		dto.setPasti(repoPasto.findByScheda_IdOrderByOrdineVisualizzazioneAscIdAsc(saved.getId()).stream()
 				.map(DtoMapper::toPastoDtoLight)
@@ -187,7 +189,9 @@ public class SchedaService {
 		Scheda s = ownershipValidator.getOwnedScheda(form.getId());
 		limitazioneValidator.assertNonLimitato(s.getCliente()); // A5.3
 		DtoMapper.updateSchedaFromForm(s, form);
-		return DtoMapper.toSchedaDtoLight(repo.save(s));
+		Scheda saved = repo.save(s);
+		fascicoloSync.sincronizza(saved.getCliente().getId(), saved.getId());
+		return DtoMapper.toSchedaDtoLight(saved);
 	}
 
 	/**
@@ -203,6 +207,7 @@ public class SchedaService {
 		// Verifica ownership (senza caricare l'albero)
 		Scheda s = ownershipValidator.getOwnedScheda(id);
 		limitazioneValidator.assertNonLimitato(s.getCliente()); // A5.3
+		Long clienteId = s.getCliente() != null ? s.getCliente().getId() : null;
 
 		// 1. Elimina alternative (dipendono da alimenti_pasto E pasti)
 		repoAlternative.bulkDeleteBySchedaId(id);
@@ -214,6 +219,8 @@ public class SchedaService {
 		repoPasto.bulkDeleteBySchedaId(id);
 		// 5. Elimina la scheda
 		repo.deleteById(id);
+
+		fascicoloSync.elimina(clienteId, id);
 	}
 
 	@Transactional(readOnly = true)

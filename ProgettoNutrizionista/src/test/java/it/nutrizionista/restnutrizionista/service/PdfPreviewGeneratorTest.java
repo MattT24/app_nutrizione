@@ -5,9 +5,11 @@ import it.nutrizionista.restnutrizionista.enums.TemaPdf;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.ClassLoaderTemplateResolver;
 
@@ -33,19 +35,32 @@ class PdfPreviewGeneratorTest {
 
     private final PlicometriaCalcoliService calcoli = new PlicometriaCalcoliService();
     private PdfService pdf;
+    private ChromiumPdfRenderer renderer;
     private final StringBuilder html = new StringBuilder();
+
+    @AfterEach
+    void tearDown() {
+        if (renderer != null) renderer.stop();
+    }
 
     @Test
     void generaAnteprime() throws Exception {
         ClassLoaderTemplateResolver resolver = new ClassLoaderTemplateResolver();
         resolver.setPrefix("templates/");
         resolver.setSuffix(".html");
-        resolver.setTemplateMode(TemplateMode.XML);
+        resolver.setTemplateMode(TemplateMode.HTML);
         resolver.setCharacterEncoding("UTF-8");
-        TemplateEngine engine = new TemplateEngine();
+        // SpringTemplateEngine (SpEL), non TemplateEngine (OGNL): deve combaciare con il motore
+        // autoconfigurato da Spring Boot usato realmente in produzione. Sono comportamenti diversi
+        // sull'accesso a chiave assente di una Map con notazione a punto (es. ${k.hero}): OGNL
+        // restituisce null, SpEL lancia un'eccezione — un test con OGNL non avrebbe intercettato
+        // il bug reale di produzione che ha causato l'introduzione di questo commento.
+        TemplateEngine engine = new SpringTemplateEngine();
         engine.setTemplateResolver(resolver);
+        renderer = new ChromiumPdfRenderer(2, 5_000, 20_000);
+        renderer.start();
         // render* non usano repository né OwnershipValidator → null è sufficiente per questo generatore di anteprime
-        pdf = new PdfService(engine, null, null, calcoli, null);
+        pdf = new PdfService(engine, null, null, calcoli, null, renderer);
 
         Path dir = Paths.get(System.getProperty("pdf.preview.dir", "target/pdf-preview"));
         Files.createDirectories(dir);

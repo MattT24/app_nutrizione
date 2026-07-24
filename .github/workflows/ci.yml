@@ -8,6 +8,11 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # I test PDF (ChromiumPdfRendererTest, PdfPreviewGeneratorTest) richiedono Chromium: si esegue
+    # il job dentro l'immagine Playwright ufficiale, con lo STESSO tag pinnato nel Dockerfile — evita
+    # di installare i browser a mano e verifica implicitamente la coerenza versione-immagine.
+    container:
+      image: mcr.microsoft.com/playwright/java:v1.61.0-noble
     defaults:
       run:
         # Il progetto Maven vive in una sottocartella del repo.
@@ -24,3 +29,13 @@ jobs:
         run: |
           chmod +x ./mvnw
           ./mvnw -B test
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build production image
+        # Gate minimo ("l'immagine si costruisce"): un avvio applicativo end-to-end richiederebbe
+        # segreti/DB reali, rimandato a una fase successiva (vedi piano di produzione).
+        run: docker build -t app-nutrizione-backend:ci ./ProgettoNutrizionista
