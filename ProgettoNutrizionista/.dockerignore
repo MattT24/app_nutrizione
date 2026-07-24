@@ -1,0 +1,10 @@
+target/
+.git/
+.env
+.env.example
+uploads/
+bin/
+*.log
+.idea/
+.vscode/
+.mvn/wrapper/maven-wrapper.jar

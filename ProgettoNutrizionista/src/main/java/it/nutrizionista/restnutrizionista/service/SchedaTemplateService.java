@@ -80,6 +80,7 @@ public class SchedaTemplateService {
 	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
 	@Autowired private ClinicalEngineService clinicalEngineService;
 	@Autowired private AuditService auditService;
+	@Autowired private SchedaFascicoloSync fascicoloSync;
 
 	// ═══════════════════════════════════════════
 	// CRUD
@@ -217,6 +218,7 @@ public class SchedaTemplateService {
 		if (!isMerge) { // REPLACE: sostituisce l'intera scheda
 			scheda.getPasti().clear();
 			clonaPastiSuScheda(st, scheda, false, Map.of(), daSaltare);
+			fascicoloSync.sincronizza(cliente.getId(), scheda.getId());
 			return new ApplicaTemplateResultDto(true, DtoMapper.toSchedaDto(scheda), List.of());
 		}
 
@@ -238,6 +240,7 @@ public class SchedaTemplateService {
 		}
 
 		clonaPastiSuScheda(st, scheda, true, risoluzioni, daSaltare);
+		fascicoloSync.sincronizza(cliente.getId(), scheda.getId());
 		return new ApplicaTemplateResultDto(true, DtoMapper.toSchedaDto(scheda), List.of());
 	}
 

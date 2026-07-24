@@ -1,8 +1,5 @@
 package it.nutrizionista.restnutrizionista.service;
 
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import com.openhtmltopdf.outputdevice.helper.BaseRendererBuilder;
-import com.openhtmltopdf.svgsupport.BatikSVGDrawer;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
@@ -14,15 +11,14 @@ import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import it.nutrizionista.restnutrizionista.entity.TipoScheda;
 import it.nutrizionista.restnutrizionista.enums.TemaPdf;
+import it.nutrizionista.restnutrizionista.exception.UnprocessableEntityException;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
 import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.io.ByteArrayOutputStream;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -37,22 +33,32 @@ public class PdfService {
 
     private static final DateTimeFormatter ORA = DateTimeFormatter.ofPattern("HH:mm");
 
+    // Guardrail sulla dimensione del documento: senza limite, una scheda con pasti/alimenti
+    // illimitati genererebbe un rendering Chromium molto pesante (e un PDF enorme) su un endpoint
+    // sincrono senza retry lato server. Margine ampio sopra l'uso realistico (7 giorni × 6 pasti/
+    // giorno; 400 alimenti totali) per non intralciare casi legittimi.
+    private static final int MAX_PASTI_PER_SCHEDA = 42;
+    private static final int MAX_ALIMENTI_TOTALI_SCHEDA = 400;
+
     private final TemplateEngine templateEngine;
     private final MisurazioneAntropometricaRepository misurazioneRepository;
     private final PlicometriaRepository plicometriaRepository;
     private final PlicometriaCalcoliService plicometriaCalcoli;
     private final OwnershipValidator ownershipValidator;
+    private final ChromiumPdfRenderer chromiumPdfRenderer;
 
-    public PdfService(@Qualifier("pdfTemplateEngine") TemplateEngine templateEngine,
+    public PdfService(TemplateEngine templateEngine,
                       MisurazioneAntropometricaRepository misurazioneRepository,
                       PlicometriaRepository plicometriaRepository,
                       PlicometriaCalcoliService plicometriaCalcoli,
-                      OwnershipValidator ownershipValidator) {
+                      OwnershipValidator ownershipValidator,
+                      ChromiumPdfRenderer chromiumPdfRenderer) {
         this.templateEngine = templateEngine;
         this.misurazioneRepository = misurazioneRepository;
         this.plicometriaRepository = plicometriaRepository;
         this.plicometriaCalcoli = plicometriaCalcoli;
         this.ownershipValidator = ownershipValidator;
+        this.chromiumPdfRenderer = chromiumPdfRenderer;
     }
 
     // ─────────────────────────────────────────── MISURAZIONI ───────────────────────────────────────────
@@ -108,12 +114,14 @@ public class PdfService {
         context.setVariable("rilevate", rilevate);
         context.setVariable("totaleMisure", MISURE.size());
 
-        // KPI = le prime 3 misure (Peso, Vita, Fianchi)
+        // KPI = le prime 3 misure (Peso, Vita, Fianchi); la prima (Peso) è la card "hero" del layout
         List<Map<String, Object>> kpi = new ArrayList<>();
         for (int i = 0; i < 3; i++) {
             MisuraDef def = MISURE.get(i);
-            kpi.add(rigaConfronto(def.label(), def.icon(), def.unita(),
-                    def.get().apply(corrente), precedente != null ? def.get().apply(precedente) : null));
+            Map<String, Object> row = rigaConfronto(def.label(), def.icon(), def.unita(),
+                    def.get().apply(corrente), precedente != null ? def.get().apply(precedente) : null);
+            if (i == 0) row.put("hero", true);
+            kpi.add(row);
         }
         context.setVariable("kpi", kpi);
 
@@ -223,7 +231,27 @@ public class PdfService {
     public byte[] generaPdfScheda(Long id, boolean mostraMacro) {
         Scheda scheda = ownershipValidator.getOwnedScheda(id);
         forzaFetchScheda(scheda);
+        assertDimensioneRenderizzabile(scheda);
         return renderScheda(scheda, mostraMacro);
+    }
+
+    /** Guardrail contro schede abnormi (vedi MAX_PASTI_PER_SCHEDA/MAX_ALIMENTI_TOTALI_SCHEDA):
+     *  copre tutti i percorsi di ingresso (CRUD pasto, copy-bulk, import) con un solo controllo,
+     *  qui perché il grafo pasti/alimenti è già interamente caricato da forzaFetchScheda.
+     *  Package-private per consentire il test diretto senza DB. */
+    void assertDimensioneRenderizzabile(Scheda scheda) {
+        int numPasti = scheda.getPasti().size();
+        if (numPasti > MAX_PASTI_PER_SCHEDA) {
+            throw new UnprocessableEntityException(
+                    "La scheda ha troppi pasti (%d, massimo %d) per generare il PDF".formatted(numPasti, MAX_PASTI_PER_SCHEDA));
+        }
+        int totAlimenti = scheda.getPasti().stream()
+                .mapToInt(p -> p.getAlimentiPasto() != null ? p.getAlimentiPasto().size() : 0)
+                .sum();
+        if (totAlimenti > MAX_ALIMENTI_TOTALI_SCHEDA) {
+            throw new UnprocessableEntityException(
+                    "La scheda ha troppi alimenti (%d, massimo %d) per generare il PDF".formatted(totAlimenti, MAX_ALIMENTI_TOTALI_SCHEDA));
+        }
     }
 
     private void forzaFetchScheda(Scheda scheda) {
@@ -414,6 +442,11 @@ public class PdfService {
         r.put("hasDelta", cur != null && prev != null);
         r.put("delta", PdfFormat.delta(cur, prev, unita));
         r.put("deltaDir", PdfFormat.deltaDir(cur, prev));
+        // Sempre presente (anche a false): con Thymeleaf+SpEL (motore usato in produzione, a
+        // differenza del vecchio motore OGNL) l'accesso a una chiave ASSENTE da una Map con
+        // notazione a punto (es. ${k.hero}) lancia un'eccezione, non restituisce null come
+        // farebbe un semplice Map.get(...) — a differenza di un valore null su una chiave presente.
+        r.put("hero", false);
         return r;
     }
 
@@ -432,6 +465,7 @@ public class PdfService {
         t.put("unita", unita);
         t.put("delta", PdfFormat.delta(cur, prev, unita));
         String dir = PdfFormat.deltaDir(cur, prev);
+        t.put("dir", dir);
         // In SVG y cresce verso il basso: valore che scende → linea discendente
         double y1 = "down".equals(dir) ? 22 : "up".equals(dir) ? 75 : 48;
         double y2 = "down".equals(dir) ? 75 : "up".equals(dir) ? 22 : 48;
@@ -444,6 +478,23 @@ public class PdfService {
 
     // ─────────────────────────────────────────── HEADER + RENDER ───────────────────────────────────────────
 
+    /** Logo Statera di brand (fallback quando il nutrizionista non ha caricato un proprio logo),
+     *  caricato una sola volta dal classpath e riusato per ogni render (asset statico). */
+    private static final String STATERA_LOGO_BASE64 = loadStaticLogoBase64();
+
+    private static String loadStaticLogoBase64() {
+        try (var in = PdfService.class.getResourceAsStream("/branding/statera-logo.png")) {
+            if (in == null) {
+                System.err.println("PDF Service: logo Statera di default non trovato nel classpath (/branding/statera-logo.png)");
+                return null;
+            }
+            return "data:image/png;base64," + java.util.Base64.getEncoder().encodeToString(in.readAllBytes());
+        } catch (Exception e) {
+            System.err.println("PDF Service: errore caricando il logo Statera di default: " + e.getMessage());
+            return null;
+        }
+    }
+
     private void addProfessionalHeaderData(Context context, Cliente cliente) {
         if (cliente.getNutrizionista() != null) {
             var nutrizionista = cliente.getNutrizionista();
@@ -453,6 +504,9 @@ public class PdfService {
             // Tema colore (preferenza del nutrizionista): il template applica la classe 't-red' se ROSSO
             context.setVariable("temaRosso", nutrizionista.getPdfTemaColore() == TemaPdf.ROSSO);
 
+            // Logo del nutrizionista se caricato; altrimenti (o se il file non è più raggiungibile
+            // sul disco) il logo Statera di brand, non la sola icona a bilancia del fragment mast().
+            String logoBase64 = STATERA_LOGO_BASE64;
             if (nutrizionista.getFilePathLogo() != null && !nutrizionista.getFilePathLogo().isEmpty()) {
                 try {
                     String logoPathStr = nutrizionista.getFilePathLogo();
@@ -465,7 +519,7 @@ public class PdfService {
                         String base64 = java.util.Base64.getEncoder().encodeToString(logoBytes);
                         String mimeType = java.nio.file.Files.probeContentType(logoPath);
                         if (mimeType == null) mimeType = "image/png";
-                        context.setVariable("logoBase64", "data:" + mimeType + ";base64," + base64);
+                        logoBase64 = "data:" + mimeType + ";base64," + base64;
                     } else {
                         System.err.println("PDF Service: Logo non trovato al percorso: " + logoPath.toAbsolutePath());
                     }
@@ -473,34 +527,12 @@ public class PdfService {
                     System.err.println("PDF Service: Errore durante il caricamento del logo: " + e.getMessage());
                 }
             }
+            if (logoBase64 != null) context.setVariable("logoBase64", logoBase64);
         }
     }
 
-    // package-private per consentire il test diretto del rendering (font embedding) senza DB
+    // package-private per consentire il test diretto del rendering senza DB
     byte[] renderPdf(String html) {
-        try (ByteArrayOutputStream os = new ByteArrayOutputStream()) {
-            PdfRendererBuilder builder = new PdfRendererBuilder();
-            registerFonts(builder);
-            builder.useSVGDrawer(new BatikSVGDrawer());
-            builder.withHtmlContent(html, "");
-            builder.toStream(os);
-            builder.run();
-            return os.toByteArray();
-        } catch (Exception e) {
-            throw new RuntimeException("Errore durante la generazione del PDF", e);
-        }
-    }
-
-    /** Registra i pesi del font brand (Inter) dal classpath, così il PDF non dipende dai font di sistema. */
-    private void registerFonts(PdfRendererBuilder builder) {
-        registerFont(builder, "/fonts/Inter-Regular.ttf", 400);
-        registerFont(builder, "/fonts/Inter-Medium.ttf", 500);
-        registerFont(builder, "/fonts/Inter-SemiBold.ttf", 600);
-        registerFont(builder, "/fonts/Inter-Bold.ttf", 700);
-    }
-
-    private void registerFont(PdfRendererBuilder builder, String resourcePath, int weight) {
-        builder.useFont(() -> PdfService.class.getResourceAsStream(resourcePath),
-                "Inter", weight, BaseRendererBuilder.FontStyle.NORMAL, true);
+        return chromiumPdfRenderer.render(html);
     }
 }

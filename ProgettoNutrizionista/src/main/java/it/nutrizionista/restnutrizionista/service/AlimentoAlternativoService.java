@@ -48,10 +48,22 @@ public class AlimentoAlternativoService {
     @Autowired
     private AlternativeSuggestionCalculator suggestionCalculator;
 
+    @Autowired
+    private SchedaFascicoloSync fascicoloSync;
+
     /** A5.3 — naviga dall'alimento-pasto al cliente per il check limitazione (può essere null in test). */
     private it.nutrizionista.restnutrizionista.entity.Cliente clienteOf(AlimentoPasto ap) {
         return (ap != null && ap.getPasto() != null && ap.getPasto().getScheda() != null)
                 ? ap.getPasto().getScheda().getCliente() : null;
+    }
+
+    /** Sincronizza il fascicolo per la scheda a cui appartiene questo alimento-pasto (no-op se il
+     *  grafo non è navigabile, es. in test senza scheda/cliente valorizzati). */
+    private void sincronizzaFascicolo(AlimentoPasto ap) {
+        if (ap == null || ap.getPasto() == null || ap.getPasto().getScheda() == null) return;
+        var scheda = ap.getPasto().getScheda();
+        Long clienteId = scheda.getCliente() != null ? scheda.getCliente().getId() : null;
+        fascicoloSync.sincronizza(clienteId, scheda.getId());
     }
 
     /**
@@ -102,7 +114,9 @@ public class AlimentoAlternativoService {
         entity.setManual(manual);
         entity.setNote(form.getNote());
 
-        return DtoMapper.toAlimentoAlternativoDto(repo.save(entity));
+        AlimentoAlternativo salvata = repo.save(entity);
+        sincronizzaFascicolo(alimentoPasto);
+        return DtoMapper.toAlimentoAlternativoDto(salvata);
     }
 
     /**
@@ -138,7 +152,9 @@ public class AlimentoAlternativoService {
                     entity.getAlimentoAlternativo(), entity.getMode()));
         }
 
-        return DtoMapper.toAlimentoAlternativoDto(repo.save(entity));
+        AlimentoAlternativo salvata = repo.save(entity);
+        sincronizzaFascicolo(salvata.getAlimentoPasto());
+        return DtoMapper.toAlimentoAlternativoDto(salvata);
     }
 
     /**
@@ -149,7 +165,9 @@ public class AlimentoAlternativoService {
         // A7-DENIED: era repo.findById... diretto (403 senza traccia d'accesso) → ora via OwnershipValidator (audit)
         AlimentoAlternativo entity = ownershipValidator.getOwnedAlimentoAlternativo(id);
         limitazioneValidator.assertNonLimitato(clienteOf(entity.getAlimentoPasto())); // A5.3
+        AlimentoPasto alimentoPasto = entity.getAlimentoPasto();
         repo.delete(entity);
+        sincronizzaFascicolo(alimentoPasto);
     }
 
     /**
@@ -234,7 +252,9 @@ public class AlimentoAlternativoService {
         entity.setManual(manual);
         entity.setNote(body.getNote());
 
-        return DtoMapper.toAlimentoAlternativoDto(repo.save(entity));
+        AlimentoAlternativo salvata = repo.save(entity);
+        sincronizzaFascicolo(alimentoPasto);
+        return DtoMapper.toAlimentoAlternativoDto(salvata);
     }
 
     @Transactional
@@ -270,7 +290,9 @@ public class AlimentoAlternativoService {
                     entity.getAlimentoAlternativo(), entity.getMode()));
         }
 
-        return DtoMapper.toAlimentoAlternativoDto(repo.save(entity));
+        AlimentoAlternativo salvata = repo.save(entity);
+        sincronizzaFascicolo(ownedAp);
+        return DtoMapper.toAlimentoAlternativoDto(salvata);
     }
 
     @Transactional
@@ -285,6 +307,7 @@ public class AlimentoAlternativoService {
         }
 
         repo.delete(entity);
+        sincronizzaFascicolo(ownedAp);
     }
 
     @Transactional
@@ -317,7 +340,9 @@ public class AlimentoAlternativoService {
         AlimentoAlternativo alt = ownershipValidator.getOwnedAlimentoAlternativo(alternativaId); // A7-DENIED
         limitazioneValidator.assertNonLimitato(clienteOf(alt.getAlimentoPasto())); // A5.3
         alt.setNomeCustom(nome);
-        return DtoMapper.toAlimentoAlternativoDto(repo.save(alt));
+        AlimentoAlternativo salvata = repo.save(alt);
+        sincronizzaFascicolo(salvata.getAlimentoPasto());
+        return DtoMapper.toAlimentoAlternativoDto(salvata);
     }
 
     @Transactional
@@ -325,6 +350,8 @@ public class AlimentoAlternativoService {
         AlimentoAlternativo alt = ownershipValidator.getOwnedAlimentoAlternativo(alternativaId); // A7-DENIED
         limitazioneValidator.assertNonLimitato(clienteOf(alt.getAlimentoPasto())); // A5.3
         alt.setNomeCustom(null);
-        return DtoMapper.toAlimentoAlternativoDto(repo.save(alt));
+        AlimentoAlternativo salvata = repo.save(alt);
+        sincronizzaFascicolo(salvata.getAlimentoPasto());
+        return DtoMapper.toAlimentoAlternativoDto(salvata);
     }
 }

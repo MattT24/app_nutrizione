@@ -35,6 +35,7 @@ public class PastoService {
 	@Autowired private OwnershipValidator ownershipValidator;
 	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
 	@Autowired private ClinicalEngineService clinicalEngineService;
+	@Autowired private SchedaFascicoloSync fascicoloSync;
 
 	@Transactional
     public PastoDto create(@Valid PastoFormDto form) {
@@ -73,7 +74,9 @@ public class PastoService {
         	int next = (last != null && last.getOrdineVisualizzazione() != null) ? last.getOrdineVisualizzazione() + 1 : 10;
         	p.setOrdineVisualizzazione(next);
         }
-        return DtoMapper.toPastoDtoLight(repo.save(p));
+        Pasto salvato = repo.save(p);
+        fascicoloSync.sincronizza(scheda.getCliente().getId(), scheda.getId());
+        return DtoMapper.toPastoDtoLight(salvato);
     }
 
 
@@ -104,9 +107,11 @@ public class PastoService {
             }
         }
 
-        return DtoMapper.toPastoDtoLight(repo.save(p));
+        Pasto salvato = repo.save(p);
+        fascicoloSync.sincronizza(p.getScheda().getCliente().getId(), p.getScheda().getId());
+        return DtoMapper.toPastoDtoLight(salvato);
     }
-	
+
 	@Transactional
 	public PastoDto updateOrari(Long pastoId, java.time.LocalTime orarioInizio, java.time.LocalTime orarioFine) {
 		if (pastoId == null) throw new BadRequestException("Id Pasto obbligatorio");
@@ -115,7 +120,9 @@ public class PastoService {
 		validateOrari(orarioInizio, orarioFine);
 		p.setOrarioInizio(orarioInizio);
 		p.setOrarioFine(orarioFine);
-		return DtoMapper.toPastoDtoLight(repo.save(p));
+		Pasto salvato = repo.save(p);
+		fascicoloSync.sincronizza(p.getScheda().getCliente().getId(), p.getScheda().getId());
+		return DtoMapper.toPastoDtoLight(salvato);
 	}
 	
 	private void validateOrari(java.time.LocalTime orarioInizio, java.time.LocalTime orarioFine) {
@@ -134,7 +141,10 @@ public class PastoService {
 		if (Boolean.FALSE.equals(p.getEliminabile())) {
 			throw new ForbiddenException("NON AUTORIZZATO: non puoi eliminare un pasto default");
 		}
+		Long clienteId = p.getScheda().getCliente().getId();
+		Long schedaId = p.getScheda().getId();
 		repo.delete(p);
+		fascicoloSync.sincronizza(clienteId, schedaId);
 	}
 
 	/**
@@ -145,12 +155,15 @@ public class PastoService {
 	public void reorder(@Valid ReorderDto dto) {
 		List<Long> ids = dto.ids();
 		if (ids == null || ids.isEmpty()) return;
+		java.util.Map<Long, Long> schedaIdPerCliente = new java.util.LinkedHashMap<>();
 		for (int i = 0; i < ids.size(); i++) {
 			Pasto p = ownershipValidator.getOwnedPasto(ids.get(i));
 			limitazioneValidator.assertNonLimitato(p.getScheda().getCliente()); // A5.3
 			p.setOrdineVisualizzazione(i);
 			repo.save(p);
+			schedaIdPerCliente.put(p.getScheda().getId(), p.getScheda().getCliente().getId());
 		}
+		schedaIdPerCliente.forEach((schedaId, clienteId) -> fascicoloSync.sincronizza(clienteId, schedaId));
 	}
 
 	@Transactional(readOnly = true)

@@ -36,6 +36,7 @@ public class AlimentoPastoService {
     @Autowired private OwnershipValidator ownershipValidator;
     @Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
     @Autowired private AuditService auditService;
+    @Autowired private SchedaFascicoloSync fascicoloSync;
 
     @Transactional
     public PastoDto associaAlimento(AlimentoPastoRequest req) {
@@ -95,6 +96,7 @@ public class AlimentoPastoService {
         Pasto refreshed = repoPasto.findByIdWithFullTree(pastoId)
                 .orElseThrow(() -> new NotFoundException("Pasto non trovato dopo salvataggio"));
 
+        fascicoloSync.sincronizza(clienteId, schedaId);
         return DtoMapper.toPastoDtoWithAssoc(refreshed);
     }
     
@@ -116,7 +118,8 @@ public class AlimentoPastoService {
         
         // Salva per forzare il flush al DB
         repoPasto.save(p);
-        
+
+        fascicoloSync.sincronizza(owned.getScheda().getCliente().getId(), owned.getScheda().getId());
         return DtoMapper.toPastoDtoWithAssoc(p);
     }
     
@@ -151,11 +154,12 @@ public class AlimentoPastoService {
         repo.save(ap);
 
         alimentoAlternativoService.recomputeAutoAlternativesForAlimentoPasto(ap);
-        
+
         // Ri-carica con albero completo per il mapper
         Pasto refreshed = repoPasto.findByIdWithFullTree(ap.getPasto().getId())
                 .orElseThrow(() -> new NotFoundException("Pasto non trovato dopo aggiornamento"));
-        
+
+        fascicoloSync.sincronizza(ownedPasto.getScheda().getCliente().getId(), ownedPasto.getScheda().getId());
         return DtoMapper.toPastoDtoWithAssoc(refreshed);
     }
 }
