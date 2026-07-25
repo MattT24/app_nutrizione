@@ -1,10 +1,15 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.multipart.MultipartFile;
 
 import it.nutrizionista.restnutrizionista.dto.LogoRequestDto;
@@ -21,6 +26,7 @@ import it.nutrizionista.restnutrizionista.enums.AuditAction;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
+import it.nutrizionista.restnutrizionista.security.KeycloakAdminClient;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.CredenzialeDemoRepository;
 import it.nutrizionista.restnutrizionista.repository.RuoloRepository;
@@ -82,6 +88,12 @@ public class UtenteService {
     @Autowired private AccettazioneDocumentoRepository accettazioneDocumentoRepository;
     @Autowired private AlimentoBaseRepository alimentoBaseRepository;
 
+    // I10 — erasure cross-store art.17: presente SOLO in keycloak-mode (bean gated in KeycloakAdminConfig).
+    // In legacy l'ObjectProvider è vuoto → getIfAvailable()==null → nessuna chiamata (zero regressioni).
+    @Autowired private ObjectProvider<KeycloakAdminClient> keycloakAdminClient;
+
+    private static final Logger log = LoggerFactory.getLogger(UtenteService.class);
+
     /*lolo*/
 
     @Transactional
@@ -132,11 +144,43 @@ public class UtenteService {
      */
     @Transactional
     public void deleteAccount(Utente u) {
+        // I10 — cattura l'erasure key Keycloak PRIMA del delete (dopo, u è rimosso/detached).
+        final String subjectId = u.getSubjectId();
         for (Cliente c : clienteRepository.findByNutrizionista_Id(u.getId())) {
             clienteService.eliminaClienteCompleto(c, AuditAction.DELETE, null);
         }
         eliminaFigliNonCascadeUtente(u.getId());
         repo.delete(u);
+        scheduleKeycloakUserDeletion(subjectId);
+    }
+
+    /**
+     * I10 — erasure CROSS-STORE (art. 17): dopo il COMMIT del delete DB, cancella l'identità dell'utente su
+     * Keycloak (Admin API). <b>DB-first</b>: l'hook parte SOLO se la tx DB committa (modello
+     * {@code FascicoloService.unlinkFilesDopoCommit}). <b>Gated keycloak-mode</b> (bean assente in legacy → no-op)
+     * <b>+ {@code subjectId != null}</b> (utente mai loggato via IdP → nessuna identità da cancellare).
+     * <b>Best-effort</b>: un errore KC NON fa fallire l'erasure (il DB è già pulito; il reconcile sweep — I10
+     * Fase 2 — recupera l'eventuale identità orfana).
+     */
+    private void scheduleKeycloakUserDeletion(String subjectId) {
+        KeycloakAdminClient client = keycloakAdminClient.getIfAvailable();
+        if (client == null || subjectId == null) return; // legacy-mode oppure utente senza identità IdP
+        Runnable kcDelete = () -> {
+            try {
+                client.deleteUser(subjectId);
+            } catch (Exception e) {
+                // Best-effort: l'erasure DB è già committata → l'obbligo art.17 sul nostro store è assolto.
+                log.warn("I10: cancellazione identità Keycloak fallita (sub={}) — recupero al reconcile sweep. Causa: {}",
+                        subjectId, e.getMessage());
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() { kcDelete.run(); }
+            });
+        } else {
+            kcDelete.run(); // nessuna tx attiva (fallback, come FascicoloService) → esegui subito
+        }
     }
 
     /**

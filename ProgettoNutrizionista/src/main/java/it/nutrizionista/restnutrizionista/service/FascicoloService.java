@@ -8,6 +8,7 @@ import it.nutrizionista.restnutrizionista.entity.DocumentoFascicolo;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
+import it.nutrizionista.restnutrizionista.entity.TipoDocumento;
 import it.nutrizionista.restnutrizionista.enums.AuditAction;
 import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
 import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
@@ -67,53 +68,97 @@ public class FascicoloService {
         // A5.3: la CREAZIONE di un nuovo documento (produzione+persistenza) è bloccata se il cliente è limitato.
         limitazioneValidator.assertNonLimitato(cliente);
 
-        byte[] pdfBytes;
-        String titoloBase = "";
+        GeneratedPdf generato = generaPdf(request.getTipoDocumento(), request.getRiferimentoId());
 
-        switch (request.getTipoDocumento()) {
-            case SCHEDA:
-                Scheda scheda = ownershipValidator.getOwnedScheda(request.getRiferimentoId());
-                pdfBytes = pdfService.generaPdfScheda(scheda.getId());
-                titoloBase = "Scheda " + scheda.getNome();
-                break;
-            case MISURAZIONE:
-                MisurazioneAntropometrica misurazione = ownershipValidator.getOwnedMisurazioneAntropometrica(request.getRiferimentoId());
-                pdfBytes = pdfService.generaPdfMisurazione(misurazione.getId());
-                titoloBase = "Misurazione del " + misurazione.getDataMisurazione().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                break;
-            case PLICOMETRIA:
-                Plicometria plicometria = ownershipValidator.getOwnedPlicometria(request.getRiferimentoId());
-                pdfBytes = pdfService.generaPdfPlicometria(plicometria.getId());
-                titoloBase = "Plicometria del " + plicometria.getDataMisurazione().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-                break;
-            default:
-                throw new IllegalArgumentException("Tipo documento non supportato");
-        }
-
-        // Salva su disco
         try {
-            Path clientDir = Paths.get(uploadDir, cliente.getId().toString());
-            if (!Files.exists(clientDir)) {
-                Files.createDirectories(clientDir);
-            }
-
-            String filename = UUID.randomUUID().toString() + ".pdf";
-            Path filepath = clientDir.resolve(filename);
-            Files.write(filepath, pdfBytes);
+            Path filepath = scriviSuDisco(cliente.getId(), generato.pdfBytes());
 
             DocumentoFascicolo doc = new DocumentoFascicolo();
             doc.setCliente(cliente);
-            doc.setTitolo(titoloBase);
+            doc.setTitolo(generato.titolo());
             doc.setTipoDocumento(request.getTipoDocumento());
             doc.setRiferimentoId(request.getRiferimentoId());
             doc.setPercorsoFile(filepath.toString());
-            
+
             doc = fascicoloRepository.save(doc);
             return toDto(doc);
 
         } catch (IOException e) {
             throw new RuntimeException("Errore durante il salvataggio fisico del documento", e);
         }
+    }
+
+    /**
+     * Sincronizza il documento fascicolo con lo stato ATTUALE della fonte (misurazione/plicometria/
+     * scheda): lo crea se non è mai stato archiviato, altrimenti rigenera il PDF e sostituisce il
+     * file su disco (il vecchio file viene rimosso dopo il commit), così l'archivio riflette sempre
+     * l'ultima modifica. Chiamato dai service di dominio dopo ogni update del contenuto sorgente.
+     */
+    public void sincronizzaDocumento(Long clienteId, TipoDocumento tipoDocumento, Long riferimentoId) {
+        var esistente = fascicoloRepository.findByClienteIdAndTipoDocumentoAndRiferimentoId(
+                clienteId, tipoDocumento, riferimentoId);
+        if (esistente.isEmpty()) {
+            // Mai archiviato finora (es. il salvataggio automatico alla creazione era fallito): crealo ora.
+            SalvaDocumentoRequest req = new SalvaDocumentoRequest();
+            req.setClienteId(clienteId);
+            req.setTipoDocumento(tipoDocumento);
+            req.setRiferimentoId(riferimentoId);
+            salvaDocumento(req);
+            return;
+        }
+
+        Cliente cliente = ownershipValidator.getOwnedCliente(clienteId);
+        limitazioneValidator.assertNonLimitato(cliente); // A5.3: nessuna nuova produzione se limitato
+
+        DocumentoFascicolo doc = esistente.get();
+        GeneratedPdf generato = generaPdf(tipoDocumento, riferimentoId);
+        String vecchioPercorso = doc.getPercorsoFile();
+
+        try {
+            Path filepath = scriviSuDisco(clienteId, generato.pdfBytes());
+            doc.setTitolo(generato.titolo());
+            doc.setPercorsoFile(filepath.toString());
+            fascicoloRepository.save(doc);
+            if (vecchioPercorso != null && !vecchioPercorso.equals(filepath.toString())) {
+                unlinkFilesDopoCommit(List.of(vecchioPercorso));
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Errore durante l'aggiornamento fisico del documento", e);
+        }
+    }
+
+    /** Genera il PDF aggiornato dalla fonte + il titolo da assegnare al documento fascicolo. */
+    private GeneratedPdf generaPdf(TipoDocumento tipoDocumento, Long riferimentoId) {
+        switch (tipoDocumento) {
+            case SCHEDA:
+                Scheda scheda = ownershipValidator.getOwnedScheda(riferimentoId);
+                return new GeneratedPdf("Scheda " + scheda.getNome(), pdfService.generaPdfScheda(scheda.getId()));
+            case MISURAZIONE:
+                MisurazioneAntropometrica misurazione = ownershipValidator.getOwnedMisurazioneAntropometrica(riferimentoId);
+                return new GeneratedPdf(
+                        "Misurazione del " + misurazione.getDataMisurazione().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                        pdfService.generaPdfMisurazione(misurazione.getId()));
+            case PLICOMETRIA:
+                Plicometria plicometria = ownershipValidator.getOwnedPlicometria(riferimentoId);
+                return new GeneratedPdf(
+                        "Plicometria del " + plicometria.getDataMisurazione().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                        pdfService.generaPdfPlicometria(plicometria.getId()));
+            default:
+                throw new IllegalArgumentException("Tipo documento non supportato");
+        }
+    }
+
+    private record GeneratedPdf(String titolo, byte[] pdfBytes) {}
+
+    private Path scriviSuDisco(Long clienteId, byte[] pdfBytes) throws IOException {
+        Path clientDir = Paths.get(uploadDir, clienteId.toString());
+        if (!Files.exists(clientDir)) {
+            Files.createDirectories(clientDir);
+        }
+        String filename = UUID.randomUUID().toString() + ".pdf";
+        Path filepath = clientDir.resolve(filename);
+        Files.write(filepath, pdfBytes);
+        return filepath;
     }
 
     @Transactional(readOnly = true)
@@ -165,6 +210,18 @@ public class FascicoloService {
         fascicoloRepository.delete(doc);
         // A6/MF3: prima il record, poi l'unlink fisico DOPO il commit (rollback ⇒ niente ghost-record: record vivo, PDF sparito).
         if (percorso != null) unlinkFilesDopoCommit(List.of(percorso));
+    }
+
+    /**
+     * Elimina (se esiste) il documento fascicolo generato automaticamente da una misurazione/
+     * plicometria/scheda quando quell'entità sorgente viene eliminata. No-op se non è mai stato
+     * archiviato (es. auto-salvataggio alla creazione fallito, o documento creato prima di questa
+     * funzionalità). Chiamato dai service di dominio (già dentro la propria transazione, ownership
+     * e limitazione GDPR già verificate a monte su quello stesso cliente).
+     */
+    public void eliminaDocumentoDiOrigine(Long clienteId, TipoDocumento tipoDocumento, Long riferimentoId) {
+        fascicoloRepository.findByClienteIdAndTipoDocumentoAndRiferimentoId(clienteId, tipoDocumento, riferimentoId)
+                .ifPresent(doc -> eliminaDocumento(doc.getId()));
     }
 
     /**

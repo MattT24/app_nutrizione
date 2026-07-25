@@ -98,7 +98,8 @@ comunque chiuse prima del go-live sono nella *Checklist "Prima della produzione"
 **Target: Opzione B — IdP OIDC self-hosted in UE + pattern BFF.** Trattandosi di dati sanitari,
 MFA/passkey, revoca, lockout, reset e audit dei login non sono opzionali (art. 32 + provvedimenti
 Garante); con un team piccolo conviene che li fornisca un prodotto maturo anziché scriverli e manutenerli
-in casa. Il pattern **BFF** con cookie HttpOnly/SameSite elimina strutturalmente il token dal browser →
+in casa. Il pattern **BFF** con cookie HttpOnly + `SameSite=Lax` (Lax, non Strict: evita il blocco del cookie sul
+redirect-return OIDC — vedi `HANDOFF-KEYCLOAK.md`) elimina strutturalmente il token dal browser →
 chiude alla radice sia il rischio "JWT in localStorage" sia il CSRF.
 
 - **Candidato primario: Keycloak** — licenza permissiva (Apache 2.0), ecosistema maturo, Google e Apple

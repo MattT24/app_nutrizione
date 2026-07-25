@@ -43,13 +43,10 @@ public class UtenteController {
     	return ResponseEntity.status(201).body(updated);
     }
 
-    /** Elimina utente (id nel body). */
-    @DeleteMapping
-    @PreAuthorize("hasAuthority('UTENTE_DELETE')")
-    public ResponseEntity<Void> delete(@Valid @RequestBody IdRequest req) {
-        service.delete(req.getId());
-        return ResponseEntity.noContent().build();
-    }
+    // Invariante E (erasure blindata): NIENTE delete arbitrario-per-id qui. La cancellazione account passa SOLO da
+    // (a) DELETE /api/admin/nutrizionisti/{id} (SUPER_ADMIN) e (b) DELETE /api/utenti/profilo (self). L'ex endpoint
+    // DELETE /api/utenti (IdRequest, gate UTENTE_DELETE) è stato RIMOSSO — era un vettore arbitrario-per-id (permesso
+    // ri-armabile a runtime via RuoloPermessoController → l'assenza dell'endpoint è il vero lucchetto). Item 2b.
     @DeleteMapping("/profilo")
     @PreAuthorize("hasAuthority('UTENTE_DELETE_PROFILE')")
     public ResponseEntity<Void> deleteMyProfile() {

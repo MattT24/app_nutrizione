@@ -30,6 +30,7 @@ import it.nutrizionista.restnutrizionista.enums.AuditAction;
 import it.nutrizionista.restnutrizionista.repository.AppuntamentoRepository;
 import it.nutrizionista.restnutrizionista.repository.AuditLogRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
+import it.nutrizionista.restnutrizionista.repository.DocumentoFascicoloRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import it.nutrizionista.restnutrizionista.support.SafeTestDatabaseBase;
@@ -60,6 +61,7 @@ class LimitazioneTrattamentoIntegrationTest extends SafeTestDatabaseBase {
 	@Autowired private SchedaRepository repoScheda;
 	@Autowired private AuditLogRepository repoAudit;
 	@Autowired private AppuntamentoRepository repoAppuntamento;
+	@Autowired private DocumentoFascicoloRepository repoFascicolo;
 
 	private Long clienteLimitatoId;
 	private Long clienteNormaleId;
@@ -304,6 +306,22 @@ class LimitazioneTrattamentoIntegrationTest extends SafeTestDatabaseBase {
 		mvc.perform(post("/api/meals").contentType(MediaType.APPLICATION_JSON)
 				.content("{\"schedaId\":" + schedaNormaleId + ",\"nome\":\"Spuntino\"}"))
 			.andExpect(status().is2xxSuccessful());
+	}
+
+	// ═══════════ A5.3 × auto-sync fascicolo: la scrittura bloccata NON auto-produce un PDF ═══════════
+
+	@Test
+	@WithMockUser(username = EMAIL_A, authorities = { "MEAL_CREATE" })
+	void scritturaBloccata_perClienteLimitato_nonAutoProduceDocumentoFascicolo() throws Exception {
+		// Su cliente NON limitato questa scrittura innescherebbe l'auto-save del PDF nel fascicolo
+		// (afterCommit). Sul limitato la scrittura è 423 PRIMA del commit → l'auto-save non gira mai
+		// e nessun documento sanitario viene prodotto (art. 18: niente nuova produzione).
+		mvc.perform(post("/api/meals").contentType(MediaType.APPLICATION_JSON)
+				.content("{\"schedaId\":" + schedaLimitatoId + ",\"nome\":\"Spuntino\"}"))
+			.andExpect(status().isLocked());
+		assertThat(repoFascicolo.findByClienteIdOrderByDataCreazioneDesc(clienteLimitatoId))
+			.as("nessun documento auto-generato nel fascicolo di un cliente limitato")
+			.isEmpty();
 	}
 
 	// ═══════════ Batch 4 — A5.3 su AppuntamentoService: update + delete bloccati (decisione BLOCCA 2026-07-20) ═══════════

@@ -80,7 +80,18 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
-    
+
+    <!-- OAuth2 / OIDC (Keycloak, binario keycloak). Spring Security NATIVO: NIENTE adapter Keycloak (rimosso).
+         Inerti finché non è configurato spring.security.oauth2.* (auto-config backs off) → default legacy invariato. -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-client</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+    </dependency>
+
     <!-- JWT -->
     <dependency>
       <groupId>io.jsonwebtoken</groupId>
@@ -126,23 +137,23 @@
       <artifactId>spring-boot-starter-mail</artifactId>
     </dependency>
 
-    <!-- OpenHTMLToPDF (fork community attivo, PDFBox 3) -->
+    <!-- Chromium headless per la generazione PDF (sostituisce il precedente OpenHTMLToPDF+Batik+OGNL).
+         Versione pinnata: deve combaciare esattamente col tag dell'immagine Docker di runtime
+         (mcr.microsoft.com/playwright/java:v1.61.0-*), altrimenti il driver scarica/usa un Chromium diverso. -->
     <dependency>
-      <groupId>io.github.openhtmltopdf</groupId>
-      <artifactId>openhtmltopdf-pdfbox</artifactId>
-      <version>1.1.40</version>
+      <groupId>com.microsoft.playwright</groupId>
+      <artifactId>playwright</artifactId>
+      <version>1.61.0</version>
     </dependency>
-    <!-- Supporto SVG (Batik) per icone/grafici inline nei PDF -->
+
+    <!-- PDFBox: prima arrivava transitivamente da openhtmltopdf-pdfbox (rimosso); dichiarato
+         esplicitamente perché i test PDF (ChromiumPdfRendererTest, PdfPreviewGeneratorTest) lo
+         usano per leggere/validare i PDF prodotti da Chromium (Loader.loadPDF, PDFRenderer). -->
     <dependency>
-      <groupId>io.github.openhtmltopdf</groupId>
-      <artifactId>openhtmltopdf-svg-support</artifactId>
-      <version>1.1.40</version>
-    </dependency>
-    <!-- OGNL: richiesto dal TemplateEngine Thymeleaf dedicato ai PDF (mode XML, non-Spring) -->
-    <dependency>
-      <groupId>ognl</groupId>
-      <artifactId>ognl</artifactId>
-      <version>3.3.4</version>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+      <version>3.0.3</version>
+      <scope>test</scope>
     </dependency>
 
     <!-- Caricamento segreti da file .env in dev (i ${VAR} in application.properties si risolvono da qui).

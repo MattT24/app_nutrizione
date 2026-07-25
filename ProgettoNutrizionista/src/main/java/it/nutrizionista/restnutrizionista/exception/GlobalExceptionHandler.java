@@ -68,6 +68,21 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.LOCKED).body(ex.getMessage());
     }
 
+    @ExceptionHandler(PdfGenerationException.class)
+    public ResponseEntity<String> handlePdfGeneration(PdfGenerationException ex) {
+        // Fallimento del renderer Chromium (crash/timeout/pool saturo): 503, distinto da
+        // EmailDeliveryException (502) così il frontend può distinguere le due cause di fallimento
+        // di /pdf e /share. Il dettaglio tecnico resta nei log a carico di chi lancia l'eccezione.
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                .body("Generazione del PDF non riuscita, riprova tra qualche istante.");
+    }
+
+    @ExceptionHandler(EmailDeliveryException.class)
+    public ResponseEntity<String> handleEmailDelivery(EmailDeliveryException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY)
+                .body("Invio email non riuscito, riprova più tardi.");
+    }
+
     @ExceptionHandler(SecurityException.class)
     public ResponseEntity<String> handleSecurity(SecurityException ex) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ex.getMessage());

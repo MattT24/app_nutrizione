@@ -9,6 +9,7 @@ import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaDto;
 import it.nutrizionista.restnutrizionista.dto.MisurazioneAntropometricaFormDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
+import it.nutrizionista.restnutrizionista.entity.TipoDocumento;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
 import it.nutrizionista.restnutrizionista.enums.AuditAction;
@@ -32,6 +33,7 @@ public class MisurazioneAntropometricaService {
     @Autowired private GamificationService gamificationService;
     @Autowired private PdfService pdfService;
     @Autowired private AuditService auditService;
+    @Autowired private SchedaFascicoloSync fascicoloSync;
 
     /**
      * Export PDF della misurazione per il download diretto ({@code GET /api/misurazioni_antropometriche/{id}/pdf}).
@@ -61,6 +63,7 @@ public class MisurazioneAntropometricaService {
 
         MisurazioneAntropometrica salvata = repo.save(m);
         gamificationService.registraEvento(cliente.getNutrizionista(), TipoEventoGamification.MISURAZIONE_REGISTRATA, cliente.getId());
+        fascicoloSync.sincronizza(cliente.getId(), TipoDocumento.MISURAZIONE, salvata.getId());
         return DtoMapper.toMisurazioneDtoLight(salvata);
     }
 
@@ -71,14 +74,19 @@ public class MisurazioneAntropometricaService {
 		MisurazioneAntropometrica m = ownershipValidator.getOwnedMisurazioneAntropometrica(form.getId());
 		limitazioneValidator.assertNonLimitato(m.getCliente()); // A5.3
 		DtoMapper.updateMisurazioneFromForm(m, form);
-		return DtoMapper.toMisurazioneDtoLight(repo.save(m));
+		MisurazioneAntropometrica salvata = repo.save(m);
+		fascicoloSync.sincronizza(salvata.getCliente().getId(), TipoDocumento.MISURAZIONE, salvata.getId());
+		return DtoMapper.toMisurazioneDtoLight(salvata);
 	}
 
 	@Transactional
     public void delete(Long id) {
         MisurazioneAntropometrica m = ownershipValidator.getOwnedMisurazioneAntropometrica(id);
         limitazioneValidator.assertNonLimitato(m.getCliente()); // A5.3
-		repo.deleteById(id); }
+        Long clienteId = m.getCliente() != null ? m.getCliente().getId() : null;
+        repo.deleteById(id);
+        if (clienteId != null) fascicoloSync.elimina(clienteId, TipoDocumento.MISURAZIONE, id);
+    }
 
 	@Transactional(readOnly = true)
 	public PageResponse<MisurazioneAntropometricaDto> allMisurazioniCliente(Long id,Pageable pageable) {

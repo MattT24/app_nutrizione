@@ -30,6 +30,14 @@ public class Utente {
     @Column(nullable = false, unique = true)
     private String email;
 
+    /**
+     * Keycloak subject ({@code sub}) — link identità IdP ↔ app (Fase 2 Keycloak). NULL finché non avviene il
+     * primo login OIDC (link gated su {@code email_verified}). Chiave DOPPIA: risoluzione del principal
+     * ({@code CurrentUserService.getMe}) + erasure key (delete cross-store art. 17). Unique nullable → più NULL ammessi.
+     */
+    @Column(name = "subject_id", unique = true)
+    private String subjectId;
+
     @Column(nullable = false) private String password;
 
     @Column(name = "data_nascita")
@@ -91,6 +99,8 @@ public class Utente {
     public void setCodiceFiscale(String codiceFiscale) { this.codiceFiscale = codiceFiscale; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
+    public String getSubjectId() { return subjectId; }
+    public void setSubjectId(String subjectId) { this.subjectId = subjectId; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
     public LocalDate getDataNascita() { return dataNascita; }

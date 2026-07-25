@@ -51,6 +51,7 @@ public class PastoTemplateApplyService {
 	@Autowired private AlimentoAlternativoRepository alternativoRepository;
 	@Autowired private ClinicalEngineService clinicalEngineService;
 	@Autowired private AuditService auditService;
+	@Autowired private SchedaFascicoloSync fascicoloSync;
 
 	@Transactional
 	public PastoApplyTemplateResultDto applyToPasto(Long pastoId, @Valid PastoApplyTemplateRequest req) {
@@ -209,6 +210,7 @@ public class PastoTemplateApplyService {
 		}
 
 		pastoRepository.save(pasto);
+		fascicoloSync.sincronizza(clienteId, schedaId);
 
 		Pasto refreshed = pastoRepository.findByIdWithFullTree(pastoId)
 				.orElseThrow(() -> new NotFoundException("Pasto non trovato dopo apply"));

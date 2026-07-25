@@ -1,5 +1,6 @@
 package it.nutrizionista.restnutrizionista.service;
 
+import it.nutrizionista.restnutrizionista.exception.EmailDeliveryException;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
@@ -63,7 +64,7 @@ public class EmailService {
 
         } catch (MessagingException e) {
             log.error("Errore durante l'invio dell'email a {}: {}", mask(to), e.getMessage(), e);
-            throw new RuntimeException("Errore nell'invio dell'email", e);
+            throw new EmailDeliveryException("Errore nell'invio dell'email", e);
         }
     }
 

@@ -10,6 +10,7 @@ import it.nutrizionista.restnutrizionista.dto.PlicometriaDto;
 import it.nutrizionista.restnutrizionista.dto.PlicometriaFormDto;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
+import it.nutrizionista.restnutrizionista.entity.TipoDocumento;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.enums.AuditAction;
 import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
@@ -22,7 +23,7 @@ import jakarta.validation.Valid;
 
 @Service
 public class PlicometriaService {
-	
+
 	@Autowired private PlicometriaCalcoliService calcoliService;
 
     @Autowired private PlicometriaRepository repo;
@@ -32,6 +33,7 @@ public class PlicometriaService {
     @Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
     @Autowired private PdfService pdfService;
     @Autowired private AuditService auditService;
+    @Autowired private SchedaFascicoloSync fascicoloSync;
 
     /**
      * Export PDF della plicometria per il download diretto ({@code GET /api/plicometrie/{id}/pdf}).
@@ -71,7 +73,9 @@ public class PlicometriaService {
         // Nota: Il calcolo della % massa grassa potrebbe essere fatto qui se non arriva dal FE
         // es: p.setPercentualeMassaGrassa(CalcoliService.calcola(p));
 
-        return DtoMapper.toPlicometriaDto(repo.save(p));
+        Plicometria salvata = repo.save(p);
+        fascicoloSync.sincronizza(cliente.getId(), TipoDocumento.PLICOMETRIA, salvata.getId());
+        return DtoMapper.toPlicometriaDto(salvata);
     }
 
     @Transactional
@@ -95,16 +99,19 @@ public class PlicometriaService {
         p.setMassaGrassaKg(res.massaGrassaKg());
         p.setMassaMagraKg(res.massaMagraKg());
 
-        
-        return DtoMapper.toPlicometriaDto(repo.save(p));
+        Plicometria salvata = repo.save(p);
+        fascicoloSync.sincronizza(salvata.getCliente().getId(), TipoDocumento.PLICOMETRIA, salvata.getId());
+        return DtoMapper.toPlicometriaDto(salvata);
     }
 
     @Transactional
     public void delete(Long id) {
         Plicometria p = ownershipValidator.getOwnedPlicometria(id);
         limitazioneValidator.assertNonLimitato(p.getCliente()); // A5.3
+        Long clienteId = p.getCliente() != null ? p.getCliente().getId() : null;
 
         repo.deleteById(id);
+        if (clienteId != null) fascicoloSync.elimina(clienteId, TipoDocumento.PLICOMETRIA, id);
     }
 
     @Transactional(readOnly = true)

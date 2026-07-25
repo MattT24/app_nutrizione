@@ -15,10 +15,15 @@ public class CurrentUserService {
     private UtenteRepository repoUtente;
 
     public Utente getMe() {
-        String email = SecurityContextHolder.getContext().getAuthentication().getName();
-        
-        // Usiamo il metodo con il JOIN FETCH per prendere Utente + Ruolo (+ Permessi) in 1 colpo solo
-        return repoUtente.findWithAuthoritiesByEmail(email)
+        String principalName = SecurityContextHolder.getContext().getAuthentication().getName();
+
+        // Binario keycloak: principal-name = `sub` (UUID stabile) → risolvi per subjectId.
+        // Binario legacy:   principal-name = email → fallback per email.
+        // ⚠️ Guard (I2): in keycloak-mode il name è il `sub`, quindi findWithAuthoritiesByEmail(sub) NON matcha mai
+        // (nessuna risoluzione-tenant-per-email accidentale su dati art. 9); post-link il subjectId è sempre presente
+        // → il fallback non scatta. Il JOIN FETCH prende Utente + Ruolo (+ Permessi) in un colpo solo.
+        return repoUtente.findWithAuthoritiesBySubjectId(principalName)
+                .or(() -> repoUtente.findWithAuthoritiesByEmail(principalName))
                 .orElseThrow(() -> new NotFoundException("Utente corrente non trovato"));
     }
 }

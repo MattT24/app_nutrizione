@@ -18,6 +18,7 @@ public class MealService {
 	@Autowired private PastoRepository repo;
 	@Autowired private OwnershipValidator ownershipValidator;
 	@Autowired private LimitazioneTrattamentoValidator limitazioneValidator;
+	@Autowired private SchedaFascicoloSync fascicoloSync;
 
 	@Transactional
 	public PastoDto create(@Valid MealCreateRequest req) {
@@ -46,7 +47,9 @@ public class MealService {
 			}
 		}
 
-		return DtoMapper.toPastoDtoLight(repo.save(p));
+		Pasto salvato = repo.save(p);
+		fascicoloSync.sincronizza(scheda.getCliente().getId(), scheda.getId());
+		return DtoMapper.toPastoDtoLight(salvato);
 	}
 
 	@Transactional
@@ -59,7 +62,9 @@ public class MealService {
 		p.setNome(req.getNome());
 		p.setDescrizione(req.getDescrizione());
 		if (req.getOrdineVisualizzazione() != null) p.setOrdineVisualizzazione(req.getOrdineVisualizzazione());
-		return DtoMapper.toPastoDtoLight(repo.save(p));
+		Pasto salvato = repo.save(p);
+		fascicoloSync.sincronizza(p.getScheda().getCliente().getId(), p.getScheda().getId());
+		return DtoMapper.toPastoDtoLight(salvato);
 	}
 
 	@Transactional
@@ -69,7 +74,10 @@ public class MealService {
 		if (Boolean.FALSE.equals(p.getEliminabile())) {
 			throw new ForbiddenException("NON AUTORIZZATO: non puoi eliminare un pasto default");
 		}
+		Long clienteId = p.getScheda().getCliente().getId();
+		Long schedaId = p.getScheda().getId();
 		repo.delete(p);
+		fascicoloSync.sincronizza(clienteId, schedaId);
 	}
 }
 

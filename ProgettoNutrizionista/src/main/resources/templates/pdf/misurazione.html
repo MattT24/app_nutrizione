@@ -3,6 +3,78 @@
 <head>
   <meta charset="utf-8"/>
   <style th:replace="~{pdf/fragments/pdf :: styles}"></style>
+
+  <!-- ============================================================
+       Layout dedicato a questo referto (Chromium: CSS moderno reale,
+       grid/flexbox/gradient/shadow). Classi prefissate "ma-" per non
+       toccare gli stili condivisi usati da scheda/plicometria. -->
+  <style>
+    /* ---- Info paziente: barra flex al posto della tabella a 3 celle ---- */
+    .ma-info {
+      display: flex;
+      border: 1px solid #e8ebef;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #fafbfc 0%, #ffffff 65%);
+      box-shadow: 0 1px 2px rgba(15,23,42,.04);
+    }
+    .ma-info-item { flex: 1; padding: 10px 22px; }
+    .ma-info-item + .ma-info-item { border-left: 1px solid #eef1f4; }
+    .ma-info-k { font-size: 9px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #94a3b8; }
+    .ma-info-v { font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 6px; line-height: 1.2; }
+    .ma-info-v2 { font-size: 11px; font-weight: 600; color: #64748b; margin-top: 3px; }
+
+    /* ---- Sintesi: grid con card hero in gradient ---- */
+    .ma-kpis { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 14px; }
+    .ma-kpi {
+      position: relative; overflow: hidden; break-inside: avoid;
+      border: 1px solid #e8ebef; border-radius: 18px; padding: 14px 20px;
+      background: #ffffff; box-shadow: 0 1px 3px rgba(15,23,42,.05);
+    }
+    .ma-kpi.hero {
+      border: none; color: #ffffff;
+      background: linear-gradient(155deg, #059669 0%, #10b981 55%, #34d399 100%);
+      box-shadow: 0 10px 22px -8px rgba(5,150,105,.5);
+    }
+    .ma-kpi-bg { position: absolute; right: -20px; bottom: -20px; width: 108px; height: 108px; opacity: .16; }
+    .ma-kpi-bg .ic { width: 100%; height: 100%; stroke-width: 1.2; }
+    .ma-kpi-head { display: flex; align-items: center; gap: 9px; }
+    .ma-kpi-well { width: 30px; height: 30px; flex-shrink: 0; border-radius: 10px; background: #ecfdf5; display: flex; align-items: center; justify-content: center; color: #059669; }
+    .ma-kpi-well .ic { width: 15px; height: 15px; }
+    .ma-kpi.hero .ma-kpi-well { background: rgba(255,255,255,.22); color: #ffffff; }
+    .ma-kpi-lab { font-size: 9.5px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #94a3b8; }
+    .ma-kpi.hero .ma-kpi-lab { color: rgba(255,255,255,.85); }
+    .ma-kpi-num { display: flex; align-items: baseline; gap: 5px; margin-top: 10px; position: relative; }
+    .ma-kpi-num b { font-size: 32px; font-weight: 800; letter-spacing: -.02em; }
+    .ma-kpi.hero .ma-kpi-num b { font-size: 40px; }
+    .ma-kpi-num span { font-size: 13px; font-weight: 700; color: #94a3b8; }
+    .ma-kpi.hero .ma-kpi-num span { color: rgba(255,255,255,.82); }
+    .ma-kpi-foot { margin-top: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; position: relative; }
+    .ma-pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px; white-space: nowrap; background: #f1f5f9; color: #64748b; }
+    .ma-pill .ic { width: .85em; height: .85em; }
+    .ma-pill.down { background: #d1fae5; color: #047857; }
+    .ma-pill.up { background: #fee2e2; color: #b91c1c; }
+    .ma-kpi.hero .ma-pill.down, .ma-kpi.hero .ma-pill.up { background: rgba(255,255,255,.24); color: #ffffff; }
+    .ma-kpi-from { font-size: 10.5px; font-weight: 600; color: #94a3b8; }
+    .ma-kpi.hero .ma-kpi-from { color: rgba(255,255,255,.78); }
+    .ma-kpi-cap { margin-top: 12px; font-size: 10px; font-weight: 600; color: #94a3b8; position: relative; }
+    .ma-kpi.hero .ma-kpi-cap { color: rgba(255,255,255,.78); }
+
+    /* ---- Andamento: card con area-chart a gradiente ---- */
+    .ma-trends { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; color: #059669; }
+    .ma-trend { border: 1px solid #e8ebef; border-radius: 16px; padding: 14px 16px 16px; break-inside: avoid; box-shadow: 0 1px 3px rgba(15,23,42,.04); }
+    .ma-trend-name { font-size: 12px; font-weight: 800; color: #0f172a; }
+    .ma-trend-sub { font-size: 9px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #94a3b8; margin-top: 2px; }
+    .ma-trend-chart { margin-top: 10px; }
+    .ma-trend-chart svg { display: block; width: 100%; height: auto; }
+    .ma-trend-bottom { display: flex; align-items: baseline; justify-content: space-between; margin-top: 8px; }
+    .ma-trend-val { font-size: 19px; font-weight: 800; color: #0f172a; }
+    .ma-trend-val span { font-size: 11px; font-weight: 700; color: #94a3b8; margin-left: 2px; }
+
+    /* ---- Tema rosso: override delle sole card introdotte qui ---- */
+    .t-red .ma-kpi.hero { background: linear-gradient(155deg, #dc2626 0%, #ef4444 55%, #f87171 100%); box-shadow: 0 10px 22px -8px rgba(220,38,38,.5); }
+    .t-red .ma-kpi-well { background: #fef2f2; color: #dc2626; }
+    .t-red .ma-trends { color: #dc2626; }
+  </style>
 </head>
 <body>
 <div class="sheet" th:classappend="${temaRosso} ? 't-red'">
@@ -10,26 +82,22 @@
   <!-- MASTHEAD -->
   <div th:replace="~{pdf/fragments/pdf :: mast('Referto', 'Misurazioni Antropometriche')}"></div>
 
-  <!-- PATIENT STRIP -->
-  <div class="strip avoid">
-    <table>
-      <tr>
-        <td class="first" style="width:33%">
-          <div class="sk">Paziente</div>
-          <div class="sv" th:text="${misurazione.cliente != null} ? ${misurazione.cliente.nome + ' ' + misurazione.cliente.cognome} : '—'">Paziente</div>
-        </td>
-        <td style="width:33%">
-          <div class="sk">Rilevazione</div>
-          <div class="sv" th:text="${haPrecedente} ? 'Confronto · 2 sessioni' : 'Prima rilevazione'">Rilevazione</div>
-          <div class="sv2"><span th:if="${haPrecedente}" th:text="${dataPrecedente}">01/01</span><span th:if="${haPrecedente}"> &#8594; </span><span th:text="${dataCorrente}">02/02</span></div>
-        </td>
-        <td style="width:34%">
-          <div class="sk">Professionista</div>
-          <div class="sv" th:text="${nutrizionista != null} ? ${nutrizionista.nome + ' ' + nutrizionista.cognome} : '—'">Professionista</div>
-          <div class="sv2" th:if="${nutrizionista != null and nutrizionista.email != null}" th:text="${nutrizionista.email}">email</div>
-        </td>
-      </tr>
-    </table>
+  <!-- INFO PAZIENTE -->
+  <div class="ma-info avoid">
+    <div class="ma-info-item">
+      <div class="ma-info-k">Paziente</div>
+      <div class="ma-info-v" th:text="${misurazione.cliente != null} ? ${misurazione.cliente.nome + ' ' + misurazione.cliente.cognome} : '—'">Paziente</div>
+    </div>
+    <div class="ma-info-item">
+      <div class="ma-info-k">Rilevazione</div>
+      <div class="ma-info-v" th:text="${haPrecedente} ? 'Confronto · 2 sessioni' : 'Prima rilevazione'">Rilevazione</div>
+      <div class="ma-info-v2"><span th:if="${haPrecedente}" th:text="${dataPrecedente}">01/01</span><span th:if="${haPrecedente}"> &#8594; </span><span th:text="${dataCorrente}">02/02</span></div>
+    </div>
+    <div class="ma-info-item">
+      <div class="ma-info-k">Professionista</div>
+      <div class="ma-info-v" th:text="${nutrizionista != null} ? ${nutrizionista.nome + ' ' + nutrizionista.cognome} : '—'">Professionista</div>
+      <div class="ma-info-v2" th:if="${nutrizionista != null and nutrizionista.email != null}" th:text="${nutrizionista.email}">email</div>
+    </div>
   </div>
 
   <!-- SINTESI -->
@@ -39,22 +107,21 @@
     <td class="meta" th:text="${haPrecedente} ? 'Precedente → Attuale' : 'Rilevazione attuale'">meta</td>
   </tr></table>
 
-  <table class="grid3 avoid"><tr>
-    <td th:each="k,it : ${kpi}" th:classappend="${it.first} ? 'first' : (${it.last} ? 'last' : '')">
-      <div class="kpi">
-        <table class="kpi-top"><tr>
-          <td class="kpi-well"><th:block th:replace="~{pdf/fragments/pdf :: ico(${k.icon})}"></th:block></td>
-          <td class="kpi-lab" th:text="${k.label}">Label</td>
-        </tr></table>
-        <div class="kpi-num"><b th:text="${k.cur}">—</b><span th:text="${k.unita}">u</span></div>
-        <div class="kpi-foot" th:if="${k.hasDelta}">
-          <span class="pill" th:classappend="${k.deltaDir}"><th:block th:if="${k.deltaDir != 'flat'}"><th:block th:replace="~{pdf/fragments/pdf :: ico(${k.deltaDir})}"></th:block></th:block><span th:text="${k.delta}">delta</span></span>
-          <span class="kpi-from">da <span th:text="${k.prev}">0</span> <span th:text="${k.unita}">u</span></span>
-        </div>
-        <div class="kpi-cap" th:unless="${k.hasDelta}" th:text="${!haPrecedente} ? 'Prima rilevazione' : (${k.pending} ? 'Da rilevare' : 'Senza confronto')">cap</div>
+  <div class="ma-kpis avoid">
+    <div class="ma-kpi" th:each="k : ${kpi}" th:classappend="${k.hero} ? 'hero'">
+      <div class="ma-kpi-head">
+        <div class="ma-kpi-well"><th:block th:replace="~{pdf/fragments/pdf :: ico(${k.icon})}"></th:block></div>
+        <div class="ma-kpi-lab" th:text="${k.label}">Label</div>
       </div>
-    </td>
-  </tr></table>
+      <div class="ma-kpi-num"><b th:text="${k.cur}">—</b><span th:text="${k.unita}">u</span></div>
+      <div class="ma-kpi-foot" th:if="${k.hasDelta}">
+        <span class="ma-pill" th:classappend="${k.deltaDir}"><th:block th:if="${k.deltaDir != 'flat'}"><th:block th:replace="~{pdf/fragments/pdf :: ico(${k.deltaDir})}"></th:block></th:block><span th:text="${k.delta}">delta</span></span>
+        <span class="ma-kpi-from">da <span th:text="${k.prev}">0</span> <span th:text="${k.unita}">u</span></span>
+      </div>
+      <div class="ma-kpi-cap" th:unless="${k.hasDelta}" th:text="${!haPrecedente} ? 'Prima rilevazione' : (${k.pending} ? 'Da rilevare' : 'Senza confronto')">cap</div>
+      <div class="ma-kpi-bg" th:if="${k.hero}"><th:block th:replace="~{pdf/fragments/pdf :: ico(${k.icon})}"></th:block></div>
+    </div>
+  </div>
 
   <!-- MISURE CORPOREE -->
   <table class="sec"><tr>
@@ -106,20 +173,30 @@
       <td><h2>Andamento</h2></td>
       <td class="meta"><span th:text="${dataPrecedente}">d1</span> &#8594; <span th:text="${dataCorrente}">d2</span></td>
     </tr></table>
-    <div class="trend avoid">
-      <table class="trow" th:each="t,ts : ${trend}" th:classappend="${ts.last} ? 'last'"><tr>
-        <td class="tname"><div class="tn" th:text="${t.name}">Misura</div><div class="ts" th:text="${t.sub}">92 → 90 kg</div></td>
-        <td class="tplot">
-          <svg width="300" height="44" viewBox="0 0 300 44" xmlns="http://www.w3.org/2000/svg">
-            <line x1="6" y1="40" x2="294" y2="40" stroke="#eef1f4" stroke-width="1.5"></line>
-            <polygon fill="currentColor" fill-opacity="0.10" th:attr="points=|6,${t.y1*0.30+6} 294,${t.y2*0.30+6} 294,40 6,40|"></polygon>
-            <polyline fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" th:attr="points=|6,${t.y1*0.30+6} 294,${t.y2*0.30+6}|"></polyline>
-            <circle cx="6" r="4" fill="#ffffff" stroke="currentColor" stroke-width="2.4" th:attr="cy=${t.y1*0.30+6}"></circle>
-            <circle cx="294" r="4.6" fill="currentColor" th:attr="cy=${t.y2*0.30+6}"></circle>
+    <div class="ma-trends avoid">
+      <div class="ma-trend" th:each="t,ts : ${trend}">
+        <div class="ma-trend-name" th:text="${t.name}">Misura</div>
+        <div class="ma-trend-sub" th:text="${t.sub}">92 → 90 kg</div>
+        <div class="ma-trend-chart">
+          <svg width="100%" height="58" viewBox="0 0 220 58" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient th:id="'mag-' + ${ts.index}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="currentColor" stop-opacity="0.30"></stop>
+                <stop offset="100%" stop-color="currentColor" stop-opacity="0"></stop>
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="50" x2="220" y2="50" stroke="#eef1f4" stroke-width="1"></line>
+            <polygon th:attr="fill='url(#mag-' + ${ts.index} + ')',points=|10,${t.y1*0.42+6} 210,${t.y2*0.42+6} 210,50 10,50|"></polygon>
+            <polyline fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" th:attr="points=|10,${t.y1*0.42+6} 210,${t.y2*0.42+6}|"></polyline>
+            <circle cx="10" r="4" fill="#ffffff" stroke="currentColor" stroke-width="2.4" th:attr="cy=${t.y1*0.42+6}"></circle>
+            <circle cx="210" r="5" fill="currentColor" th:attr="cy=${t.y2*0.42+6}"></circle>
           </svg>
-        </td>
-        <td class="tend"><b><span th:text="${t.cur}">90</span><span th:text="${t.unita}">u</span></b><div class="d" th:text="${t.delta}">−2</div></td>
-      </tr></table>
+        </div>
+        <div class="ma-trend-bottom">
+          <div class="ma-trend-val"><span th:text="${t.cur}">90</span><span th:text="${t.unita}">u</span></div>
+          <span class="ma-pill" th:classappend="${t.dir}"><th:block th:if="${t.dir != 'flat'}"><th:block th:replace="~{pdf/fragments/pdf :: ico(${t.dir})}"></th:block></th:block><span th:text="${t.delta}">delta</span></span>
+        </div>
+      </div>
     </div>
   </th:block>
 

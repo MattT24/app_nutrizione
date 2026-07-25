@@ -61,6 +61,7 @@ class AlimentoPastoServiceTest {
     private ClinicalEngineService clinicalEngineService;
     private OwnershipValidator ownershipValidator;
     private AuditService auditService;
+    private SchedaFascicoloSync fascicoloSync;
 
     private AlimentoBase alimento;
     private Pasto pasto;
@@ -73,6 +74,7 @@ class AlimentoPastoServiceTest {
         clinicalEngineService = mock(ClinicalEngineService.class);
         ownershipValidator = mock(OwnershipValidator.class);
         auditService = mock(AuditService.class);
+        fascicoloSync = mock(SchedaFascicoloSync.class);
         AlimentoAlternativoService alimentoAlternativoService = mock(AlimentoAlternativoService.class);
 
         service = new AlimentoPastoService();
@@ -84,6 +86,7 @@ class AlimentoPastoServiceTest {
         // A5.3: validator reale (no-op — il cliente mock non è limitato) così assertNonLimitato non è null.
         ReflectionTestUtils.setField(service, "limitazioneValidator", new LimitazioneTrattamentoValidator());
         ReflectionTestUtils.setField(service, "auditService", auditService);
+        ReflectionTestUtils.setField(service, "fascicoloSync", fascicoloSync);
         ReflectionTestUtils.setField(service, "alimentoAlternativoService", alimentoAlternativoService);
 
         // Grafo owned: pasto -> scheda -> cliente
