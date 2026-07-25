@@ -47,6 +47,10 @@ public class SecurityBeansConfig {
         config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
+        // A1 osservabilità: senza exposedHeaders il SPA non può rileggere X-Correlation-Id dalla response
+        // (allowedHeaders="*" copre solo l'inbound). Con allowCredentials=false il wildcard in exposed non è
+        // leggibile lato JS → va nominato esplicitamente.
+        config.setExposedHeaders(List.of("X-Correlation-Id"));
         config.setAllowCredentials(false);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);

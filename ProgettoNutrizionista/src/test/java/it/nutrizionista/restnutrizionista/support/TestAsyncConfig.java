@@ -8,9 +8,9 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.core.task.SyncTaskExecutor;
 
 /**
- * In profilo test l'{@code auditExecutor} è sincrono: gli eventi di audit async (letture/liste)
- * vengono scritti inline, così gli assert sono deterministici senza attese. Sostituisce il
- * {@code ThreadPoolTaskExecutor} di produzione (annotato {@code @Profile("!test")}).
+ * In profilo test gli executor async sono <b>sincroni</b> ({@code auditExecutor} + il default {@code taskExecutor}):
+ * gli eventi async (audit letture/liste, email {@code @Async}) girano inline, così gli assert sono deterministici
+ * senza attese. Sostituiscono i {@code ThreadPoolTaskExecutor} di produzione (annotati {@code @Profile("!test")}).
  */
 @Configuration
 @Profile("test")
@@ -18,6 +18,12 @@ public class TestAsyncConfig {
 
     @Bean("auditExecutor")
     public Executor auditExecutor() {
+        return new SyncTaskExecutor();
+    }
+
+    /** Follow-up A1: default {@code @Async} sincrono in test (le email {@code @Async} non diventano flaky). */
+    @Bean("taskExecutor")
+    public Executor taskExecutor() {
         return new SyncTaskExecutor();
     }
 }
