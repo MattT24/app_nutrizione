@@ -34,3 +34,7 @@ build/
 
 # Log runtime locali
 *.log
+
+# Dati sanitari dei pazienti (art. 9 GDPR): i PDF del fascicolo NON vanno versionati.
+# (uploads/loghi resta tracciato: sono asset pubblici serviti staticamente.)
+uploads/fascicoli/
