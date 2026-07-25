@@ -14,6 +14,7 @@ import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
 import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
 import it.nutrizionista.restnutrizionista.repository.DocumentoFascicoloRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -93,7 +94,17 @@ public class FascicoloService {
      * scheda): lo crea se non è mai stato archiviato, altrimenti rigenera il PDF e sostituisce il
      * file su disco (il vecchio file viene rimosso dopo il commit), così l'archivio riflette sempre
      * l'ultima modifica. Chiamato dai service di dominio dopo ogni update del contenuto sorgente.
+     *
+     * <p><b>{@code REQUIRES_NEW} (fix #3):</b> questo metodo è invocato da {@code SchedaFascicoloSync}
+     * dentro un hook {@link TransactionSynchronization#afterCommit()}, quando la tx di dominio è GIÀ
+     * committata. Con la propagazione di default ({@code REQUIRED}) l'INSERT del {@code DocumentoFascicolo}
+     * <i>parteciperebbe</i> alla connessione della tx ormai chiusa e <b>non verrebbe mai committato</b>
+     * (nessun errore; il file su disco resta orfano). {@code REQUIRES_NEW} apre una transazione realmente
+     * nuova e indipendente, che committa anche da {@code afterCommit}. È l'intento già dichiarato nel
+     * Javadoc di {@code SchedaFascicoloSync} ("tx propria aperta dal proxy"), che {@code REQUIRED} non
+     * garantiva. Il path <i>manuale</i> ({@code salvaDocumento} da controller) NON è toccato.
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sincronizzaDocumento(Long clienteId, TipoDocumento tipoDocumento, Long riferimentoId) {
         var esistente = fascicoloRepository.findByClienteIdAndTipoDocumentoAndRiferimentoId(
                 clienteId, tipoDocumento, riferimentoId);
