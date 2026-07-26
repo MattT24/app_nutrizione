@@ -1,5 +1,5 @@
-# Config con segreti reali: SOLO il main (usa ${...} da .env). I test (H2, valori fittizi) vanno versionati.
-/ProgettoNutrizionista/src/main/resources/application.properties
+# Segreti reali SOLO in .env (gitignored). Il base application.properties usa solo ${...} da .env
+# (secret-free, audit Code 2026-07-26) → VA committato, altrimenti un build da git parte senza config base.
 .env
 .classpath
 
@@ -20,3 +20,17 @@ ProgettoNutrizionista/skills-lock.json
 /ProgettoNutrizionista/uploads/fascicoli
 
 ANALISI-DB-READINESS-FHIR.md
+ProgettoNutrizionista/docs/PROD-READINESS.md
+ProgettoNutrizionista/docs/migrations/025_baseline_rbac_target.sql
+
+# === Igiene repo prod (Code, 2026-07-26): esclusi dal fresh-start org — NON servono al codice per
+#     girare; restano in LOCALE. ddl-auto=validate -> le migrazioni si lanciano a mano. Theme KC TENUTO. ===
+ProgettoNutrizionista/docs/*.md
+ProgettoNutrizionista/docs/migrations/
+ProgettoNutrizionista/docs/keycloak/README.md
+ProgettoNutrizionista/docs/keycloak/statera-realm.json
+ProgettoNutrizionista/docker-compose.keycloak.yml
+.project
+Gamification-Nutrizionista.pdf
+ProgettoNutrizionista/compile_output.txt
+ProgettoNutrizionista/src/main/resources/011_crea_allergens_patch.sql

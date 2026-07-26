@@ -34,3 +34,11 @@ build/
 
 # Log runtime locali
 *.log
+
+# Upload di RUNTIME — NON vanno versionati (né loghi né i PDF fascicolo, art. 9 GDPR).
+# In produzione stanno su un VOLUME persistente (docker-compose: uploads_loghi / uploads_fascicoli),
+# non nel repo. Il logo "di brand" statico dell'app vive nel FE (public/assets), non qui.
+uploads/
+
+# Output di build Eclipse (bytecode + risorse copiate): cruft, non va versionato (come target/).
+bin/

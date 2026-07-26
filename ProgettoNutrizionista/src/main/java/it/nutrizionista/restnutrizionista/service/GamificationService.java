@@ -24,6 +24,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.Arrays;
 
@@ -98,6 +100,33 @@ public class GamificationService {
      * lo ha scatenato (creare un cliente, fare login, ...).
      */
     public void registraEvento(Utente nutrizionista, TipoEventoGamification tipo, Long clienteId) {
+        // Deferito a DOPO il commit della tx del chiamante. Su TiDB (pessimistic) l'INSERT di una figlia
+        // con FK prende un lock ESCLUSIVO sulla riga parent (default fino a v8.5.6; flag
+        // tidb_foreign_key_check_in_shared_lock assente sul nostro cluster v8.5.3): un insert gamification
+        // (FK -> utenti) in questa REQUIRES_NEW, annidata in una tx che ha già inserito un'altra figlia di
+        // utenti (ClienteService.create -> clienti; AuthService.registerWithGoogle -> utenti), attende il
+        // lock che l'outer tiene mentre è sospesa in attesa di noi -> self-deadlock invisibile al detector
+        // (50s / SQL 1205). A commit avvenuto il lock è rilasciato -> nessuna contesa. Idioma di
+        // FascicoloService.unlinkFilesDopoCommit / SchedaFascicoloSync.
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override public void afterCommit() {
+                    eseguiRegistrazione(nutrizionista, tipo, clienteId);
+                }
+            });
+        } else {
+            // Nessuna tx attiva (es. login, non transazionale): esegui subito, come prima.
+            eseguiRegistrazione(nutrizionista, tipo, clienteId);
+        }
+    }
+
+    /**
+     * Esegue la registrazione nella sua {@code REQUIRES_NEW} (via self-proxy). Best-effort: non lancia mai
+     * — un problema qui (DB, race su un badge, ecc.) non deve far fallire l'azione reale che lo ha scatenato.
+     * L'{@code Utente} può essere detached (chiamata da {@code afterCommit}): sicuro, perché nel percorso è
+     * usato solo per {@code getId()/getEmail()/getNome()} + {@code setNutrizionista} FK-by-id (nessuna nav lazy).
+     */
+    private void eseguiRegistrazione(Utente nutrizionista, TipoEventoGamification tipo, Long clienteId) {
         try {
             self.registraEventoTransazionale(nutrizionista, tipo, clienteId);
         } catch (Exception e) {

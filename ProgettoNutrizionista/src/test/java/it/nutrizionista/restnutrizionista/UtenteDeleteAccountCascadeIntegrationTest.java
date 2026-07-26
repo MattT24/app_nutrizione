@@ -525,9 +525,11 @@ class UtenteDeleteAccountCascadeIntegrationTest extends SafeTestDatabaseBase {
 		return a;
 	}
 
-	/** COUNT(*) su una tabella figlia priva di repository dedicato (nome lowercase, DATABASE_TO_UPPER=false). */
+	/** COUNT(*) su una tabella figlia priva di repository dedicato. Identificatore NUDO (niente doppi apici):
+	 *  valido sia su H2 (DATABASE_TO_UPPER=false → nomi lowercase) sia su MySQL, dove i doppi apici sono
+	 *  STRINGHE, non identificatori (col job CI test-mysql `FROM "tabella"` dava BadSqlGrammar). */
 	private long countRows(String table) {
-		Long n = jdbc.queryForObject("SELECT COUNT(*) FROM \"" + table + "\"", Long.class);
+		Long n = jdbc.queryForObject("SELECT COUNT(*) FROM " + table, Long.class);
 		return n == null ? 0L : n;
 	}
 }

@@ -1,5 +1,8 @@
 package it.nutrizionista.restnutrizionista.dto;
 
+import it.nutrizionista.restnutrizionista.enums.TemaPdf;
+import it.nutrizionista.restnutrizionista.enums.TemplatePdf;
+
 import java.time.Instant;
 import java.time.LocalDate;
 /** DTO di lettura per Utente (include il Ruolo come DTO). */
@@ -14,6 +17,8 @@ public class UtenteDto {
     private String indirizzo;
     private RuoloDto ruolo;
     private String filePathLogo;
+    private TemplatePdf templatePdfPreferito;
+    private TemaPdf pdfTemaColore;
     private Instant createdAt;
     private Instant updatedAt;
 
@@ -45,6 +50,18 @@ public class UtenteDto {
 	public void setFilePathLogo(String filePathLogo) {
 		this.filePathLogo = filePathLogo;
 	}
+	public TemplatePdf getTemplatePdfPreferito() {
+		return templatePdfPreferito;
+	}
+	public void setTemplatePdfPreferito(TemplatePdf templatePdfPreferito) {
+		this.templatePdfPreferito = templatePdfPreferito;
+	}
+	public TemaPdf getPdfTemaColore() {
+		return pdfTemaColore;
+	}
+	public void setPdfTemaColore(TemaPdf pdfTemaColore) {
+		this.pdfTemaColore = pdfTemaColore;
+	}
 
-    
+
 }

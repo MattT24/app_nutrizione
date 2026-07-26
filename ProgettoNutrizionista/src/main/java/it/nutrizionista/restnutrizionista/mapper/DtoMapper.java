@@ -234,6 +234,8 @@ public class DtoMapper {
 		dto.setIndirizzo(u.getIndirizzo());
 		dto.setRuolo(toRuoloDtoLight(u.getRuolo())); // ruolo light
 		dto.setFilePathLogo(u.getFilePathLogo());
+		dto.setTemplatePdfPreferito(u.getTemplatePdfPreferito());
+		dto.setPdfTemaColore(u.getPdfTemaColore());
 
 		return dto;
 	}

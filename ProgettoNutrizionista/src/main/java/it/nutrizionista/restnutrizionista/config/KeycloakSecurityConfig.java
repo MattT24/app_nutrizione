@@ -3,6 +3,7 @@ package it.nutrizionista.restnutrizionista.config;
 import java.io.IOException;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -62,6 +63,15 @@ import jakarta.servlet.http.HttpServletResponse;
 @ConditionalOnProperty(name = "auth.provider", havingValue = "keycloak")
 public class KeycloakSecurityConfig {
 
+    /**
+     * B6 — CSP del binario keycloak. SENZA GSI (in keycloak-mode Google è dietro l'IdP, non nel browser):
+     * script/style/connect restano 'self'. Immagini OFF + blob (anteprima PDF) ammessi come nel legacy.
+     */
+    private static final String CSP_KEYCLOAK =
+        "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; "
+      + "img-src 'self' data: https://images.openfoodfacts.org; font-src 'self'; "
+      + "style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; frame-src 'self' blob:";
+
     // ───────────────────────── Chain BEARER (mobile) — @Order(0) ─────────────────────────
     @Bean
     @Order(0)
@@ -73,6 +83,8 @@ public class KeycloakSecurityConfig {
             .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(a -> a.anyRequest().authenticated())
             .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(jwtAuthConverter)));
+        // B6 — header per il binario bearer/JSON (CSP minimale + HSTS + no-referrer).
+        SecurityHeaderSupport.applyApiHeaders(http);
         return http.build();
     }
 
@@ -82,7 +94,12 @@ public class KeycloakSecurityConfig {
     public SecurityFilterChain browserFilterChain(HttpSecurity http,
             @Qualifier("corsConfigurationSource") CorsConfigurationSource corsSource,
             OAuth2UserService<OidcUserRequest, OidcUser> oidcUserService,
-            ClientRegistrationRepository clientRegistrationRepository) throws Exception {
+            ClientRegistrationRepository clientRegistrationRepository,
+            @Value("${app.security.cookie-secure:false}") boolean cookieSecure,
+            @Value("${app.security.csp.report-only:false}") boolean cspReportOnly) throws Exception {
+        // B6 — cookie CSRF con Secure (prod) + SameSite=Lax; http-only resta false (la SPA legge XSRF-TOKEN).
+        CookieCsrfTokenRepository csrfRepo = CookieCsrfTokenRepository.withHttpOnlyFalse();
+        csrfRepo.setCookieCustomizer(c -> c.secure(cookieSecure).sameSite("Lax"));
         http
             .cors(c -> c.configurationSource(corsSource))
             // CSRF SPA (double-submit Angular): cookie XSRF-TOKEN (leggibile da JS) + header X-XSRF-TOKEN.
@@ -91,7 +108,7 @@ public class KeycloakSecurityConfig {
             // CsrfConfigurer non espone spa()); questa è la ricetta manuale equivalente. Migrare a .spa() (che aggiunge
             // BREACH/XOR) su un futuro upgrade di Spring Security che lo esponga.
             .csrf(csrf -> csrf
-                .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                .csrfTokenRepository(csrfRepo)
                 .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
@@ -121,6 +138,8 @@ public class KeycloakSecurityConfig {
             // Back-Channel Logout: Keycloak → BFF invalida la sessione (revoca propagata, chiude il "logout non effettivo").
             .oidcLogout(oidc -> oidc.backChannel(Customizer.withDefaults()))
             .addFilterAfter(new CsrfCookieFilter(), BasicAuthenticationFilter.class);
+        // B6 — header di sicurezza browser (CSP senza GSI + HSTS/Referrer/Permissions-Policy/COOP).
+        SecurityHeaderSupport.applyBrowserHeaders(http, CSP_KEYCLOAK, cspReportOnly);
         return http.build();
     }
 

@@ -17,9 +17,11 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import it.nutrizionista.restnutrizionista.entity.AlimentoAlternativo;
 import it.nutrizionista.restnutrizionista.entity.AlimentoBase;
 import it.nutrizionista.restnutrizionista.entity.AlimentoPasto;
 import it.nutrizionista.restnutrizionista.entity.Cliente;
+import it.nutrizionista.restnutrizionista.entity.GiornoSettimana;
 import it.nutrizionista.restnutrizionista.entity.Macro;
 import it.nutrizionista.restnutrizionista.entity.Metodo;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
@@ -27,7 +29,9 @@ import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
+import it.nutrizionista.restnutrizionista.entity.TipoScheda;
 import it.nutrizionista.restnutrizionista.entity.Utente;
+import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoBaseRepository;
 import it.nutrizionista.restnutrizionista.repository.AlimentoPastoRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
@@ -37,6 +41,7 @@ import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
 import it.nutrizionista.restnutrizionista.repository.UtenteRepository;
 import it.nutrizionista.restnutrizionista.support.SafeTestDatabaseBase;
+import it.nutrizionista.restnutrizionista.support.StubPdfRenderer;
 
 /**
  * Generazione PDF end-to-end attraverso il TemplateEngine REALE autoconfigurato da Spring Boot
@@ -65,11 +70,15 @@ class PdfGenerationIntegrationTest extends SafeTestDatabaseBase {
     @Autowired private PastoRepository repoPasto;
     @Autowired private AlimentoBaseRepository repoAlimento;
     @Autowired private AlimentoPastoRepository repoAlimentoPasto;
+    @Autowired private AlimentoAlternativoRepository repoAlternativa;
+    @Autowired private StubPdfRenderer stubPdfRenderer;
 
     private Long misurazionePrimaId;   // senza precedente: card KPI "pending", niente delta
     private Long misurazioneConDeltaId; // con precedente: card KPI "hero" con delta, trend valorizzato
     private Long plicometriaId;
     private Long schedaId;
+    private Long clienteId;
+    private Long alimentoPastoPranzoId; // usato per aggiungere un'alternativa nei test del template Essenziale
 
     @BeforeEach
     void seed() {
@@ -102,6 +111,7 @@ class PdfGenerationIntegrationTest extends SafeTestDatabaseBase {
         c.setFuma(false);
         c.setNutrizionista(nut);
         Cliente cliente = repoCliente.save(c);
+        clienteId = cliente.getId();
 
         // Prima rilevazione: nessun valore misurato -> tutte le card KPI in stato "pending".
         MisurazioneAntropometrica prima = new MisurazioneAntropometrica();
@@ -153,7 +163,7 @@ class PdfGenerationIntegrationTest extends SafeTestDatabaseBase {
         pasto.setScheda(scheda);
         pasto.setNome("Pranzo");
         Pasto pastoSalvato = repoPasto.save(pasto);
-        repoAlimentoPasto.save(new AlimentoPasto(alimentoSalvato, pastoSalvato, 150));
+        alimentoPastoPranzoId = repoAlimentoPasto.save(new AlimentoPasto(alimentoSalvato, pastoSalvato, 150)).getId();
     }
 
     @Test
@@ -178,6 +188,74 @@ class PdfGenerationIntegrationTest extends SafeTestDatabaseBase {
     @WithMockUser(username = EMAIL, authorities = { "SCHEDA_READ" })
     void pdfScheda_200EPdfValido() throws Exception {
         assertPdfValido(mvc.perform(get("/api/schede/{id}/pdf", schedaId)));
+    }
+
+    @Test
+    @WithMockUser(username = EMAIL, authorities = { "SCHEDA_READ" })
+    void pdfScheda_templateEssenziale_nascondeIndicazioniEAlternative() throws Exception {
+        AlimentoPasto alimentoPasto = repoAlimentoPasto.findById(alimentoPastoPranzoId).orElseThrow();
+        AlimentoBase alimentoAlt = new AlimentoBase();
+        alimentoAlt.setNome("Pane integrale");
+        alimentoAlt.setMisuraInGrammi(100.0);
+        AlimentoBase alimentoAltSalvato = repoAlimento.save(alimentoAlt);
+        AlimentoAlternativo alt = new AlimentoAlternativo(alimentoPasto, alimentoAltSalvato, 80);
+        repoAlternativa.save(alt);
+
+        assertPdfValido(mvc.perform(get("/api/schede/{id}/pdf", schedaId).param("template", "ESSENZIALE")));
+        String htmlEssenziale = stubPdfRenderer.getLastHtml();
+        assertThat(htmlEssenziale).doesNotContain("Indicazioni");
+        assertThat(htmlEssenziale).doesNotContain("Pane integrale");
+
+        assertPdfValido(mvc.perform(get("/api/schede/{id}/pdf", schedaId).param("template", "DETTAGLIATO")));
+        String htmlDettagliato = stubPdfRenderer.getLastHtml();
+        assertThat(htmlDettagliato).contains("Indicazioni");
+        assertThat(htmlDettagliato).contains("Pane integrale");
+
+        // Nessun param = default DETTAGLIATO (nessuna preferenza salvata sul nutrizionista di questo test)
+        assertPdfValido(mvc.perform(get("/api/schede/{id}/pdf", schedaId)));
+        assertThat(stubPdfRenderer.getLastHtml()).contains("Indicazioni");
+    }
+
+    @Test
+    @WithMockUser(username = EMAIL, authorities = { "SCHEDA_READ" })
+    void pdfScheda_templateNonValido_erroreGestito() throws Exception {
+        // Il binding fallito dell'enum (MethodArgumentTypeMismatchException) non ha un handler dedicato
+        // in GlobalExceptionHandler → ricade nel catch-all RuntimeException (500 generico, comportamento
+        // pre-esistente e uniforme per tutti i parametri enum dell'API, non specifico di questa feature).
+        mvc.perform(get("/api/schede/{id}/pdf", schedaId).param("template", "NONESISTENTE"))
+                .andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    @WithMockUser(username = EMAIL, authorities = { "SCHEDA_READ" })
+    void pdfSchedaSettimanale_entrambiITemplate_200EPdfValido() throws Exception {
+        Cliente cliente = repoCliente.findById(clienteId).orElseThrow();
+
+        Scheda settimanale = new Scheda();
+        settimanale.setCliente(cliente);
+        settimanale.setNome("Scheda settimanale test PDF");
+        settimanale.setTipo(TipoScheda.SETTIMANALE);
+        settimanale.setAttiva(false);
+        Scheda schedaSettimanale = repoScheda.save(settimanale);
+
+        AlimentoBase alimento = new AlimentoBase();
+        alimento.setNome("Riso");
+        alimento.setMisuraInGrammi(100.0);
+        Macro m = new Macro();
+        m.setAlimento(alimento);
+        m.setCalorie(350.0); m.setProteine(7.0); m.setCarboidrati(78.0); m.setGrassi(1.0);
+        alimento.setMacroNutrienti(m);
+        AlimentoBase alimentoSalvato = repoAlimento.save(alimento);
+
+        Pasto pasto = new Pasto();
+        pasto.setScheda(schedaSettimanale);
+        pasto.setNome("Pranzo");
+        pasto.setGiorno(GiornoSettimana.LUNEDI);
+        Pasto pastoSalvato = repoPasto.save(pasto);
+        repoAlimentoPasto.save(new AlimentoPasto(alimentoSalvato, pastoSalvato, 120));
+
+        assertPdfValido(mvc.perform(get("/api/schede/{id}/pdf", schedaSettimanale.getId()).param("template", "ESSENZIALE")));
+        assertPdfValido(mvc.perform(get("/api/schede/{id}/pdf", schedaSettimanale.getId()).param("template", "DETTAGLIATO")));
     }
 
     private void assertPdfValido(org.springframework.test.web.servlet.ResultActions result) throws Exception {

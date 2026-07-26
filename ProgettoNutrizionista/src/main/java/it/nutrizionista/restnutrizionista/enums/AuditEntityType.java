@@ -5,7 +5,7 @@ package it.nutrizionista.restnutrizionista.enums;
  * (art. 9 GDPR); i valori aggiunti per F-OWN-SWEEP servono a qualificare l'{@code entityId} negli
  * eventi di accesso NEGATO (ACCESS/DENIED) sulle sub-risorse del piano e sulle risorse operative del
  * nutrizionista — quindi {@code PASTO}/{@code ALIMENTO_PASTO} sono art. 9, mentre {@code APPUNTAMENTO}
- * e {@code ORARI_STUDIO} sono tipi ai soli fini dell'audit d'accesso, NON dati art. 9.
+ * è un tipo ai soli fini dell'audit d'accesso, NON dati art. 9.
  * Persistita come stringa ({@code @Enumerated(STRING)}, {@code length=48}).
  */
 public enum AuditEntityType {
@@ -19,6 +19,5 @@ public enum AuditEntityType {
     // F-OWN-SWEEP: qualificano l'entityId nei DENIED sulle sub-risorse/operative (vedi Javadoc).
     PASTO,
     ALIMENTO_PASTO,
-    APPUNTAMENTO,
-    ORARI_STUDIO
+    APPUNTAMENTO
 }

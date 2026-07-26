@@ -2,6 +2,7 @@ package it.nutrizionista.restnutrizionista.entity;
 
 import it.nutrizionista.restnutrizionista.enums.MetodoRegistrazione;
 import it.nutrizionista.restnutrizionista.enums.TemaPdf;
+import it.nutrizionista.restnutrizionista.enums.TemplatePdf;
 import jakarta.persistence.*;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -79,6 +80,11 @@ public class Utente {
     @Column(name = "pdf_tema_colore", length = 16)
     private TemaPdf pdfTemaColore = TemaPdf.EMERALD;
 
+    /** Template PDF preferito per le schede (preferenza globale del nutrizionista, sovrascrivibile per singola generazione). */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "template_pdf_preferito", length = 24)
+    private TemplatePdf templatePdfPreferito = TemplatePdf.DETTAGLIATO;
+
     // A6 / F-USER-DEL: cascade RIMOSSO di proposito. La cancellazione dei clienti passa SOLO dal loop
     // esplicito in UtenteService.deleteAccount → ClienteService.eliminaClienteCompleto (audit + PDF su disco
     // + anonimizzazione gamification). Un cascade ORM qui li cancellerebbe "di nascosto" bypassando quel metodo.
@@ -136,6 +142,12 @@ public class Utente {
 	}
 	public void setPdfTemaColore(TemaPdf pdfTemaColore) {
 		this.pdfTemaColore = pdfTemaColore;
+	}
+	public TemplatePdf getTemplatePdfPreferito() {
+		return templatePdfPreferito;
+	}
+	public void setTemplatePdfPreferito(TemplatePdf templatePdfPreferito) {
+		this.templatePdfPreferito = templatePdfPreferito;
 	}
     
 

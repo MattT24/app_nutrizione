@@ -2,6 +2,7 @@ package it.nutrizionista.restnutrizionista.service;
 
 import it.nutrizionista.restnutrizionista.entity.*;
 import it.nutrizionista.restnutrizionista.enums.TemaPdf;
+import it.nutrizionista.restnutrizionista.enums.TemplatePdf;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.rendering.PDFRenderer;
@@ -104,21 +105,25 @@ class PdfPreviewGeneratorTest {
         sezione(dir, "plico-manuale", "Plicometria — metodo manuale (Parillo)",
                 pdf.renderPlicometria(man, null));
 
-        // --- SCHEDE (matrice: tema × macro) ---
-        sezione(dir, "scheda-giornaliera", "Scheda giornaliera — tema emerald, con macro",
-                pdf.renderScheda(schedaGiornaliera(uomo), true));
+        // --- SCHEDE (matrice: tema × macro × template) ---
+        sezione(dir, "scheda-giornaliera", "Scheda giornaliera — tema emerald, con macro, dettagliato",
+                pdf.renderScheda(schedaGiornaliera(uomo), true, null));
         nut.setPdfTemaColore(TemaPdf.ROSSO);
         sezione(dir, "scheda-giornaliera-rosso", "Scheda giornaliera — tema rosso",
-                pdf.renderScheda(schedaGiornaliera(uomo), true));
+                pdf.renderScheda(schedaGiornaliera(uomo), true, null));
         nut.setPdfTemaColore(TemaPdf.EMERALD);
         sezione(dir, "scheda-giornaliera-senza-macro", "Scheda giornaliera — senza grafico macro",
-                pdf.renderScheda(schedaGiornaliera(uomo), false));
-        sezione(dir, "scheda-settimanale", "Scheda settimanale — tema emerald, con macro",
-                pdf.renderScheda(schedaSettimanale(uomo), true));
+                pdf.renderScheda(schedaGiornaliera(uomo), false, null));
+        sezione(dir, "scheda-giornaliera-essenziale", "Scheda giornaliera — template Essenziale",
+                pdf.renderScheda(schedaGiornaliera(uomo), true, TemplatePdf.ESSENZIALE));
+        sezione(dir, "scheda-settimanale", "Scheda settimanale — tema emerald, con macro, dettagliato",
+                pdf.renderScheda(schedaSettimanale(uomo), true, null));
         nut.setPdfTemaColore(TemaPdf.ROSSO);
         sezione(dir, "scheda-settimanale-rosso", "Scheda settimanale — tema rosso",
-                pdf.renderScheda(schedaSettimanale(uomo), true));
+                pdf.renderScheda(schedaSettimanale(uomo), true, null));
         nut.setPdfTemaColore(TemaPdf.EMERALD);
+        sezione(dir, "scheda-settimanale-essenziale", "Scheda settimanale — template Essenziale",
+                pdf.renderScheda(schedaSettimanale(uomo), true, TemplatePdf.ESSENZIALE));
 
         Path out = dir.resolve("anteprima.html");
         Files.writeString(out, html.toString());

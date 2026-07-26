@@ -25,9 +25,6 @@ public class OrariStudioService {
     @Autowired
     private UtenteRepository utenteRepository;
 
-    @Autowired
-    private OwnershipValidator ownershipValidator;
-
     // Ritorna la LISTA degli orari di tutti i giorni della settimana
     @Transactional(readOnly = true)
     public List<OrariStudioDto> getOrariStudioMe(String email) {
@@ -69,12 +66,6 @@ public class OrariStudioService {
         return formDtos.stream()
                 .map(formDto -> upsertOrariStudioMe(email, formDto))
                 .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void deleteOrariStudio(Long id) {
-        OrariStudio esistente = ownershipValidator.getOwnedOrariStudio(id);
-        orariStudioRepository.delete(esistente);
     }
 
     private void validateOrariStudio(OrariStudioFormDto formDto) {
