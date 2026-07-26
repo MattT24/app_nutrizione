@@ -14,10 +14,8 @@ RUN mvn -B -q clean package -DskipTests
 FROM mcr.microsoft.com/playwright/java:v1.61.0-noble
 WORKDIR /app
 
-# Font brand (Inter): installati a livello di sistema operativo, non più embeddati per-render
-# via PDFBox come col vecchio motore OpenHTMLToPDF (vedi ChromiumPdfRenderer).
-COPY --from=build /build/src/main/resources/fonts /usr/share/fonts/truetype/inter
-RUN fc-cache -f
+# Font PDF: incorporati come base64 data-URI nei template (templates/pdf/fragments/pdf-fonts.html),
+# self-contained → nessuna installazione OS necessaria (ChromiumPdfRenderer aborta la rete nel render).
 
 COPY --from=build /build/target/*.jar app.jar
 
