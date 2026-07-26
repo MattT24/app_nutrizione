@@ -1,6 +1,7 @@
 package it.nutrizionista.restnutrizionista.config;
 
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,6 +24,22 @@ import it.nutrizionista.restnutrizionista.security.JwtAuthFilter;
 @Configuration
 @ConditionalOnProperty(name = "auth.provider", havingValue = "legacy-jwt", matchIfMissing = true)
 public class LegacySecurityConfig {
+
+    /** B6 — CSP in report-only (rollout) vs enforce, da property (default: enforce). */
+    @Value("${app.security.csp.report-only:false}")
+    private boolean cspReportOnly;
+
+    /**
+     * B6 — CSP del binario legacy. Consente Google Sign-In (GSI: script/style/connect/frame verso
+     * accounts.google.com) e le immagini prodotto di OpenFoodFacts; blocca il resto (default-src 'self').
+     */
+    private static final String CSP_LEGACY =
+        "default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; "
+      + "img-src 'self' data: https://images.openfoodfacts.org; font-src 'self'; "
+      + "style-src 'self' 'unsafe-inline' https://accounts.google.com/gsi/style; "
+      + "script-src 'self' https://accounts.google.com/gsi/client; "
+      + "connect-src 'self' https://accounts.google.com/gsi/ https://accounts.google.com/.well-known/; "
+      + "frame-src 'self' blob: https://accounts.google.com/gsi/ https://accounts.google.com/o/oauth2/";
 
     /** Filtro che valida i JWT in ingresso. */
     @Bean
@@ -60,6 +77,9 @@ public class LegacySecurityConfig {
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter(), UsernamePasswordAuthenticationFilter.class);
+
+        // B6 — header di sicurezza (CSP/HSTS/Referrer/Permissions-Policy/COOP), punto unico condiviso.
+        SecurityHeaderSupport.applyBrowserHeaders(http, CSP_LEGACY, cspReportOnly);
 
         return http.build();
     }
