@@ -26,8 +26,14 @@ import it.nutrizionista.restnutrizionista.service.PdfRenderer;
 @ConditionalOnProperty(prefix = "pdf.renderer", name = "impl", havingValue = "stub")
 public class StubPdfRenderer implements PdfRenderer {
 
+    // Non usato per il rendering (che resta un PDF minimo fisso): permette ai test di ispezionare
+    // l'HTML realmente prodotto da Thymeleaf per verificare differenze di contenuto tra i template
+    // (es. sezioni nascoste dal template Essenziale), dato che lo stub altrimenti le ignorerebbe.
+    private volatile String lastHtml;
+
     @Override
     public byte[] render(String html) {
+        this.lastHtml = html;
         try (PDDocument doc = new PDDocument(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             doc.addPage(new PDPage());
             doc.save(out);
@@ -35,5 +41,9 @@ public class StubPdfRenderer implements PdfRenderer {
         } catch (Exception e) {
             throw new IllegalStateException("Stub PDF renderer: generazione del PDF di test fallita", e);
         }
+    }
+
+    public String getLastHtml() {
+        return lastHtml;
     }
 }

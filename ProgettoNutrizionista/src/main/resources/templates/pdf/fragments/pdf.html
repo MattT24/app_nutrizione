@@ -2,208 +2,228 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
 
-<style th:fragment="styles">
+<th:block th:fragment="styles">
+<style th:replace="~{pdf/fragments/pdf-fonts :: fontfaces}"></style>
+<style>
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
-  body { font-family: 'Inter', Helvetica, Arial, sans-serif; color: #0f172a; background: #ffffff; font-size: 12px; line-height: 1.45; }
+
+  /* ============ DESIGN TOKENS ============ */
+  /* Palette calda "editoriale" (non il classico grigio-blu da SaaS): inchiostro caldo, carta
+     avorio, verde foresta profondo come accento di default. Il tema ROSSO (preferenza nutrizionista,
+     vedi TemaPdf) sovrascrive SOLO le variabili --accent-*: nessuna regola .t-red duplicata altrove. */
+  :root {
+    --ink: #241C15;
+    --ink-soft: #4A4038;
+    --muted: #9A8D7C;
+    --line: #E8E0D2;
+    --paper: #FFFEFC;
+    --surface: #FBF7EF;
+    --surface-2: #F5EFE2;
+    --accent: #146C48;
+    --accent-2: #268C60;
+    --accent-3: #7FBE9B;
+    --accent-soft: #E4F1E7;
+    --accent-ink: #0F5138;
+    --on-accent: #FFFFFF;
+  }
+  .t-red {
+    --accent: #A73E22;
+    --accent-2: #C6572F;
+    --accent-3: #E4A883;
+    --accent-soft: #F8E9DF;
+    --accent-ink: #86311A;
+  }
+
+  body { font-family: 'Manrope', Helvetica, Arial, sans-serif; color: var(--ink); background: var(--paper); font-size: 12px; line-height: 1.45; }
   @page { size: A4; margin: 13mm 14mm; }
-  .sheet { background: #ffffff; }
+  .sheet { background: var(--paper); }
   .ic { display: inline-block; width: 1em; height: 1em; vertical-align: middle; }
   .avoid { page-break-inside: avoid; }
+  .serif { font-family: 'Fraunces', Georgia, 'Times New Roman', serif; }
 
   /* ============ MASTHEAD (referti + schede) ============ */
   .mast { width: 100%; border-collapse: collapse; }
   .mast td { vertical-align: middle; }
-  .mast-logo img { height: 58px; width: auto; display: block; }
+  .mast-logo img { height: 56px; width: auto; display: block; }
   .brandmark { border-collapse: collapse; }
   .brandmark td { vertical-align: middle; }
-  .emblem { width: 42px; height: 42px; color: #059669; display: block; }
-  .brand-name { font-size: 22px; font-weight: 800; color: #0f172a; line-height: 1; letter-spacing: -.01em; }
-  .brand-tag { font-size: 8px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #10b981; margin-top: 3px; }
+  .emblem-well { width: 44px; height: 44px; border-radius: 13px; background: var(--accent-soft); display: flex; align-items: center; justify-content: center; }
+  .emblem { width: 24px; height: 24px; color: var(--accent-ink); display: block; }
+  .brand-name { font-family: 'Fraunces', Georgia, serif; font-size: 23px; font-weight: 800; color: var(--ink); line-height: 1; letter-spacing: -.01em; }
+  .brand-tag { font-size: 8px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent-ink); margin-top: 4px; }
   .mast-doc { text-align: right; }
-  .mast-doc .kicker { font-size: 10px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: #94a3b8; }
-  .mast-doc .title { font-size: 19px; font-weight: 800; color: #0f172a; margin-top: 4px; letter-spacing: -.01em; }
-  .rule { border: 0; border-top: 2px solid #0f172a; margin: 10px 0 13px; height: 0; }
+  .mast-doc .kicker { font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); }
+  .mast-doc .title { font-family: 'Fraunces', Georgia, serif; font-style: italic; font-size: 21px; font-weight: 600; color: var(--ink); margin-top: 3px; letter-spacing: -.005em; }
+  .rule { border: 0; height: 1px; margin: 11px 0 14px; background: linear-gradient(90deg, var(--ink) 0%, var(--line) 72%, transparent 100%); }
 
   /* ============ PATIENT STRIP (referti misurazione/plicometria: .ma-info/.pl-info) ============ */
-  .sk { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #94a3b8; }
-  .sv { font-size: 13.5px; font-weight: 700; color: #0f172a; margin-top: 4px; line-height: 1.25; }
-  .sv2 { font-size: 11px; font-weight: 500; color: #475569; margin-top: 2px; line-height: 1.3; }
-  .badge { display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #047857; background: #d1fae5; border-radius: 999px; padding: 4px 11px; margin-top: 5px; }
+  .sk { font-size: 9px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .sv { font-size: 13.5px; font-weight: 700; color: var(--ink); margin-top: 4px; line-height: 1.25; }
+  .sv2 { font-size: 11px; font-weight: 500; color: var(--ink-soft); margin-top: 2px; line-height: 1.3; }
+  .badge { display: inline-block; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--accent-ink); background: var(--accent-soft); border-radius: 999px; padding: 4px 11px; margin-top: 5px; }
 
   /* ============ SECTION LABEL ============ */
-  .sec { width: 100%; border-collapse: collapse; margin: 14px 0 8px; }
+  .sec { width: 100%; border-collapse: collapse; margin: 15px 0 8px; }
   .sec td { vertical-align: middle; }
-  .sec .ico { width: 24px; color: #059669; font-size: 17px; }
-  .sec h2 { margin: 0; font-size: 13.5px; font-weight: 800; letter-spacing: .01em; color: #0f172a; }
-  .sec .meta { text-align: right; font-size: 9.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #94a3b8; white-space: nowrap; }
+  .sec .ico { width: 24px; color: var(--accent); font-size: 17px; }
+  .sec h2 { margin: 0; font-family: 'Fraunces', Georgia, serif; font-size: 14.5px; font-weight: 600; letter-spacing: .003em; color: var(--ink); }
+  .sec .meta { text-align: right; font-size: 9.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); white-space: nowrap; }
 
   /* ============ PILL (delta, semantico) ============ */
-  .pill { display: inline-block; font-size: 10.5px; font-weight: 800; padding: 2px 9px; border-radius: 999px; white-space: nowrap; background: #f1f5f9; color: #64748b; }
+  .pill { display: inline-block; font-size: 10.5px; font-weight: 800; padding: 2px 9px; border-radius: 999px; white-space: nowrap; background: var(--surface-2); color: var(--ink-soft); }
   .pill .ic { width: 0.85em; height: 0.85em; margin-right: 2px; }
-  .pill.down { background: #d1fae5; color: #047857; }
-  .pill.up { background: #fee2e2; color: #b91c1c; }
-  .pill.flat { background: #f1f5f9; color: #64748b; }
+  .pill.down { background: var(--accent-soft); color: var(--accent-ink); }
+  .pill.up { background: #F5E1DC; color: #9C3B22; }
+  .pill.flat { background: var(--surface-2); color: var(--ink-soft); }
 
   /* ============ DATA TABLE ============ */
-  .wrap { border: 1px solid #e8ebef; border-radius: 12px; overflow: hidden; }
+  .wrap { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .mt { width: 100%; border-collapse: collapse; }
-  .mt thead th { background: #f6f8fa; font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: #475569; text-align: left; padding: 7px 16px; border-bottom: 1px solid #e8ebef; }
+  .mt thead th { background: var(--surface); font-size: 9px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); text-align: left; padding: 7px 16px; border-bottom: 1px solid var(--line); }
   .mt thead th.n { text-align: right; }
-  .mt td { padding: 6px 16px; border-bottom: 1px solid #eef1f4; font-size: 13px; vertical-align: middle; }
+  .mt td { padding: 6px 16px; border-bottom: 1px solid var(--surface-2); font-size: 13px; vertical-align: middle; }
   .mt tr.last td { border-bottom: 0; }
-  .mt tr.pending td { background: #fcfdfe; }
-  .mt tr.sum td { background: #f6f8fa; border-top: 1px solid #e8ebef; }
-  .mt tr.result td { background: #f4fdf8; }
+  .mt tr.pending td { background: var(--paper); }
+  .mt tr.sum td { background: var(--surface); border-top: 1px solid var(--line); }
+  .mt tr.result td { background: var(--accent-soft); }
   .mname { width: 100%; border-collapse: collapse; }
   .mname .mi { width: 34px; vertical-align: middle; }
-  .mrk { width: 22px; height: 22px; border-radius: 7px; background: #ecfdf5; text-align: center; line-height: 22px; color: #059669; font-size: 12.5px; }
-  .mrk.off { background: #f1f5f9; color: #94a3b8; }
-  .mrk.dark { background: #0f172a; color: #ffffff; }
-  .mlabel { font-weight: 700; color: #0f172a; vertical-align: middle; }
-  .mlabel.off { color: #94a3b8; font-weight: 600; }
+  .mrk { width: 22px; height: 22px; border-radius: 7px; background: var(--accent-soft); text-align: center; line-height: 22px; color: var(--accent-ink); font-size: 12.5px; }
+  .mrk.off { background: var(--surface-2); color: var(--muted); }
+  .mrk.dark { background: var(--ink); color: #ffffff; }
+  .mlabel { font-weight: 700; color: var(--ink); vertical-align: middle; }
+  .mlabel.off { color: var(--muted); font-weight: 600; }
   .mlabel.strong { font-weight: 800; }
-  .mlabel .sub { font-size: 9.5px; font-weight: 600; color: #94a3b8; margin-left: 5px; }
+  .mlabel .sub { font-size: 9.5px; font-weight: 600; color: var(--muted); margin-left: 5px; }
   .n { text-align: right; white-space: nowrap; }
-  .read { font-weight: 700; color: #0f172a; }
-  .read .u { font-size: 10px; font-weight: 600; color: #94a3b8; margin-left: 2px; }
-  .read.empty { color: #cbd5e1; font-weight: 600; }
-  .todo { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #cbd5e1; }
+  .read { font-weight: 700; color: var(--ink); }
+  .read .u { font-size: 10px; font-weight: 600; color: var(--muted); margin-left: 2px; }
+  .read.empty { color: #D7CDBC; font-weight: 600; }
+  .todo { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #D7CDBC; }
 
   /* ============ NOTE BOX ============ */
-  .notebox { border: 1px solid #e8ebef; border-radius: 12px; padding: 11px 15px; font-size: 11.5px; color: #475569; font-style: italic; line-height: 1.5; }
+  .notebox { border: 1px solid var(--line); border-radius: 12px; padding: 11px 15px; font-size: 11.5px; color: var(--ink-soft); font-style: italic; line-height: 1.5; }
 
   /* ============ REFERTO FOOTER ============ */
   .foot { width: 100%; border-collapse: collapse; margin-top: 8px; }
   .foot td { vertical-align: bottom; }
-  .sign-line { border-top: 1px solid #334155; width: 240px; margin-bottom: 8px; }
-  .sign-k { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #94a3b8; }
-  .sign-v { font-size: 13px; font-weight: 700; color: #0f172a; margin-top: 3px; }
-  .sign-q { font-size: 10px; color: #475569; margin-top: 2px; max-width: 300px; line-height: 1.35; }
-  .brand { text-align: right; font-size: 9.5px; color: #94a3b8; line-height: 1.6; }
-  .brand b { color: #059669; font-weight: 800; }
+  .sign-line { border-top: 1px solid var(--ink-soft); width: 240px; margin-bottom: 8px; }
+  .sign-k { font-size: 9px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .sign-v { font-family: 'Fraunces', Georgia, serif; font-size: 14px; font-weight: 600; color: var(--ink); margin-top: 3px; }
+  .sign-q { font-size: 10px; color: var(--ink-soft); margin-top: 2px; max-width: 300px; line-height: 1.35; }
+  .brand { text-align: right; font-size: 9.5px; color: var(--muted); line-height: 1.6; }
+  .brand b { color: var(--accent-ink); font-weight: 800; }
 
-  /* ============ SCHEDA — PATIENT INFO (flex, come .ma-info/.pl-info dei referti) ============ */
-  .sch-info { display: flex; border: 1px solid #e8ebef; border-radius: 16px; background: linear-gradient(135deg, #fafbfc 0%, #ffffff 65%); box-shadow: 0 1px 2px rgba(15,23,42,.04); }
-  .sch-info-item { flex: 1; padding: 10px 20px; }
-  .sch-info-item + .sch-info-item { border-left: 1px solid #eef1f4; }
+  /* ============ SCHEDA — PATIENT INFO (flex, con avatar iniziali) ============ */
+  .sch-info { display: flex; align-items: center; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); box-shadow: 0 1px 2px rgba(36,28,21,.04); padding: 4px 4px 4px 6px; }
+  .sch-avatar { flex-shrink: 0; width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(155deg, var(--accent-2), var(--accent)); color: #fff; display: flex; align-items: center; justify-content: center; font-family: 'Fraunces', Georgia, serif; font-size: 16px; font-weight: 700; letter-spacing: .02em; box-shadow: 0 3px 8px -2px rgba(20,108,72,.45); }
+  .sch-info-item { flex: 1; padding: 10px 18px; }
+  .sch-info-item.first { padding-left: 14px; }
+  .sch-info-item + .sch-info-item { border-left: 1px solid var(--line); }
 
   /* ============ SCHEDA — SUMMARY BAND ============ */
   .summary {
-    border: none; border-radius: 18px; margin-top: 14px; padding: 16px 10px; page-break-inside: avoid;
-    background: linear-gradient(155deg, #059669 0%, #10b981 55%, #34d399 100%);
-    box-shadow: 0 10px 22px -8px rgba(5,150,105,.5);
+    position: relative; overflow: hidden;
+    border: none; border-radius: 20px; margin-top: 15px; padding: 17px 10px; page-break-inside: avoid;
+    background: linear-gradient(155deg, var(--accent) 0%, var(--accent-2) 58%, var(--accent-3) 115%);
+    box-shadow: 0 12px 24px -10px rgba(20,108,72,.55);
     color: #ffffff;
   }
-  .sumt { width: 100%; border-collapse: collapse; }
+  .summary-motif { position: absolute; right: -18px; top: -22px; width: 150px; height: 150px; opacity: .14; color: #ffffff; transform: rotate(12deg); }
+  .sumt { width: 100%; border-collapse: collapse; position: relative; }
   .sumt > tbody > tr > td { vertical-align: middle; }
   .sum-donut { width: 122px; text-align: center; padding: 0 10px; }
   .sum-donut svg { display: block; margin: 0 auto; background: #ffffff; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,.18); }
-  .sum-title { font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: rgba(255,255,255,.8); margin-top: 7px; }
-  .sum-leg { padding: 0 18px; border-left: 1px solid rgba(255,255,255,.25); }
+  .kcal-num { font-family: 'Manrope', sans-serif; }
+  .sum-title { font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: rgba(255,255,255,.82); margin-top: 8px; }
+  .sum-leg { padding: 0 18px; border-left: 1px solid rgba(255,255,255,.28); }
   .leg { width: 100%; border-collapse: collapse; }
   .leg td { padding: 4px 0; vertical-align: middle; }
-  .leg .ld { width: 16px; }
-  .leg .dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; vertical-align: middle; box-shadow: 0 0 0 2px rgba(255,255,255,.35); }
-  .leg .ll { font-size: 11.5px; color: rgba(255,255,255,.92); font-weight: 600; }
+  .leg .li { width: 20px; }
+  .leg .mico { width: 16px; height: 16px; border-radius: 5px; background: rgba(255,255,255,.2); display: inline-flex; align-items: center; justify-content: center; color: #ffffff; }
+  .leg .mico .ic { width: 10px; height: 10px; }
+  .leg .ll { font-size: 11.5px; color: rgba(255,255,255,.94); font-weight: 600; padding-left: 4px; }
   .leg .lv { text-align: right; font-size: 12px; font-weight: 800; color: #ffffff; white-space: nowrap; padding-left: 12px; }
   .leg .lp { text-align: right; font-size: 10.5px; color: rgba(255,255,255,.75); font-weight: 600; width: 44px; padding-left: 8px; white-space: nowrap; }
-  .sum-hyd { width: 200px; padding: 0 16px; border-left: 1px solid rgba(255,255,255,.25); vertical-align: middle; }
-  .hyd-lab { font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: rgba(255,255,255,.8); }
-  .hyd-big { font-size: 22px; font-weight: 800; color: #ffffff; margin-top: 2px; letter-spacing: -.01em; }
-  .hyd-big span { font-size: 12px; font-weight: 700; color: rgba(255,255,255,.8); }
+  .sum-hyd { width: 200px; padding: 0 16px; border-left: 1px solid rgba(255,255,255,.28); vertical-align: middle; }
+  .hyd-lab { font-size: 9px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: rgba(255,255,255,.82); }
+  .hyd-big { font-family: 'Fraunces', Georgia, serif; font-size: 23px; font-weight: 800; color: #ffffff; margin-top: 3px; letter-spacing: -.01em; }
+  .hyd-big span { font-family: 'Manrope', sans-serif; font-size: 12px; font-weight: 700; color: rgba(255,255,255,.8); }
   .glasses { margin-top: 7px; }
   .glass { display: inline-block; margin: 0 2px 0 0; vertical-align: middle; }
   .hyd-cap { font-size: 9px; color: rgba(255,255,255,.8); font-weight: 600; margin-top: 5px; }
 
   /* ============ SCHEDA — MEAL CARD (giornaliera) ============ */
-  .meal { border: 1px solid #e8ebef; border-radius: 13px; overflow: hidden; margin-bottom: 11px; page-break-inside: avoid; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
-  .meal-h { width: 100%; border-collapse: collapse; background-color: #059669; background-image: linear-gradient(155deg,#10b981,#059669); }
-  .meal-h td { vertical-align: middle; padding: 9px 15px; }
-  .meal-ico { width: 36px; }
-  .meal-well { width: 27px; height: 27px; border-radius: 8px; background: #ffffff; text-align: center; line-height: 27px; color: #059669; font-size: 15px; }
-  .meal-nm { font-size: 13.5px; font-weight: 800; color: #ffffff; }
-  .meal-time { text-align: right; font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #d1fae5; white-space: nowrap; }
+  .meal { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-bottom: 11px; page-break-inside: avoid; box-shadow: 0 1px 3px rgba(36,28,21,.05); }
+  .meal-h { width: 100%; border-collapse: collapse; background-color: var(--accent); background-image: linear-gradient(155deg,var(--accent-2),var(--accent)); }
+  .meal-h td { vertical-align: middle; padding: 10px 15px; }
+  .meal-ico { width: 38px; }
+  .meal-well { width: 28px; height: 28px; border-radius: 9px; background: rgba(255,255,255,.94); text-align: center; line-height: 28px; color: var(--accent-ink); font-size: 15px; }
+  .meal-nm { font-family: 'Fraunces', Georgia, serif; font-size: 14.5px; font-weight: 700; color: #ffffff; }
+  .meal-time { text-align: right; font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgba(255,255,255,.82); white-space: nowrap; }
   .foods { width: 100%; border-collapse: collapse; }
-  .foods td { padding: 7px 15px; border-bottom: 1px solid #f1f4f7; vertical-align: baseline; }
+  .foods td { padding: 7px 15px; border-bottom: 1px solid var(--surface-2); vertical-align: baseline; }
   .foods tr.lastfood td { border-bottom: 0; }
-  .foods tr.altrow td { border-bottom: 1px solid #f1f4f7; padding-top: 0; padding-bottom: 9px; }
+  .foods tr.altrow td { border-bottom: 1px solid var(--surface-2); padding-top: 0; padding-bottom: 9px; }
   .foods tr.lastfood.altrow td { border-bottom: 0; }
-  .fnm { font-size: 12.5px; font-weight: 700; color: #0f172a; }
-  .fcat { text-align: right; font-size: 10px; color: #94a3b8; font-weight: 500; white-space: nowrap; padding-right: 12px; }
-  .fqty { text-align: right; font-size: 12.5px; font-weight: 800; color: #047857; white-space: nowrap; width: 78px; }
-  .alts-lab { font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: #047857; font-weight: 800; white-space: nowrap; }
-  .achip { display: inline-block; font-size: 10px; font-weight: 600; color: #374151; background: #f3f5f7; border: 1px solid #e8ebef; border-radius: 999px; padding: 2px 9px; margin: 3px 4px 0 0; white-space: nowrap; }
-  .achip b { color: #047857; font-weight: 800; margin-left: 3px; }
+  .fnm { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+  .fcat { text-align: right; white-space: nowrap; padding-right: 12px; }
+  .fcat span { display: inline-block; font-size: 8.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-soft); background: var(--surface-2); border-radius: 999px; padding: 2px 8px; }
+  .fqty { text-align: right; font-size: 12.5px; font-weight: 800; color: var(--accent-ink); white-space: nowrap; width: 78px; }
+  .alts-lab { font-size: 8px; letter-spacing: .1em; text-transform: uppercase; color: var(--accent-ink); font-weight: 800; white-space: nowrap; }
+  .achip { display: inline-block; font-size: 10px; font-weight: 600; color: var(--ink-soft); background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px; margin: 3px 4px 0 0; white-space: nowrap; }
+  .achip b { color: var(--accent-ink); font-weight: 800; margin-left: 3px; }
 
   /* ============ SCHEDA — DAY CARD + MEAL GRID (settimanale) ============ */
-  .day { border: 1px solid #e8ebef; border-radius: 13px; overflow: hidden; margin-top: 12px; page-break-inside: avoid; box-shadow: 0 1px 3px rgba(15,23,42,.05); }
-  .day-h { display: table; width: 100%; background-color: #059669; background-image: linear-gradient(155deg,#10b981,#059669); }
-  .day-h .dn { display: table-cell; width: 100%; vertical-align: middle; padding: 7px 4px 7px 15px; font-size: 12px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: #ffffff; }
-  .day-h .dm { display: table-cell; vertical-align: middle; text-align: right; white-space: nowrap; padding: 7px 15px 7px 4px; font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: #d1fae5; }
+  .day { border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-top: 12px; page-break-inside: avoid; box-shadow: 0 1px 3px rgba(36,28,21,.05); }
+  .day-h { display: table; width: 100%; background-color: var(--accent); background-image: linear-gradient(155deg,var(--accent-2),var(--accent)); }
+  .day-h .dn { display: table-cell; width: 100%; vertical-align: middle; padding: 8px 4px 8px 15px; font-family: 'Fraunces', Georgia, serif; font-size: 12.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #ffffff; }
+  .day-h .dm { display: table-cell; vertical-align: middle; text-align: right; white-space: nowrap; padding: 7px 15px 7px 4px; font-size: 8.5px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgba(255,255,255,.82); }
   .mgrid { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .mcell { width: 33.33%; vertical-align: top; padding: 9px 13px 10px; border-left: 1px solid #eef1f4; border-top: 1px solid #eef1f4; }
+  .mcell { width: 33.33%; vertical-align: top; padding: 9px 13px 10px; border-left: 1px solid var(--surface-2); border-top: 1px solid var(--surface-2); }
   .mcell.c0 { border-left: 0; }
   .mcell.r0 { border-top: 0; }
-  .mcell.empty { background: #fcfdfe; }
+  .mcell.empty { background: var(--paper); }
   .mc-h { width: 100%; border-collapse: collapse; margin-bottom: 2px; }
   .mc-h td { vertical-align: middle; }
   .mc-ico { width: 22px; }
-  .mc-well { width: 18px; height: 18px; border-radius: 6px; background: #ecfdf5; text-align: center; line-height: 18px; color: #059669; font-size: 11px; }
-  .mc-nm { font-size: 11.5px; font-weight: 800; color: #0f172a; padding-left: 2px; }
-  .mc-time { font-size: 8.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: #94a3b8; margin: 1px 0 7px 24px; white-space: nowrap; }
+  .mc-well { width: 18px; height: 18px; border-radius: 6px; background: var(--accent-soft); text-align: center; line-height: 18px; color: var(--accent-ink); font-size: 11px; }
+  .mc-nm { font-family: 'Fraunces', Georgia, serif; font-size: 12px; font-weight: 600; color: var(--ink); padding-left: 2px; }
+  .mc-time { font-size: 8.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); margin: 1px 0 7px 24px; white-space: nowrap; }
   .mc-foods { width: 100%; border-collapse: collapse; }
-  .mc-foods td { padding: 3px 0; border-bottom: 1px solid #f4f6f8; vertical-align: baseline; }
+  .mc-foods td { padding: 3px 0; border-bottom: 1px solid var(--surface-2); vertical-align: baseline; }
   .mc-foods tr.lf td { border-bottom: 0; }
-  .mf-n { font-size: 11px; font-weight: 600; color: #0f172a; }
-  .mf-q { text-align: right; font-size: 11px; font-weight: 800; color: #047857; white-space: nowrap; }
+  .mf-n { font-size: 11px; font-weight: 600; color: var(--ink); }
+  .mf-q { text-align: right; font-size: 11px; font-weight: 800; color: var(--accent-ink); white-space: nowrap; }
   .mf-alt td { border-bottom: 0; padding-top: 4px; }
-  .alt-lab { font-size: 7.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: #047857; }
+  .alt-lab { font-size: 7.5px; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; color: var(--accent-ink); }
 
   /* ============ SCHEDA — EXTRAS (indicazioni) ============ */
-  .extras { width: 100%; border-collapse: collapse; margin-top: 12px; page-break-inside: avoid; }
+  .extras { width: 100%; border-collapse: collapse; margin-top: 13px; page-break-inside: avoid; }
   .extras > tbody > tr > td { vertical-align: top; }
   .extras td.l { width: 62%; padding-right: 8px; }
   .extras td.r { width: 38%; padding-left: 8px; }
-  .rc { border: 1px solid #e8ebef; border-radius: 14px; padding: 13px 16px; background: linear-gradient(135deg, #fafbfc 0%, #ffffff 65%); box-shadow: 0 1px 3px rgba(15,23,42,.05); }
-  .rc-h { width: 100%; border-collapse: collapse; margin-bottom: 8px; }
+  .rc { border: 1px solid var(--line); border-radius: 15px; padding: 14px 17px; background: var(--surface); box-shadow: 0 1px 3px rgba(36,28,21,.05); height: 100%; }
+  .rc-h { width: 100%; border-collapse: collapse; margin-bottom: 9px; }
   .rc-h td { vertical-align: middle; }
-  .rc-h .ci { width: 22px; color: #059669; font-size: 15px; }
-  .rc-h .t { font-size: 10.5px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #0f172a; }
+  .rc-h .ci { width: 26px; }
+  .rc-h .ciw { width: 22px; height: 22px; border-radius: 7px; background: var(--accent-soft); color: var(--accent-ink); display: flex; align-items: center; justify-content: center; }
+  .rc-h .ciw .ic { width: 13px; height: 13px; }
+  .rc-h .t { font-family: 'Fraunces', Georgia, serif; font-size: 12px; font-weight: 600; letter-spacing: .005em; color: var(--ink); }
   .tip { width: 100%; border-collapse: collapse; }
   .tip td { vertical-align: top; padding: 4px 0; }
-  .tip .ti { width: 22px; color: #059669; font-size: 14px; }
-  .tip .tx { font-size: 11px; color: #374151; line-height: 1.42; }
+  .tip .ti { width: 22px; color: var(--accent-ink); font-size: 14px; }
+  .tip .tx { font-size: 11px; color: var(--ink-soft); line-height: 1.42; }
 
   /* ============ SCHEDA — FOOTER ============ */
-  .foot-note { text-align: right; font-size: 9px; color: #94a3b8; line-height: 1.45; max-width: 250px; }
-  .foot-note b { color: #047857; font-weight: 800; }
-  .foot-brand { border-top: 1px solid #e8ebef; margin-top: 14px; padding-top: 9px; width: 100%; border-collapse: collapse; font-size: 9px; color: #94a3b8; }
-  .foot-brand .b { font-weight: 800; color: #0f172a; letter-spacing: .03em; }
+  .foot-note { text-align: right; font-size: 9px; color: var(--muted); line-height: 1.45; max-width: 250px; }
+  .foot-note b { color: var(--accent-ink); font-weight: 800; }
+  .foot-brand { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 9px; width: 100%; border-collapse: collapse; font-size: 9px; color: var(--muted); }
+  .foot-brand .b { font-family: 'Fraunces', Georgia, serif; font-weight: 700; color: var(--ink); letter-spacing: .01em; }
   .foot-brand .r { text-align: right; }
-
-  /* ============ TEMA ROSSO (override accenti emerald -> rosso) ============ */
-  .t-red .emblem { color: #dc2626; }
-  .t-red .brand-tag { color: #ef4444; }
-  .t-red .brand b { color: #dc2626; }
-  .t-red .badge { color: #b91c1c; background: #fee2e2; }
-  .t-red .sec .ico { color: #dc2626; }
-  .t-red .mrk { background: #fef2f2; color: #dc2626; }
-  .t-red .mrk.off { background: #f1f5f9; color: #94a3b8; }
-  .t-red .mrk.dark { background: #0f172a; color: #ffffff; }
-  .t-red .mt tr.result td { background: #fdf5f5; }
-  .t-red .summary { background: linear-gradient(155deg, #dc2626 0%, #ef4444 55%, #f87171 100%); box-shadow: 0 10px 22px -8px rgba(220,38,38,.5); }
-  .t-red .meal-h { background-color: #dc2626; background-image: linear-gradient(155deg,#ef4444,#dc2626); }
-  .t-red .day-h { background-color: #dc2626; background-image: linear-gradient(155deg,#ef4444,#dc2626); }
-  .t-red .meal-time, .t-red .day-h .dm { color: #fee2e2; }
-  .t-red .meal-well { color: #dc2626; }
-  .t-red .fqty, .t-red .mf-q { color: #b91c1c; }
-  .t-red .alts-lab, .t-red .alt-lab { color: #b91c1c; }
-  .t-red .achip b { color: #b91c1c; }
-  .t-red .rc-h .ci { color: #dc2626; }
-  .t-red .tip .ti { color: #dc2626; }
-  .t-red .foot-note b { color: #b91c1c; }
 </style>
+</th:block>
 
 <!-- ============ ICONE (SVG inline, currentColor) ============ -->
 <!-- dispatch dinamico: ico('chart') -> include il fragment ic_chart -->
@@ -229,6 +249,9 @@
 <svg th:fragment="ic_cal" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="4.5" width="17" height="16" rx="2.2"/><path d="M3.5 9h17M8 3v3M16 3v3"/></svg>
 <svg th:fragment="ic_down" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15M6 13l6 6 6-6"/></svg>
 <svg th:fragment="ic_up" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V5M6 11l6-6 6 6"/></svg>
+<svg th:fragment="ic_protein" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8.5 14.5c-1.8 1.8-2.3 4.5-1 5.8 1.3 1.3 4 .8 5.8-1s2.3-4.7.8-6.2"/><path d="M9.3 13.7 15 8c1.8-1.8 4.3-2 5.3-1s-.5 3.8-2 5.3l-4.6 4.6"/><circle cx="17" cy="6" r="1.6"/></svg>
+<svg th:fragment="ic_carb" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21V4"/><path d="M12 6.3c-1.8-1.4-3.6-1-3.9.6-.3 1.6 1.2 2.7 3 2.3"/><path d="M12 6.3c1.8-1.4 3.6-1 3.9.6.3 1.6-1.2 2.7-3 2.3"/><path d="M12 10.6c-1.6-1.2-3.2-.9-3.5.5-.3 1.4 1 2.4 2.6 2.1"/><path d="M12 10.6c1.6-1.2 3.2-.9 3.5.5.3 1.4-1 2.4-2.6 2.1"/><path d="M12 14.7c-1.4-1-2.8-.7-3 .5-.3 1.2.8 2.1 2.3 1.8"/><path d="M12 14.7c1.4-1 2.8-.7 3 .5.3 1.2-.8 2.1-2.3 1.8"/></svg>
+<svg th:fragment="ic_fat" class="ic" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3c-3.6 1-6 5-6 9.2C6 17 8.7 21 12 21s6-4 6-8.8C18 8 15.6 4 12 3Z"/><circle cx="12" cy="13" r="3.4"/></svg>
 
 <!-- ============ REFERTO FOOTER ============ -->
 <table th:fragment="footReferto(nota)" class="foot avoid">
@@ -262,7 +285,9 @@
         <img th:if="${logoBase64 != null}" th:src="${logoBase64}" alt="Studio"/>
         <table th:unless="${logoBase64 != null}" class="brandmark"><tr>
           <td style="padding-right:12px;">
-            <svg class="emblem" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="M5.5 6h13"/><path d="M5.5 6 3.4 10.6a2.4 2.4 0 0 0 4.7 0L5.5 6Z"/><path d="M18.5 6l-2.1 4.6a2.4 2.4 0 0 0 4.7 0L18.5 6Z"/><path d="M9 21h6"/><path d="M12 6v15"/></svg>
+            <div class="emblem-well">
+              <svg class="emblem" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3"/><path d="M5.5 6h13"/><path d="M5.5 6 3.4 10.6a2.4 2.4 0 0 0 4.7 0L5.5 6Z"/><path d="M18.5 6l-2.1 4.6a2.4 2.4 0 0 0 4.7 0L18.5 6Z"/><path d="M9 21h6"/><path d="M12 6v15"/></svg>
+            </div>
           </td>
           <td>
             <div class="brand-name">Statera</div>
@@ -279,9 +304,10 @@
   <hr class="rule"/>
 </th:block>
 
-<!-- ============ SCHEDA — PATIENT INFO ============ -->
+<!-- ============ SCHEDA — PATIENT INFO (con avatar iniziali) ============ -->
 <div th:fragment="schedaPstrip" class="sch-info avoid">
-  <div class="sch-info-item">
+  <div class="sch-avatar" th:text="${iniziali != null and !iniziali.isEmpty()} ? ${iniziali} : '—'">MR</div>
+  <div class="sch-info-item first">
     <div class="sk">Paziente</div>
     <div class="sv" th:text="${pazienteNome != null and !pazienteNome.isEmpty()} ? ${pazienteNome} : '—'">Paziente</div>
   </div>
@@ -297,30 +323,31 @@
   </div>
 </div>
 
-<!-- ============ SCHEDA — SUMMARY BAND (donut + legenda + idratazione) ============ -->
+<!-- ============ SCHEDA — SUMMARY BAND (donut + legenda con icone + idratazione) ============ -->
 <div th:fragment="schedaSummary(totLabel)" class="summary">
+  <svg class="summary-motif" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M5 19c0-9 7-13 14-13 0 9-5 14-14 13Z"/><path d="M5 19c3-5 6-7 9-8"/></svg>
   <table class="sumt"><tr>
     <td class="sum-donut">
       <svg width="112" height="112" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#eef1f4" stroke-width="4.4"></circle>
+        <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F1ECE0" stroke-width="4.4"></circle>
         <circle th:each="seg : ${donut}" cx="18" cy="18" r="15.915" fill="none" stroke-width="4.4"
                 th:attr="stroke=${seg.color},stroke-dasharray=|${seg.len} ${seg.gap}|,stroke-dashoffset=${seg.offset}"
                 transform="rotate(-90 18 18)"></circle>
-        <text x="18" y="17.6" text-anchor="middle" font-size="7" font-weight="700" fill="#0f172a" th:text="${kcalTot}">2200</text>
-        <text x="18" y="22.2" text-anchor="middle" font-size="2.8" font-weight="700" letter-spacing="0.3" fill="#94a3b8">KCAL</text>
+        <text x="18" y="17.8" text-anchor="middle" class="kcal-num" font-size="7.4" font-weight="700" fill="#241C15" th:text="${kcalTot}">2200</text>
+        <text x="18" y="22.2" text-anchor="middle" font-size="2.7" font-weight="700" letter-spacing="0.3" fill="#9A8D7C">KCAL</text>
       </svg>
       <div class="sum-title" th:text="${totLabel}">Totale</div>
     </td>
     <td class="sum-leg">
       <table class="leg">
-        <tr th:each="m : ${macro}">
-          <td class="ld"><span class="dot" th:style="'background:' + ${m.color}"></span></td>
+        <tr th:each="m,ms : ${macro}">
+          <td class="li"><span class="mico" th:style="'color:' + ${m.color}"><th:block th:replace="~{pdf/fragments/pdf :: ico(${ms.index == 0 ? 'protein' : (ms.index == 1 ? 'carb' : 'fat')})}"></th:block></span></td>
           <td class="ll" th:text="${m.label}">Macro</td>
           <td class="lv" th:text="${m.grammi} + ' g'">0 g</td>
           <td class="lp" th:text="${m.pct} + '%'">0%</td>
         </tr>
         <tr th:if="${fibreG != null}">
-          <td class="ld"><span class="dot" style="background:#22d3ee"></span></td>
+          <td class="li"><span class="mico"><th:block th:replace="~{pdf/fragments/pdf :: ico('leaf')}"></th:block></span></td>
           <td class="ll">Fibre</td>
           <td class="lv" th:text="${fibreG} + ' g'">0 g</td>
           <td class="lp"></td>
@@ -330,7 +357,7 @@
     <td class="sum-hyd">
       <div class="hyd-lab">Idratazione</div>
       <div class="hyd-big">2,0 <span>L</span></div>
-      <div class="glasses"><th:block th:each="i : ${#numbers.sequence(1,8)}"><svg class="glass" width="15" height="19" viewBox="0 0 24 30" xmlns="http://www.w3.org/2000/svg" fill="none"><path d="M4 3h16l-1.5 23a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8L4 3Z" fill="#eff6ff" stroke="#3b82f6" stroke-width="1.6" stroke-linejoin="round"/><path d="M4.7 10h14.6" stroke="#3b82f6" stroke-width="1.3"/></svg></th:block></div>
+      <div class="glasses"><th:block th:each="i : ${#numbers.sequence(1,8)}"><svg class="glass" width="15" height="19" viewBox="0 0 24 30" xmlns="http://www.w3.org/2000/svg" fill="none"><path d="M4 3h16l-1.5 23a2 2 0 0 1-2 1.8H7.5a2 2 0 0 1-2-1.8L4 3Z" fill="rgba(255,255,255,.25)" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/><path d="M4.7 10h14.6" stroke="#ffffff" stroke-width="1.3"/></svg></th:block></div>
       <div class="hyd-cap">8 bicchieri &#183; ~250 ml</div>
     </td>
   </tr></table>
@@ -345,12 +372,12 @@
   </tr></table>
   <table class="foods">
     <th:block th:each="a,ai : ${pasto.alimenti}">
-      <tr th:classappend="${ai.last and a.alternative.isEmpty()} ? 'lastfood'">
+      <tr th:classappend="${ai.last and (templateEssenziale or a.alternative.isEmpty())} ? 'lastfood'">
         <td class="fnm" th:text="${a.nome}">Alimento</td>
-        <td class="fcat" th:text="${a.categoria}">categoria</td>
+        <td class="fcat"><span th:if="${a.categoria != null and !a.categoria.isEmpty()}" th:text="${a.categoria}">categoria</span></td>
         <td class="fqty" th:text="${a.qty}">150 g</td>
       </tr>
-      <tr class="altrow" th:if="${!a.alternative.isEmpty()}" th:classappend="${ai.last} ? 'lastfood'">
+      <tr class="altrow" th:if="${!templateEssenziale and !a.alternative.isEmpty()}" th:classappend="${ai.last} ? 'lastfood'">
         <td colspan="3">
           <span class="alts-lab"><th:block th:replace="~{pdf/fragments/pdf :: ico('swap')}"></th:block> Oppure</span>
           <th:block th:each="alt : ${a.alternative}"><span class="achip"><span th:text="${alt.nome}">Alternativa</span><b th:if="${!alt.qty.isEmpty()}" th:text="${alt.qty}">q</b></span></th:block>
@@ -369,11 +396,11 @@
   <div class="mc-time" th:if="${pasto.orario != null and !pasto.orario.isEmpty()}" th:text="${pasto.orario}">07:00</div>
   <table class="mc-foods">
     <th:block th:each="a,ai : ${pasto.alimenti}">
-      <tr th:classappend="${ai.last and a.alternative.isEmpty()} ? 'lf'">
+      <tr th:classappend="${ai.last and (templateEssenziale or a.alternative.isEmpty())} ? 'lf'">
         <td class="mf-n" th:text="${a.nome}">Alimento</td>
         <td class="mf-q" th:text="${a.qty}">100 g</td>
       </tr>
-      <tr class="mf-alt" th:if="${!a.alternative.isEmpty()}" th:classappend="${ai.last} ? 'lf'">
+      <tr class="mf-alt" th:if="${!templateEssenziale and !a.alternative.isEmpty()}" th:classappend="${ai.last} ? 'lf'">
         <td colspan="2">
           <span class="alt-lab"><th:block th:replace="~{pdf/fragments/pdf :: ico('swap')}"></th:block> Oppure</span><br/>
           <th:block th:each="alt : ${a.alternative}"><span class="achip"><span th:text="${alt.nome}">Alternativa</span><b th:if="${!alt.qty.isEmpty()}" th:text="${alt.qty}">q</b></span></th:block>
@@ -388,7 +415,7 @@
   <td class="l">
     <div class="rc">
       <table class="rc-h"><tr>
-        <td class="ci"><th:block th:replace="~{pdf/fragments/pdf :: ico('bulb')}"></th:block></td>
+        <td class="ci"><div class="ciw"><th:block th:replace="~{pdf/fragments/pdf :: ico('bulb')}"></th:block></div></td>
         <td class="t">Indicazioni</td>
       </tr></table>
       <table class="tip"><tr>
@@ -408,7 +435,7 @@
   <td class="r">
     <div class="rc">
       <table class="rc-h"><tr>
-        <td class="ci"><th:block th:replace="~{pdf/fragments/pdf :: ico('drop')}"></th:block></td>
+        <td class="ci"><div class="ciw"><th:block th:replace="~{pdf/fragments/pdf :: ico('drop')}"></th:block></div></td>
         <td class="t">Idratazione</td>
       </tr></table>
       <table class="tip"><tr>

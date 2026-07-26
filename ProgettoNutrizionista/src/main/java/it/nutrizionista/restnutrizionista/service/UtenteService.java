@@ -23,6 +23,8 @@ import it.nutrizionista.restnutrizionista.entity.Cliente;
 import it.nutrizionista.restnutrizionista.entity.Ruolo;
 import it.nutrizionista.restnutrizionista.entity.Utente;
 import it.nutrizionista.restnutrizionista.enums.AuditAction;
+import it.nutrizionista.restnutrizionista.enums.TemaPdf;
+import it.nutrizionista.restnutrizionista.enums.TemplatePdf;
 import it.nutrizionista.restnutrizionista.exception.BadRequestException;
 import it.nutrizionista.restnutrizionista.exception.NotFoundException;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
@@ -317,6 +319,20 @@ public class UtenteService {
         return DtoMapper.toUtenteDto(updated);
     }
     
+    /** Preferenza di default del template PDF delle schede (self-service, vedi PdfService.resolveTemplatePdf). */
+    public UtenteDto updateTemplatePdfPreferito(TemplatePdf template) {
+        Utente u = currentUserService.getMe();
+        u.setTemplatePdfPreferito(template);
+        return DtoMapper.toUtenteDto(repo.save(u));
+    }
+
+    /** Preferenza di default del tema colore PDF (self-service). */
+    public UtenteDto updatePdfTemaColore(TemaPdf temaColore) {
+        Utente u = currentUserService.getMe();
+        u.setPdfTemaColore(temaColore);
+        return DtoMapper.toUtenteDto(repo.save(u));
+    }
+
     public UtenteDto updateLogo (LogoRequestDto logo) throws IOException {
         Utente utente = currentUserService.getMe();
         

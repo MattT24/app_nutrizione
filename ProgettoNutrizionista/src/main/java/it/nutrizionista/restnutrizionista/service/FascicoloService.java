@@ -14,6 +14,7 @@ import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
 import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
 import it.nutrizionista.restnutrizionista.repository.DocumentoFascicoloRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -93,7 +94,17 @@ public class FascicoloService {
      * scheda): lo crea se non è mai stato archiviato, altrimenti rigenera il PDF e sostituisce il
      * file su disco (il vecchio file viene rimosso dopo il commit), così l'archivio riflette sempre
      * l'ultima modifica. Chiamato dai service di dominio dopo ogni update del contenuto sorgente.
+     *
+     * <p>{@code REQUIRES_NEW} (come {@code AuditService.recordCriticalNewTx}): questo metodo è invocato
+     * da {@code SchedaFascicoloSync} dentro un callback {@code afterCommit()} della tx di dominio, cioè
+     * mentre quella tx sta ancora completando (la sincronizzazione Spring resta bound finché il commit
+     * non finisce). Con la propagazione di default (REQUIRED) questo metodo "partecipa" a quella
+     * tx-in-chiusura invece di aprirne una genuinamente nuova: nessuna eccezione viene sollevata, ma il
+     * salvataggio non viene mai davvero committato — il documento sembra creato ma sparisce (bug
+     * silenzioso, senza errori né log, dietro al try/catch best-effort di SchedaFascicoloSync).
+     * REQUIRES_NEW forza una connessione/transazione indipendente che committa per conto proprio.
      */
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void sincronizzaDocumento(Long clienteId, TipoDocumento tipoDocumento, Long riferimentoId) {
         var esistente = fascicoloRepository.findByClienteIdAndTipoDocumentoAndRiferimentoId(
                 clienteId, tipoDocumento, riferimentoId);

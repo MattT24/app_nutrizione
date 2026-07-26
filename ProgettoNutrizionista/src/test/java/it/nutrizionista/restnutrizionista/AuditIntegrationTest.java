@@ -121,9 +121,9 @@ class AuditIntegrationTest extends SafeTestDatabaseBase {
         scheda.setNome("Scheda export");
         scheda.setAttiva(true);
         Long schedaId = repoScheda.save(scheda).getId();
-        doThrow(new RuntimeException("PDF boom")).when(pdfService).generaPdfScheda(anyLong(), anyBoolean());
+        doThrow(new RuntimeException("PDF boom")).when(pdfService).generaPdfScheda(anyLong(), anyBoolean(), any());
 
-        assertThrows(RuntimeException.class, () -> schedaService.exportPdf(schedaId, false));
+        assertThrows(RuntimeException.class, () -> schedaService.exportPdf(schedaId, false, null));
 
         List<AuditLog> righe = repoAudit.findAll();
         assertEquals(2, righe.size(), "generazione PDF fallita: 1 riga EXPORT_PDF SUCCESS + 1 riga FAILURE");

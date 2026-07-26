@@ -27,8 +27,10 @@
 
   <th:block th:each="p : ${pasti}"><div th:replace="~{pdf/fragments/pdf :: mealCard(${p})}"></div></th:block>
 
-  <!-- INDICAZIONI -->
-  <div th:replace="~{pdf/fragments/pdf :: schedaIndicazioni}"></div>
+  <!-- INDICAZIONI (nascosto nel template Essenziale: contenuto generico, non dati della scheda) -->
+  <th:block th:if="${!templateEssenziale}">
+    <div th:replace="~{pdf/fragments/pdf :: schedaIndicazioni}"></div>
+  </th:block>
 
   <!-- FOOTER -->
   <div th:replace="~{pdf/fragments/pdf :: schedaFoot}"></div>

@@ -10,6 +10,8 @@ import org.springframework.web.bind.annotation.*;
 import it.nutrizionista.restnutrizionista.dto.IdRequest;
 import it.nutrizionista.restnutrizionista.dto.LogoRequestDto;
 import it.nutrizionista.restnutrizionista.dto.PageResponse;
+import it.nutrizionista.restnutrizionista.dto.PdfTemaColorePreferenceDto;
+import it.nutrizionista.restnutrizionista.dto.PdfTemplatePreferenceDto;
 import it.nutrizionista.restnutrizionista.dto.ProfiloLightDto;
 import it.nutrizionista.restnutrizionista.dto.ResetPasswordDto;
 import it.nutrizionista.restnutrizionista.dto.UtenteDto;
@@ -100,6 +102,26 @@ public class UtenteController {
             @Valid @RequestBody UtenteProfileUpdateDto form
     ) {
         var updated = service.updateMyProfile(form);
+        return ResponseEntity.ok(updated);
+    }
+
+    /** Preferenza di default del template PDF delle schede (Dettagliato/Essenziale), impostazioni utente. */
+    @PutMapping("/pdf-template")
+    @PreAuthorize("hasAuthority('UTENTE_PROFILE')")
+    public ResponseEntity<UtenteDto> updatePdfTemplatePreferito(
+            @Valid @RequestBody PdfTemplatePreferenceDto form
+    ) {
+        var updated = service.updateTemplatePdfPreferito(form.getTemplatePdf());
+        return ResponseEntity.ok(updated);
+    }
+
+    /** Preferenza di default del tema colore PDF (EMERALD/ROSSO), impostazioni utente. */
+    @PutMapping("/pdf-tema-colore")
+    @PreAuthorize("hasAuthority('UTENTE_PROFILE')")
+    public ResponseEntity<UtenteDto> updatePdfTemaColore(
+            @Valid @RequestBody PdfTemaColorePreferenceDto form
+    ) {
+        var updated = service.updatePdfTemaColore(form.getTemaColore());
         return ResponseEntity.ok(updated);
     }
 

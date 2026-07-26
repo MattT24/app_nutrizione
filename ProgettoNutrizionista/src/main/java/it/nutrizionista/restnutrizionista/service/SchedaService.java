@@ -40,6 +40,7 @@ import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.enums.AuditAction;
 import it.nutrizionista.restnutrizionista.enums.AuditEntityType;
 import it.nutrizionista.restnutrizionista.enums.AuditOutcome;
+import it.nutrizionista.restnutrizionista.enums.TemplatePdf;
 import it.nutrizionista.restnutrizionista.enums.TipoEventoGamification;
 import it.nutrizionista.restnutrizionista.mapper.DtoMapper;
 import it.nutrizionista.restnutrizionista.repository.AlimentoAlternativoRepository;
@@ -78,12 +79,12 @@ public class SchedaService {
 	 * resta puro (chiamato anche da share/salvataggio-fascicolo, che NON devono generare un EXPORT_PDF).
 	 */
 	@Transactional(readOnly = true)
-	public byte[] exportPdf(Long id, boolean mostraMacro) {
+	public byte[] exportPdf(Long id, boolean mostraMacro, TemplatePdf template) {
 		Scheda scheda = ownershipValidator.getOwnedScheda(id);
 		Long clienteId = scheda.getCliente() != null ? scheda.getCliente().getId() : null;
 		auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.SCHEDA, id, clienteId, null, AuditOutcome.SUCCESS);
 		try {
-			return pdfService.generaPdfScheda(id, mostraMacro);
+			return pdfService.generaPdfScheda(id, mostraMacro, template);
 		} catch (RuntimeException e) {
 			// A7: side-effect fallito → riga FAILURE (il SUCCESS è già committato in REQUIRES_NEW), poi rilancio
 			auditService.recordCriticalNewTx(AuditAction.EXPORT_PDF, AuditEntityType.SCHEDA, id, clienteId, null, AuditOutcome.FAILURE);
