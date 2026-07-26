@@ -24,9 +24,6 @@ public interface OrariStudioRepository extends JpaRepository<OrariStudio, Long> 
     // Come sopra ma per ID (comodo quando non si ha già in mano l'oggetto Utente)
     List<OrariStudio> findByNutrizionista_Id(Long nutrizionistaId);
 
-    // Lookup scoped per ownership (usato da OwnershipValidator.getOwnedOrariStudio)
-    Optional<OrariStudio> findByIdAndNutrizionista_Id(Long id, Long nutrizionistaId);
-    
     // Cerca la singola riga di un giorno specifico (es. LUNEDI) per il nutrizionista
     Optional<OrariStudio> findByNutrizionistaAndGiornoSettimana(Utente nutrizionista, DayOfWeek giornoSettimana);
     

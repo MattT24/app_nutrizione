@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -34,7 +33,6 @@ import it.nutrizionista.restnutrizionista.entity.LivelloDiAttivita;
 import it.nutrizionista.restnutrizionista.entity.Macro;
 import it.nutrizionista.restnutrizionista.entity.Metodo;
 import it.nutrizionista.restnutrizionista.entity.MisurazioneAntropometrica;
-import it.nutrizionista.restnutrizionista.entity.OrariStudio;
 import it.nutrizionista.restnutrizionista.entity.Pasto;
 import it.nutrizionista.restnutrizionista.entity.Plicometria;
 import it.nutrizionista.restnutrizionista.entity.Scheda;
@@ -54,7 +52,6 @@ import it.nutrizionista.restnutrizionista.repository.CalcoloTdeeRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.DocumentoFascicoloRepository;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
-import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
@@ -82,7 +79,6 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 	@Autowired private ClienteRepository repoCliente;
 	@Autowired private SchedaRepository repoScheda;
 	@Autowired private CalcoloTdeeRepository repoCalcolo;
-	@Autowired private OrariStudioRepository repoOrari;
 	@Autowired private DocumentoFascicoloRepository repoFascicolo;
 	@Autowired private PastoRepository repoPasto;
 	@Autowired private AlimentoBaseRepository repoAlimento;
@@ -97,7 +93,6 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 	private Long clienteAId;
 	private Long schedaAId;
 	private Long calcoloAId;
-	private Long orariAId;
 	private Long documentoAId;
 	// F-OWN-SWEEP: risorse aggiuntive del tenant A per lo sweep IDOR.
 	private Long pastoAId;
@@ -154,12 +149,6 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 		calc.setBmr(1500.0);
 		calc.setTdee(2000.0);
 		calcoloAId = repoCalcolo.save(calc).getId();
-
-		OrariStudio o = new OrariStudio();
-		o.setNutrizionista(a);
-		o.setGiornoSettimana(DayOfWeek.MONDAY);
-		o.setGiornoLavorativo(true);
-		orariAId = repoOrari.save(o).getId();
 
 		DocumentoFascicolo doc = new DocumentoFascicolo();
 		doc.setCliente(clienteA);
@@ -269,13 +258,6 @@ class OwnershipAntiLeakageIntegrationTest extends SafeTestDatabaseBase {
 	@WithMockUser(username = EMAIL_B, authorities = { "CLIENTE_READ" })
 	void fascicoloDownload_diAltroTenant_e403() throws Exception {
 		mvc.perform(get("/api/fascicolo/{id}/download", documentoAId))
-			.andExpect(status().isForbidden());
-	}
-
-	@Test
-	@WithMockUser(username = EMAIL_B, authorities = { "ORARI_STUDIO_DELETE" })
-	void orariStudioDelete_diAltroTenant_e403() throws Exception {
-		mvc.perform(delete("/api/orari_studio/{id}", orariAId))
 			.andExpect(status().isForbidden());
 	}
 

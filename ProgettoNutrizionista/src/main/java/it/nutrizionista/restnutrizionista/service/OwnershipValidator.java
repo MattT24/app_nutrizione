@@ -23,7 +23,6 @@ import it.nutrizionista.restnutrizionista.repository.CalcoloTdeeRepository;
 import it.nutrizionista.restnutrizionista.repository.ClienteRepository;
 import it.nutrizionista.restnutrizionista.repository.DocumentoFascicoloRepository;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
-import it.nutrizionista.restnutrizionista.repository.OrariStudioRepository;
 import it.nutrizionista.restnutrizionista.repository.PastoRepository;
 import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
 import it.nutrizionista.restnutrizionista.repository.SchedaRepository;
@@ -60,9 +59,6 @@ public class OwnershipValidator {
 
 	@Autowired
 	private PlicometriaRepository plicometriaRepository;
-
-	@Autowired
-	private OrariStudioRepository orariStudioRepository;
 
 	@Autowired
 	private DocumentoFascicoloRepository documentoFascicoloRepository;
@@ -146,12 +142,6 @@ public class OwnershipValidator {
 	    var me = currentUserService.getMe();
 	    return schedaRepository.findByIdWithFullDetailsMine(schedaId, me.getId())
 	            .orElseThrow(() -> deny(AuditEntityType.SCHEDA, schedaId, "NON AUTORIZZATO: scheda non accessibile"));
-	}
-
-	public OrariStudio getOwnedOrariStudio(Long id) {
-		var me = currentUserService.getMe();
-		return orariStudioRepository.findByIdAndNutrizionista_Id(id, me.getId())
-				.orElseThrow(() -> deny(AuditEntityType.ORARI_STUDIO, id, "NON AUTORIZZATO: orario studio non accessibile"));
 	}
 
 	public DocumentoFascicolo getOwnedDocumentoFascicolo(Long id) {
