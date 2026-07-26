@@ -22,6 +22,7 @@ import it.nutrizionista.restnutrizionista.dto.SchedaDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaListItemDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaPreviewDto;
 import it.nutrizionista.restnutrizionista.dto.SchedaFormDto;
+import it.nutrizionista.restnutrizionista.enums.TemplatePdf;
 import it.nutrizionista.restnutrizionista.service.SchedaService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -130,8 +131,9 @@ public class SchedaController {
 	@GetMapping("/{id}/pdf")
 	@PreAuthorize("hasAuthority('SCHEDA_READ')")
 	public ResponseEntity<byte[]> getPdf(@PathVariable("id") Long id,
-			@org.springframework.web.bind.annotation.RequestParam(name = "macro", defaultValue = "true") boolean macro) {
-		byte[] pdf = service.exportPdf(id, macro);
+			@org.springframework.web.bind.annotation.RequestParam(name = "macro", defaultValue = "true") boolean macro,
+			@RequestParam(name = "template", required = false) TemplatePdf template) {
+		byte[] pdf = service.exportPdf(id, macro, template);
 		return ResponseEntity.ok()
 				.header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"scheda_" + id + ".pdf\"")
 				.contentType(MediaType.APPLICATION_PDF)

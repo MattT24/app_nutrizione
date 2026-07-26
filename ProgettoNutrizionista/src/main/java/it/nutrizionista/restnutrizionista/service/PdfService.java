@@ -11,6 +11,7 @@ import it.nutrizionista.restnutrizionista.entity.Scheda;
 import it.nutrizionista.restnutrizionista.entity.Sesso;
 import it.nutrizionista.restnutrizionista.entity.TipoScheda;
 import it.nutrizionista.restnutrizionista.enums.TemaPdf;
+import it.nutrizionista.restnutrizionista.enums.TemplatePdf;
 import it.nutrizionista.restnutrizionista.exception.UnprocessableEntityException;
 import it.nutrizionista.restnutrizionista.repository.MisurazioneAntropometricaRepository;
 import it.nutrizionista.restnutrizionista.repository.PlicometriaRepository;
@@ -224,15 +225,20 @@ public class PdfService {
 
     @Transactional(readOnly = true)
     public byte[] generaPdfScheda(Long id) {
-        return generaPdfScheda(id, true);
+        return generaPdfScheda(id, true, null);
     }
 
     @Transactional(readOnly = true)
     public byte[] generaPdfScheda(Long id, boolean mostraMacro) {
+        return generaPdfScheda(id, mostraMacro, null);
+    }
+
+    @Transactional(readOnly = true)
+    public byte[] generaPdfScheda(Long id, boolean mostraMacro, TemplatePdf template) {
         Scheda scheda = ownershipValidator.getOwnedScheda(id);
         forzaFetchScheda(scheda);
         assertDimensioneRenderizzabile(scheda);
-        return renderScheda(scheda, mostraMacro);
+        return renderScheda(scheda, mostraMacro, template);
     }
 
     /** Guardrail contro schede abnormi (vedi MAX_PASTI_PER_SCHEDA/MAX_ALIMENTI_TOTALI_SCHEDA):
@@ -276,7 +282,7 @@ public class PdfService {
         });
     }
 
-    byte[] renderScheda(Scheda scheda, boolean mostraMacro) {
+    byte[] renderScheda(Scheda scheda, boolean mostraMacro, TemplatePdf templateOverride) {
         List<Pasto> pastiOrdinati = scheda.getPasti().stream()
                 .sorted(Comparator.comparing((Pasto p) -> p.getGiorno() != null ? p.getGiorno().ordinal() : -1)
                         .thenComparing(Pasto::getOrdineVisualizzazione, Comparator.nullsLast(Comparator.naturalOrder())))
@@ -289,6 +295,7 @@ public class PdfService {
         context.setVariable("dataCreazione", PdfFormat.data(scheda.getDataCreazione()));
         context.setVariable("tipoLabel", settimanale ? "Settimanale" : "Giornaliero");
         context.setVariable("mostraMacro", mostraMacro);
+        context.setVariable("templateEssenziale", resolveTemplatePdf(scheda, templateOverride) == TemplatePdf.ESSENZIALE);
 
         Cliente cl = scheda.getCliente();
         String nome = cl != null && cl.getNome() != null ? cl.getNome() : "";
@@ -325,8 +332,19 @@ public class PdfService {
         aggiungiTotaliMacro(context, pastiOrdinati);
 
         if (scheda.getCliente() != null) addProfessionalHeaderData(context, scheda.getCliente());
-        String template = settimanale ? "pdf/scheda_settimanale" : "pdf/scheda_giornaliera";
-        return renderPdf(templateEngine.process(template, context));
+        String templateName = settimanale ? "pdf/scheda_settimanale" : "pdf/scheda_giornaliera";
+        return renderPdf(templateEngine.process(templateName, context));
+    }
+
+    /** Risolve il template PDF da usare: l'override esplicito (query param) vince; altrimenti la preferenza
+     *  di default salvata sul nutrizionista; altrimenti DETTAGLIATO. Centralizzato qui (non nei chiamanti)
+     *  così condivisione email e fascicolo ereditano automaticamente la preferenza senza essere modificati. */
+    TemplatePdf resolveTemplatePdf(Scheda scheda, TemplatePdf override) {
+        if (override != null) return override;
+        Cliente cliente = scheda.getCliente();
+        var nutrizionista = cliente != null ? cliente.getNutrizionista() : null;
+        TemplatePdf preferito = nutrizionista != null ? nutrizionista.getTemplatePdfPreferito() : null;
+        return preferito != null ? preferito : TemplatePdf.DETTAGLIATO;
     }
 
     /** View-model di un pasto: nome, orario, alimenti (con nome-override, quantità e alternative). */
@@ -397,9 +415,9 @@ public class PdfService {
 
         context.setVariable("kcalTot", PdfFormat.num((double) Math.round(kcal)));
         context.setVariable("macro", List.of(
-                macroRow("Proteine", "#3b82f6", prot, pctProt),
-                macroRow("Carboidrati", "#f59e0b", carb, pctCarb),
-                macroRow("Grassi", "#8b5cf6", grassi, pctGrassi)
+                macroRow("Proteine", "#C1552F", prot, pctProt),
+                macroRow("Carboidrati", "#D3A03B", carb, pctCarb),
+                macroRow("Grassi", "#6C5A88", grassi, pctGrassi)
         ));
         context.setVariable("fibreG", PdfFormat.num((double) Math.round(fibre)));
 
@@ -407,7 +425,7 @@ public class PdfService {
         List<Map<String, Object>> segs = new ArrayList<>();
         double offset = 0;
         for (int[] pc : new int[][]{{pctProt, 0}, {pctCarb, 1}, {pctGrassi, 2}}) {
-            String color = pc[1] == 0 ? "#3b82f6" : pc[1] == 1 ? "#f59e0b" : "#8b5cf6";
+            String color = pc[1] == 0 ? "#C1552F" : pc[1] == 1 ? "#D3A03B" : "#6C5A88";
             Map<String, Object> s = new LinkedHashMap<>();
             s.put("color", color);
             s.put("len", pc[0]);
