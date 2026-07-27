@@ -60,17 +60,6 @@ public class LegacySecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/uploads/loghi/**").permitAll()
-                .requestMatchers(
-                        "/v3/api-docs",
-                        "/v3/api-docs/**",
-                        "/swagger-ui/**",
-                        "/swagger-ui.html",
-                        "/swagger-resources",
-                        "/swagger-resources/**",
-                        "/configuration/ui",
-                        "/configuration/security",
-                        "/webjars/**"
-                    ).permitAll()
                 // Difesa in profondità: gli endpoint admin richiedono SUPER_ADMIN già a livello di filter chain,
                 // oltre a @PreAuthorize sul controller.
                 .requestMatchers("/api/admin/**").hasAuthority("SUPER_ADMIN")

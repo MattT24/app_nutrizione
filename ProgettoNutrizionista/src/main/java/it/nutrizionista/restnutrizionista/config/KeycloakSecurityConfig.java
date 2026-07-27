@@ -113,13 +113,7 @@ public class KeycloakSecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/uploads/loghi/**").permitAll()
-                .requestMatchers(
-                        "/oauth2/**", "/login/**", "/logout/**",
-                        "/v3/api-docs", "/v3/api-docs/**",
-                        "/swagger-ui/**", "/swagger-ui.html",
-                        "/swagger-resources", "/swagger-resources/**",
-                        "/configuration/ui", "/configuration/security", "/webjars/**"
-                    ).permitAll()
+                .requestMatchers("/oauth2/**", "/login/**", "/logout/**").permitAll()
                 // Difesa in profondità (invariata): admin richiede SUPER_ADMIN già a livello di chain.
                 .requestMatchers("/api/admin/**").hasAuthority("SUPER_ADMIN")
                 .anyRequest().authenticated()
