@@ -45,7 +45,7 @@ jobs:
       # surefire — più robuste dei -D, non garantiti al fork). ⚠️ Il DRIVER va sovrascritto: i props di
       # test forzano org.h2.Driver → contro un URL jdbc:tc:mysql: Hikari darebbe acceptsURL=false.
       # username/password = default del container MySQL Testcontainers.
-      SPRING_DATASOURCE_URL: jdbc:tc:mysql:8.0:///statera_test
+      SPRING_DATASOURCE_URL: jdbc:tc:mysql:8.4:///statera_test   # 8.4 = versione MySQL dell'add-on Clever Cloud (parità prod reale)
       SPRING_DATASOURCE_DRIVER_CLASS_NAME: org.testcontainers.jdbc.ContainerDatabaseDriver
       SPRING_DATASOURCE_USERNAME: test
       SPRING_DATASOURCE_PASSWORD: test
