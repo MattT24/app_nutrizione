@@ -87,7 +87,7 @@ public class AlimentoAlternativo {
     /**
      * Se true, la quantità è stata impostata manualmente e non viene ricalcolata automaticamente
      */
-    @Column(nullable = false)
+    @Column(name = "`manual`", nullable = false)   // reserved word MySQL 8.4 → Hibernate quota per dialetto
     private Boolean manual = false;
 
     /**

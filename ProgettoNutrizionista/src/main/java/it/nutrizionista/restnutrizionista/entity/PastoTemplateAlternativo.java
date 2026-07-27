@@ -41,7 +41,7 @@ public class PastoTemplateAlternativo {
 	@Enumerated(EnumType.STRING)
 	private AlternativeMode mode = AlternativeMode.CALORIE;
 
-	@Column(name = "manual", nullable = false)
+	@Column(name = "`manual`", nullable = false)   // reserved word MySQL 8.4 → Hibernate quota per dialetto
 	private Boolean manual = true;
 
 	@Column(name = "note", length = 500)
